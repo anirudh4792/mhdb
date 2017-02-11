@@ -1,0 +1,156 @@
+#!/usr/bin/env python
+"""
+This is a program to create an ArangoDB database.
+
+First install:
+- Set up ArangoDB on AWS: https://docs.arangodb.com/3.1/cookbook/Cloud/Aws.html
+- ArangoDB: https://www.arangodb.com/download/
+- python-arango: pip install python-arango
+
+Example command::
+
+    ./create_mhdb mhdb -n myGraph -f myGraph.csv -u admin -p '' \
+        -s ec2-00-000-000-00.compute-1.amazonaws.com
+
+Authors:
+    - Arno Klein, 2017  (arno@childmind.org)  http://binarybottle.com
+
+Copyright 2017, Child Mind Institute (http://childmind.org), Apache v2.0 License
+
+"""
+import argparse
+import pandas as pd
+from arango import ArangoClient
+
+from mhdb_io import dataframe2tree
+
+# ------------------------------------------------------------------------------
+# Setup
+# ------------------------------------------------------------------------------
+port = 8529
+overwrite_database = False
+overwrite_graph = True
+import_table = True
+nlevels = 6
+
+# ------------------------------------------------------------------------------
+# Debug
+# ------------------------------------------------------------------------------
+debugit = False
+if debugit:
+    DB = 'mhdb'
+    name = 'DSM5'
+    table_file = '/data/mhdb/DSM5.csv'
+    username = 'root'
+    password = ''
+    server = 'ec2-54-208-169-87.compute-1.amazonaws.com'
+
+# ------------------------------------------------------------------------------
+# Command-line arguments
+# ------------------------------------------------------------------------------
+else:
+    parser = argparse.ArgumentParser(description="""
+                        This program creates an ArangoDB database.""",
+                                     formatter_class = lambda prog:
+                                     argparse.HelpFormatter(prog,
+                                                            max_help_position=40))
+    rec_args = parser.add_argument_group('recommended arguments')
+
+    # "positional arguments":
+    parser.add_argument("DB", help=("database name"))
+    # "optional arguments":
+    parser.add_argument("-n", "--graph_name", help="name of graph",
+                        default='nodes', metavar='STR')
+    parser.add_argument("-f", "--table_file", help="name of table file",
+                        metavar='STR')
+    parser.add_argument("-u", "--username",
+                        help='server username', default='admin', metavar='STR')
+    parser.add_argument("-p", "--password",
+                        help='server password', metavar='STR')
+    parser.add_argument("-s", "--server",
+                        help='server endpoint',
+                        default='tcp://ec2-54-208-169-87.compute-1.amazonaws.com:8529',
+                        metavar='STR')
+    args = parser.parse_args()
+
+    DB = args.DB
+    name = args.graph_name
+    table_file = args.table_file
+    username = args.username
+    password = args.password
+    server = args.server
+
+# ------------------------------------------------------------------------------
+# Initialize the client for ArangoDB
+# ------------------------------------------------------------------------------
+client = ArangoClient(
+    protocol='http',
+    host=server,
+    port=port,
+    username=username,
+    password=password,
+    enable_logging=True
+)
+
+# ------------------------------------------------------------------------------
+# Database
+# ------------------------------------------------------------------------------
+if overwrite_database:
+    client.delete_database(DB)
+    db = client.create_database(DB)
+else:
+    db = client.db(DB)
+
+# Create user with access to database:
+#client.create_user(username, password)
+#client.grant_user_access(username, DB)
+
+# ------------------------------------------------------------------------------
+# Import table as collection of nodes/documents
+# ------------------------------------------------------------------------------
+# if import_table:
+#     cmd = ['arangoimp',
+#            '--file', table_file, '--type', 'csv',
+#            '--collection', table_name, '--create-collection', 'true',
+#            '--server.database', DB,
+#            '--server.username', username,
+#            '--server.password', password,
+#            '--server.endpoint', 'tcp://' + server + ':' + str(port),
+#            '--progress', 'true']
+#     type = 'subprocess'
+#     execute(cmd, type)
+
+# ------------------------------------------------------------------------------
+# Create hierarchical graph
+# ------------------------------------------------------------------------------
+if import_table:
+
+    df = pd.read_csv(table_file)
+
+tree = dataframe2tree(db=db, df=df, nlevels=nlevels, name=name,
+                      overwrite_graph=overwrite_graph)
+
+# Execute an AQL query
+#result = db.aql.execute('FOR s IN nodes RETURN s')
+#print([node['name'] for node in result])
+
+
+# ------------------------------------------------------------------------------
+# Retrieve collection information
+# ------------------------------------------------------------------------------
+# Iterate through all documents and update
+#for node in nodes:
+#    node['field1'] = True
+#    node['field2'] = 'whole'
+#    node.update(node)
+
+#arangoimp --file "/desk/dsm5_edges.csv" --type csv --collection "dsm5_edges" --from-collection-prefix “dsm5” --to-collection-prefix
+#“dsm5” --progress true --server.database "mhdb" --server.username root --server.password i-072ba0a361df91cb1 --overwrite true --server.endpoint tcp://ec2-54-208-169-87.compute-1.amazonaws.com:8529
+
+
+# ============================================================================
+# Doctests
+# ============================================================================
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod(verbose=True)
