@@ -42,7 +42,10 @@ def dataframe2tree(db, df, nlevels, name='graph', overwrite_graph=True):
     # Overwrite/access graph
     # --------------------------------------------------------------------------
     if overwrite_graph:
-        db.delete_graph(name)
+        try:
+            db.delete_graph(name)
+        except:
+            pass
     try:
         tree = db.create_graph(name)
     except:
@@ -62,7 +65,10 @@ def dataframe2tree(db, df, nlevels, name='graph', overwrite_graph=True):
         node_set_name = pattern.sub('', column_name)
         node_sets.append(node_set_name)
         if overwrite_graph:
-            db.delete_collection(node_set_name)
+            try:
+                db.delete_collection(node_set_name)
+            except:
+                pass
         try:
             nodes = tree.create_vertex_collection(node_set_name)
             for element in unique_column:
