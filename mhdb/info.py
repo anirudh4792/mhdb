@@ -6,7 +6,7 @@ In setup.py we execute this file, so it cannot import the package.
 """
 
 # Format expected by setup.py and doc/source/conf.py: string of form "X.Y.Z"
-from mhdb.version import __version__ as __version__
+__version__ = '0.1.0'
 
 CLASSIFIERS = ["Development Status :: Beta",
                "Environment :: Console",

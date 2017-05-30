@@ -9,14 +9,27 @@ Copyright 2017, Child Mind Institute (http://childmind.org), Apache v2.0 License
 
 """
 
-base_uri = "http://www.purl.org/mentalhealth"
-version = "1.0.0"
-label = "Ontology of Mental & Psychiatric Health"
-comment = "This ontology relates mental health disorders, " \
-          "symptoms, questionnaires, publications, people, " \
-          "and technologies."
 
 def print_header(base_uri, version, label, comment):
+    """
+
+    Parameters
+    ----------
+    base_uri : string
+        base URI
+    version : string
+        version
+    label : string
+        label
+    comment : string
+        comment
+
+    Returns
+    -------
+    header : string
+        owl header
+
+    """
 
     header = """
 @prefix : <{0}#> .
@@ -71,13 +84,40 @@ def print_general_axioms_header():
 
 
 def print_object_property(base_uri, property_name, domain='', range=''):
+    """
+    Prints output like::
+
+        ###  http://www.purl.org/mentalhealth#expectsAnswerType
+        :expectsAnswerType rdf:type owl:ObjectProperty ;
+                           rdfs:subPropertyOf :relational_property ;
+                           rdf:type owl:FunctionalProperty ;
+                           rdfs:domain :Question ;
+                           rdfs:range :AnswerType .
+
+    Parameters
+    ----------
+    base_uri : string
+        base URI
+    property_name : string
+        property name
+    domain : list of strings
+        domain
+    range : list of strings
+        range
+
+    Returns
+    -------
+    object_property_string : string
+        owl object property
+
+    """
 
     object_property_string = """
 ###  {0}#{1}
 :{1} rdf:type owl:ObjectProperty ;
      rdfs:subPropertyOf :relational_property ;
      rdf:type owl:FunctionalProperty
-""".format(base_uri, property_name, domain_string, range_string)
+""".format(base_uri, property_name, domain, range)
 
     if domain:
         object_property_string += """;
@@ -93,6 +133,21 @@ def print_object_property(base_uri, property_name, domain='', range=''):
 
 
 def print_data_property(base_uri, property_name):
+    """
+
+    Parameters
+    ----------
+    base_uri : string
+        base URI
+    property_name : string
+        property name
+
+    Returns
+    -------
+    data_property_string : string
+        owl data property
+
+    """
 
     data_property_string = """
 ###  {0}#{1}
@@ -102,11 +157,30 @@ def print_data_property(base_uri, property_name):
     return data_property_string
 
 
-def print_class(base_uri, class_name, equivalentURI, subClassOf_name):
+def print_class(base_uri, class_name, equivalentURI='', subClassOf_name=''):
+    """
+
+    Parameters
+    ----------
+    base_uri : string
+        base URI
+    class_name : string
+        class name
+    equivalentURI : string
+        equivalent URI
+    subClassOf_name : string
+        subClassOf name
+
+    Returns
+    -------
+    class_string : string
+        owl class
+
+    """
 
     class_string = """
 ###  {0}#{1}
-:{1} rdf:type owl:Class """
+:{1} rdf:type owl:Class """.format(base_uri, class_name)
 
     if equivalentURI:
         class_string += """;
@@ -122,10 +196,25 @@ def print_class(base_uri, class_name, equivalentURI, subClassOf_name):
     return class_string
 
 
-def print_general_axioms(disjoint_classes_list):
+def print_general_axioms(disjoint_classes_list=[]):
+    """
+
+    Parameters
+    ----------
+    disjoint_classes_list : list of strings
+        list of disjoint classes
+
+    Returns
+    -------
+    general_axioms_string : string
+        owl general axioms
+
+    """
+
+    general_axioms_string = ""
 
     if disjoint_classes_list:
-        general_axioms_string = """
+        general_axioms_string += """
 [ rdf:type owl:AllDisjointClasses ;
   owl:members ( :{0} """.format(disjoint_classes_list[0])
 

@@ -8,9 +8,19 @@ Authors:
 Copyright 2017, Child Mind Institute (http://childmind.org), Apache v2.0 License
 
 """
+import os
 import argparse
 import pandas as pd
 import rdflib
+
+from mhdb.info import __version__ as version
+from mhdb.info import long_description as comment
+from mhdb.info import description as label
+from mhdb.owl_boilerplate import print_header, \
+    print_object_properties_header, print_data_properties_header, \
+    print_classes_header, print_general_axioms_header, \
+    print_object_property, print_data_property, print_class, \
+    print_general_axioms
 
 # ------------------------------------------------------------------------------
 # Command-line arguments
@@ -18,10 +28,11 @@ import rdflib
 debug = True
 if debug:
     FILE = '/data/mentalhealth.xlsx'
-    baseurl = 'purl.com/mentalhealth'
+    base_uri = "http://www.purl.org/mentalhealth"
+    outfile = os.path.join(os.getcwd(), 'mhdb.ttl')
 else:
     parser = argparse.ArgumentParser(description="""
-                        This program converts a mental health spreadsheet to RDF.""",
+                This program converts a mental health spreadsheet to RDF.""",
                                      formatter_class = lambda prog:
                                      argparse.HelpFormatter(prog,
                                                             max_help_position=40))
@@ -30,11 +41,14 @@ else:
     # "positional arguments":
     parser.add_argument("FILE", help=("spreadsheet file path"))
     # "optional arguments":
-    parser.add_argument("-b", "--baseurl", help="name of base URL",
-                        default='purl.com/mentalhealth', metavar='STR')
+    parser.add_argument("-b", "--base_uri", help="name of base URL",
+                        default='http://purl.com/mentalhealth', metavar='STR')
+    parser.add_argument("-o", "--outfile", help="name of output file",
+                        default=os.path.join(os.getcwd(), 'mhdb.ttl'),
+                        metavar='STR')
     args = parser.parse_args()
     FILE = args.FILE
-    baseurl = args.baseurl
+    base_uri = args.base_uri
 
 # ------------------------------------------------------------------------------
 # Import spreadsheet
@@ -42,55 +56,155 @@ else:
 xls = pd.ExcelFile(FILE)
 
 # ------------------------------------------------------------------------------
+# Create output RDF file and print header
+# ------------------------------------------------------------------------------
+fid = open(outfile, 'w')
+header_string = print_header(base_uri, version, label, comment)
+fid.write(header_string)
+
+# ------------------------------------------------------------------------------
 # Extract worksheets as pandas dataframes
 # ------------------------------------------------------------------------------
+Classes = xls.parse("Classes")
+Properties = xls.parse("Properties")
+
 Disorder = xls.parse("Disorder")
-DisorderInOrExclusionCriterion = xls.parse("DisorderInOrExclusionCriterion")
+DiagnosticCriterion = xls.parse("DiagnosticCriterion")
 DisorderSeverity = xls.parse("DisorderSeverity")
-DisorderCategory = xls.parse("DisorderCategory")
-DisorderSubcategory = xls.parse("DisorderSubcategory")
-DisorderSubsubcategory = xls.parse("DisorderSubsubcategory")
-DisorderSubsubsubcategory = xls.parse("DisorderSubsubsubcategory")
-DisorderType = xls.parse("DisorderType")
+DisorderCategory0 = xls.parse("DisorderCategory")
+DisorderCategory1 = xls.parse("DisorderSubcategory")
+DisorderCategory2 = xls.parse("DisorderSubsubcategory")
+DisorderCategory3 = xls.parse("DisorderSubsubsubcategory")
+DiagnosticSpecifier = xls.parse("DiagnosticSpecifier")
+
 Symptom = xls.parse("Symptom")
 SymptomCategory = xls.parse("SymptomCategory")
-Source = xls.parse("Source")
-SourceType = xls.parse("SourceType")
+
+Reference = xls.parse("Reference")
+ReferenceType = xls.parse("ReferenceType")
+
+Questionnaire = xls.parse("Questionnaire")
 Question = xls.parse("Question")
 QuestionCategory = xls.parse("QuestionCategory")
-Questionnaire = xls.parse("Questionnaire")
 AnswerType = xls.parse("AnswerType")
 ChildMindInstituteCategory = xls.parse("ChildMindInstituteCategory")
 
-# ------------------------------------------------------------------------------
-# Loop through rows of Disorder worksheet
-# ------------------------------------------------------------------------------
-for index in Disorder.index:
+# ------------------------------------------------------------------------
+# Print object properties
+# ------------------------------------------------------------------------
+object_properties_header = print_object_properties_header()
+fid.write(object_properties_header)
+for i, object_property_name in enumerate(Properties.PropertyName):
+    property_definition = Properties.Definition.iloc[[i][0]]
+    if not np.isnan(property_definition):
+        ipropdefref = Properties.DefinitionReference_index.iloc[[i][0]]
+        if not np.isnan(ipropdefref):
+            property_definitionreference = Reference.ReferenceName.iloc[[ipropdefref][0]]
+    property_equivalentClass = Properties.equivalentClass.iloc[[i][0]]
+    property_subClassOf = Properties.subClassOf.iloc[[i][0]]
+    property_domain = Properties.propertyDomain.iloc[[i][0]]
+    property_range = Properties.propertyRange.iloc[[i][0]]
 
-    i = index - 1
+    object_property_string = print_object_property(base_uri,
+                                property_name=object_property_name,
+                                domain=property_domain,
+                                range=property_range)
+    fid.write(object_property_string)
 
-    disorder = Disorder.DisorderName.iloc[[i]]
-    ICD9 = Disorder.ICD9code.iloc[[i]]
-    ICD10 = Disorder.ICD10code.iloc[[i]]
-    note = Disorder.DisorderNote.iloc[[i]]
+# ------------------------------------------------------------------------
+# Print data properties
+# ------------------------------------------------------------------------
+data_properties_header = print_data_properties_header()
+fid.write(data_properties_header)
+for i, data_property_name in enumerate(Classes.ClassName):
+    class_definition = Classes.Definition.iloc[[i][0]]
+    if not np.isnan(class_definition):
+        iclassdefref = Classes.DefinitionReference_index.iloc[[i][0]]
+        if not np.isnan(iclassdefref):
+            class_definitionreference = Reference.ReferenceName.iloc[[iclassdefref][0]]
+    class_equivalentClass = Classes.equivalentClass.iloc[[i][0]]
+    class_subClassOf = Classes.subClassOf.iloc[[i][0]]
 
-    icategory0 = Disorder.DisorderCategory_index.iloc[[i]]
-    icategory1 = Disorder.DisorderSubcategory_index.iloc[[i]]
-    icategory2 = Disorder.DisorderSubsubcategory_index.iloc[[i]]
-    icategory3 = Disorder.DisorderSubsubsubcategory_index.iloc[[i]]
-    idisordertype = Disorder.DisorderType_index.iloc[[i]]
-    iinclusion = Disorder.DisorderInclusionCriterion_index.iloc[[i]]
-    iexclusion = Disorder.DisorderExclusionCriterion_index.iloc[[i]]
-    iseverity = Disorder.DisorderSeverity_index.iloc[[i]]
+    data_property_string = print_data_property(base_uri, data_property_name)
+    fid.write(data_property_string)
 
-    category = DisorderCategory.DisorderCategoryName[icategory0]
-    subcategory = DisorderSubcategory.DisorderSubcategoryName[icategory1]
-    subsubcategory = DisorderSubsubcategory.DisorderSubsubcategoryName[icategory2]
-    subsubsubcategory = DisorderSubsubsubcategory.DisorderSubsubsubcategoryName[icategory3]
-    disordertype = DisorderType.DisorderTypeName[idisordertype]
-    inclusion = DisorderType.DisorderTypeName[iinclusion]
-    exclusion = DisorderType.DisorderTypeName[iexclusion]
-    severity = DisorderSeverity.DisorderSeverityName[iseverity]
+# ----------------------------------------------------------------------------
+# Print classes
+# ----------------------------------------------------------------------------
+classes_header = print_classes_header()
+fid.write(classes_header)
+for i, disorder in enumerate(Disorder.DisorderName):
+
+    # Disorder worksheet columns:
+    ICD9 = Disorder.ICD9code.iloc[[i][0]]
+    ICD10 = Disorder.ICD10code.iloc[[i][0]]
+    note = Disorder.DisorderNote.iloc[[i][0]]
+
+    # Disorder worksheet columns that are indices to other worksheets:
+    i0 = Disorder.DisorderCategory_index.iloc[[i][0]]
+    i1 = Disorder.DisorderSubcategory_index.iloc[[i][0]]
+    i2 = Disorder.DisorderSubsubcategory_index.iloc[[i][0]]
+    i3 = Disorder.DisorderSubsubsubcategory_index.iloc[[i][0]]
+    ispecifier = Disorder.DiagnosticSpecifier_index.iloc[[i][0]]
+    iinclusion1 = Disorder.DiagnosticInclusionCriterion_index.iloc[[i][0]]
+    iinclusion2 = Disorder.DiagnosticInclusionCriterion2_index.iloc[[i][0]]
+    iexclusion1 = Disorder.DiagnosticExclusionCriterion_index.iloc[[i][0]]
+    iexclusion2 = Disorder.DiagnosticExclusionCriterion2_index.iloc[[i][0]]
+    iseverity = Disorder.DisorderSeverity_index.iloc[[i][0]]
+
+    # Disorder-related worksheet columns:
+    try:
+        category0 = DisorderCategory0.DisorderCategoryName[i0]
+    except:
+        print('')
+    try:
+        category1 = DisorderCategory1.DisorderSubcategoryName[i1]
+    except:
+        print('')
+    try:
+        category2 = DisorderCategory2.DisorderSubsubcategoryName[i2]
+    except:
+        print('')
+    try:
+        category3 = DisorderCategory3.DisorderSubsubsubcategoryName[i3]
+    except:
+        print('')
+    try:
+        specifier = DiagnosticSpecifier.DiagnosticSpecifierName[ispecifier]
+    except:
+        print('')
+    try:
+        inclusion1 = DiagnosticCriterion.DiagnosticCriterionName[iinclusion1]
+    except:
+        print('')
+    try:
+        inclusion2 = DiagnosticCriterion.DiagnosticCriterionName[iinclusion2]
+    except:
+        print('')
+    try:
+        exclusion1 = DiagnosticCriterion.DiagnosticCriterionName[iexclusion1]
+    except:
+        print('')
+    try:
+        exclusion2 = DiagnosticCriterion.DiagnosticCriterionName[iexclusion2]
+    except:
+        print('')
+    try:
+        severity = DisorderSeverity.DisorderSeverityName[iseverity]
+    except:
+        print('')
+
+    class_string = print_class(base_uri, class_name=disorder,
+                               equivalentURI='', subClassOf_name='')
+    fid.write(class_string)
+
+# ----------------------------------------------------------------------------
+# Print general axioms
+# ----------------------------------------------------------------------------
+general_axioms_header = print_general_axioms_header()
+general_axioms_string = print_general_axioms(disjoint_classes_list=[])
+fid.write(general_axioms_header)
+fid.write(general_axioms_string)
 
 # ============================================================================
 # Doctests
