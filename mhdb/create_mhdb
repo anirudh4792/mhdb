@@ -199,8 +199,10 @@ for i, disorder in enumerate(Disorder.DisorderName):
     except:
         pass
 
+    # Use ICD-10 code's URI as an equivalentURI:
+    ICD10code_uri = "http://purl.bioontology.org/ontology/ICD10CM/" + ICD10
     class_string = print_class(base_uri, class_name=disorder,
-                               equivalentURI='', subClassOf_name='')
+                               equivalentURI=ICD10code_uri, subClassOf_name='')
     fid.write(class_string)
 
 # ----------------------------------------------------------------------------
