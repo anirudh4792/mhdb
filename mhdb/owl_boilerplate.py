@@ -10,6 +10,28 @@ Copyright 2017, Child Mind Institute (http://childmind.org), Apache v2.0 License
 """
 
 
+def convert_string_to_label(input_string):
+    """
+
+    Parameters
+    ----------
+    input_string : string
+        input string
+
+    Returns
+    -------
+    output_string : string
+        output string
+
+    """
+
+    keep_chars = ('-', '.', '_')
+    output_string = "".join(c for c in input_string if c.isalnum()
+                            or c in keep_chars).rstrip()
+
+    return output_string
+
+
 def print_header(base_uri, version, label, comment):
     """
 
@@ -41,10 +63,10 @@ def print_header(base_uri, version, label, comment):
 @base <{0}> .
 
 <{0}> rdf:type owl:Ontology ;
-                                    owl:versionIRI <{0}/{1}> ;
-                                    rdfs:label "{2}"^^rdfs:Literal ;
-                                    owl:versionInfo "{1}"^^rdfs:Literal ;
-                                    rdfs:comment "{3}"^^rdfs:Literal .
+    owl:versionIRI <{0}/{1}> ;
+    rdfs:label "{2}"^^rdfs:Literal ;
+    owl:versionInfo "{1}"^^rdfs:Literal ;
+    rdfs:comment "{3}"^^rdfs:Literal .
 
 """.format(base_uri, version, label, comment)
 
@@ -55,30 +77,6 @@ def print_object_properties_header():
     return """
 #################################################################
 #    Object Properties
-#################################################################
-"""
-
-
-def print_data_properties_header():
-    return """
-#################################################################
-#    Data properties
-#################################################################
-"""
-
-
-def print_classes_header():
-    return """
-#################################################################
-#    Classes
-#################################################################
-"""
-
-
-def print_general_axioms_header():
-    return """
-#################################################################
-#    General axioms
 #################################################################
 """
 
@@ -111,13 +109,16 @@ def print_object_property(base_uri, property_name, domain='', range=''):
         owl object property
 
     """
+    from mhdb.owl_boilerplate import convert_string_to_label
+
+    property_name_safe = convert_string_to_label(property_name)
 
     object_property_string = """
 ###  {0}#{1}
 :{1} rdf:type owl:ObjectProperty ;
-     rdfs:subPropertyOf :relational_property ;
-     rdf:type owl:FunctionalProperty
-""".format(base_uri, property_name, domain, range)
+    rdfs:subPropertyOf :relational_property ;
+    rdf:type owl:FunctionalProperty """.format(base_uri, property_name_safe,
+                                               domain, range)
 
     if domain:
         object_property_string += """;
@@ -127,9 +128,18 @@ def print_object_property(base_uri, property_name, domain='', range=''):
         object_property_string += """;
      rdfs:range :{0} """.format(range)
 
-    object_property_string += ".";
+    object_property_string += """.
+""";
 
     return object_property_string
+
+
+def print_data_properties_header():
+    return """
+#################################################################
+#    Data properties
+#################################################################
+"""
 
 
 def print_data_property(base_uri, property_name):
@@ -148,13 +158,24 @@ def print_data_property(base_uri, property_name):
         owl data property
 
     """
+    from mhdb.owl_boilerplate import convert_string_to_label
+
+    property_name_safe = convert_string_to_label(property_name)
 
     data_property_string = """
 ###  {0}#{1}
-<{0}> rdf:type owl:DatatypeProperty .
-""".format(base_uri, property_name)
+:{1} rdf:type owl:DatatypeProperty .
+""".format(base_uri, property_name_safe)
 
     return data_property_string
+
+
+def print_classes_header():
+    return """
+#################################################################
+#    Classes
+#################################################################
+"""
 
 
 def print_class(base_uri, class_name, equivalentURI='', subClassOf_name=''):
@@ -177,10 +198,13 @@ def print_class(base_uri, class_name, equivalentURI='', subClassOf_name=''):
         owl class
 
     """
+    from mhdb.owl_boilerplate import convert_string_to_label
+
+    class_name_safe = convert_string_to_label(class_name)
 
     class_string = """
 ###  {0}#{1}
-:{1} rdf:type owl:Class """.format(base_uri, class_name)
+:{1} rdf:type owl:Class """.format(base_uri, class_name_safe)
 
     if equivalentURI:
         class_string += """;
@@ -191,9 +215,18 @@ def print_class(base_uri, class_name, equivalentURI='', subClassOf_name=''):
         class_string += """;
         rdfs:subClassOf :{0} """.format(subClassOf_name)
 
-    class_string += "."
+    class_string += """.
+"""
 
     return class_string
+
+
+def print_general_axioms_header():
+    return """
+#################################################################
+#    General axioms
+#################################################################
+"""
 
 
 def print_general_axioms(disjoint_classes_list=[]):

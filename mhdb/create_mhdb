@@ -11,6 +11,7 @@ Copyright 2017, Child Mind Institute (http://childmind.org), Apache v2.0 License
 import os
 import argparse
 import pandas as pd
+import numpy as np
 import rdflib
 
 from mhdb.info import __version__ as version
@@ -27,7 +28,7 @@ from mhdb.owl_boilerplate import print_header, \
 # ------------------------------------------------------------------------------
 debug = True
 if debug:
-    FILE = '/data/mentalhealth.xlsx'
+    FILE = '/desk/mentalhealth.xlsx'
     base_uri = "http://www.purl.org/mentalhealth"
     outfile = os.path.join(os.getcwd(), 'mhdb.ttl')
 else:
@@ -104,6 +105,10 @@ for i, object_property_name in enumerate(Properties.PropertyName):
     property_subClassOf = Properties.subClassOf.iloc[[i][0]]
     property_domain = Properties.propertyDomain.iloc[[i][0]]
     property_range = Properties.propertyRange.iloc[[i][0]]
+    if property_domain != 'nan':
+        property_domain = ''
+    if property_range != 'nan':
+        property_range = ''
 
     object_property_string = print_object_property(base_uri,
                                 property_name=object_property_name,
@@ -156,43 +161,43 @@ for i, disorder in enumerate(Disorder.DisorderName):
     try:
         category0 = DisorderCategory0.DisorderCategoryName[i0]
     except:
-        print('')
+        pass
     try:
         category1 = DisorderCategory1.DisorderSubcategoryName[i1]
     except:
-        print('')
+        pass
     try:
         category2 = DisorderCategory2.DisorderSubsubcategoryName[i2]
     except:
-        print('')
+        pass
     try:
         category3 = DisorderCategory3.DisorderSubsubsubcategoryName[i3]
     except:
-        print('')
+        pass
     try:
         specifier = DiagnosticSpecifier.DiagnosticSpecifierName[ispecifier]
     except:
-        print('')
+        pass
     try:
         inclusion1 = DiagnosticCriterion.DiagnosticCriterionName[iinclusion1]
     except:
-        print('')
+        pass
     try:
         inclusion2 = DiagnosticCriterion.DiagnosticCriterionName[iinclusion2]
     except:
-        print('')
+        pass
     try:
         exclusion1 = DiagnosticCriterion.DiagnosticCriterionName[iexclusion1]
     except:
-        print('')
+        pass
     try:
         exclusion2 = DiagnosticCriterion.DiagnosticCriterionName[iexclusion2]
     except:
-        print('')
+        pass
     try:
         severity = DisorderSeverity.DisorderSeverityName[iseverity]
     except:
-        print('')
+        pass
 
     class_string = print_class(base_uri, class_name=disorder,
                                equivalentURI='', subClassOf_name='')
