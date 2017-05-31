@@ -32,6 +32,38 @@ def convert_string_to_label(input_string):
     return output_string
 
 
+def get_definition(Worksheet, Reference, index, exclude=[]):
+    """
+
+    Parameters
+    ----------
+    Worksheet : pandas dataframe
+        worksheet containing "Definition" and
+        "DefinitionReference" columns
+    index : integer
+        worksheet row index
+    exclude : list
+        exclusion list
+
+    Returns
+    -------
+    definition_string : string
+        output definition string
+
+    """
+
+    definition = Worksheet.Definition.iloc[[index][0]]
+    if definition in exclude:
+        definition = ''
+    else:
+        try:
+            iref = Worksheet.DefinitionReference_index.iloc[[index][0]]
+            ref = Reference.ReferenceName.iloc[[iref][0]]
+            definition += " [{0}]".format(ref)
+        except:
+            pass
+
+
 def print_header(base_uri, version, label, comment):
     """
 
@@ -81,11 +113,12 @@ def print_object_properties_header():
 """
 
 
-def print_object_property(base_uri, property_name, domain='', range=''):
+def print_object_property(property_name, label='', comment='',
+                          equivalentURI='', subClassOf_uri='',
+                          domain='', range='', exclude=[]):
     """
     Prints output like::
 
-        ###  http://www.purl.org/mentalhealth#expectsAnswerType
         :expectsAnswerType rdf:type owl:ObjectProperty ;
                            rdfs:subPropertyOf :relational_property ;
                            rdf:type owl:FunctionalProperty ;
@@ -94,10 +127,16 @@ def print_object_property(base_uri, property_name, domain='', range=''):
 
     Parameters
     ----------
-    base_uri : string
-        base URI
     property_name : string
         property name
+    label : string
+        label
+    comment : string
+        comment
+    equivalentURI : string
+        equivalent URI
+    subClassOf_uri : string
+        subClassOf URI
     domain : list of strings
         domain
     range : list of strings
@@ -109,27 +148,40 @@ def print_object_property(base_uri, property_name, domain='', range=''):
         owl object property
 
     """
-    from mhdb.owl_boilerplate import convert_string_to_label
-
-    property_name_safe = convert_string_to_label(property_name)
 
     object_property_string = """
-###  {0}#{1}
-:{1} rdf:type owl:ObjectProperty ;
+:{0} rdf:type owl:ObjectProperty ;
     rdfs:subPropertyOf :relational_property ;
-    rdf:type owl:FunctionalProperty """.format(base_uri, property_name_safe,
-                                               domain, range)
+    rdf:type owl:FunctionalProperty """.format(property_name)
 
-    if domain:
+    if label not in exclude:
+        object_property_string += """;
+        rdfs:label "{0}"^^rdfs:Literal """.format(label)
+
+    if comment not in exclude:
+        object_property_string += """;
+        rdfs:comment "{0}"^^rdfs:Literal """.format(comment)
+
+    if equivalentURI not in exclude:
+        object_property_string += """;
+        owl:equivalentClass [ rdf:type owl:Restriction ;
+                              owl:onProperty <{0}>
+                            ] """.format(equivalentURI)
+
+    if subClassOf_uri not in exclude:
+        object_property_string += """;
+        rdfs:subClassOf :{0} """.format(subClassOf_uri)
+
+    if domain not in exclude:
         object_property_string += """;
      rdfs:domain :{0} """.format(domain)
 
-    if range:
+    if range not in exclude:
         object_property_string += """;
      rdfs:range :{0} """.format(range)
 
     object_property_string += """.
-""";
+"""
 
     return object_property_string
 
@@ -142,15 +194,23 @@ def print_data_properties_header():
 """
 
 
-def print_data_property(base_uri, property_name):
+def print_data_property(property_name, label='', comment='',
+                        equivalentURI='', subClassOf_uri='',
+                        exclude=[]):
     """
 
     Parameters
     ----------
-    base_uri : string
-        base URI
     property_name : string
         property name
+    label : string
+        label
+    comment : string
+        comment
+    equivalentURI : string
+        equivalent URI
+    subClassOf_uri : string
+        subClassOf URI
 
     Returns
     -------
@@ -158,14 +218,30 @@ def print_data_property(base_uri, property_name):
         owl data property
 
     """
-    from mhdb.owl_boilerplate import convert_string_to_label
-
-    property_name_safe = convert_string_to_label(property_name)
 
     data_property_string = """
-###  {0}#{1}
-:{1} rdf:type owl:DatatypeProperty .
-""".format(base_uri, property_name_safe)
+:{0} rdf:type owl:DatatypeProperty """.format(property_name)
+
+    if label not in exclude:
+        data_property_string += """;
+        rdfs:label "{0}"^^rdfs:Literal """.format(label)
+
+    if comment not in exclude:
+        data_property_string += """;
+        rdfs:comment "{0}"^^rdfs:Literal """.format(comment)
+
+    if equivalentURI not in exclude:
+        data_property_string += """;
+        owl:equivalentClass [ rdf:type owl:Restriction ;
+                              owl:onProperty <{0}>
+                            ] """.format(equivalentURI)
+
+    if subClassOf_uri not in exclude:
+        data_property_string += """;
+        rdfs:subClassOf :{0} """.format(subClassOf_uri)
+
+    data_property_string += """.
+    """
 
     return data_property_string
 
@@ -178,15 +254,19 @@ def print_classes_header():
 """
 
 
-def print_class(base_uri, class_name, equivalentURI='', subClassOf_uri=''):
+def print_class(class_name, label='', comment='',
+                equivalentURI='', subClassOf_uri='',
+                exclude=[]):
     """
 
     Parameters
     ----------
-    base_uri : string
-        base URI
     class_name : string
         class name
+    label : string
+        label
+    comment : string
+        comment
     equivalentURI : string
         equivalent URI
     subClassOf_uri : string
@@ -198,20 +278,24 @@ def print_class(base_uri, class_name, equivalentURI='', subClassOf_uri=''):
         owl class
 
     """
-    from mhdb.owl_boilerplate import convert_string_to_label
-
-    class_name_safe = convert_string_to_label(class_name)
 
     class_string = """
-###  {0}#{1}
-:{1} rdf:type owl:Class """.format(base_uri, class_name_safe)
+:{0} rdf:type owl:Class """.format(class_name)
 
-    if equivalentURI not in ['', 'nan']:
+    if label not in exclude:
+        class_string += """;
+        rdfs:label "{0}"^^rdfs:Literal """.format(label)
+
+    if comment not in exclude:
+        class_string += """;
+        rdfs:comment "{0}"^^rdfs:Literal """.format(comment)
+
+    if equivalentURI not in exclude:
         class_string += """;
         owl:equivalentClass [ rdf:type owl:Restriction ;
                               owl:onProperty <{0}>
                             ] """.format(equivalentURI)
-    if subClassOf_uri not in ['', 'nan']:
+    if subClassOf_uri not in exclude:
         class_string += """;
         rdfs:subClassOf :{0} """.format(subClassOf_uri)
 
