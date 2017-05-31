@@ -178,7 +178,7 @@ def print_classes_header():
 """
 
 
-def print_class(base_uri, class_name, equivalentURI='', subClassOf_name=''):
+def print_class(base_uri, class_name, equivalentURI='', subClassOf_uri=''):
     """
 
     Parameters
@@ -189,8 +189,8 @@ def print_class(base_uri, class_name, equivalentURI='', subClassOf_name=''):
         class name
     equivalentURI : string
         equivalent URI
-    subClassOf_name : string
-        subClassOf name
+    subClassOf_uri : string
+        subClassOf URI
 
     Returns
     -------
@@ -206,14 +206,14 @@ def print_class(base_uri, class_name, equivalentURI='', subClassOf_name=''):
 ###  {0}#{1}
 :{1} rdf:type owl:Class """.format(base_uri, class_name_safe)
 
-    if equivalentURI:
+    if equivalentURI not in ['', 'nan']:
         class_string += """;
         owl:equivalentClass [ rdf:type owl:Restriction ;
                               owl:onProperty <{0}>
                             ] """.format(equivalentURI)
-    if subClassOf_name:
+    if subClassOf_uri not in ['', 'nan']:
         class_string += """;
-        rdfs:subClassOf :{0} """.format(subClassOf_name)
+        rdfs:subClassOf :{0} """.format(subClassOf_uri)
 
     class_string += """.
 """
