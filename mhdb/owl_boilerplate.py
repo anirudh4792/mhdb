@@ -12,6 +12,8 @@ Copyright 2017, Child Mind Institute (http://childmind.org), Apache v2.0 License
 
 def convert_string_to_label(input_string):
     """
+    This function removes all non-alphanumeric characters
+    from a string, which is useful for creating safe URIs.
 
     Parameters
     ----------
@@ -34,6 +36,9 @@ def convert_string_to_label(input_string):
 
 def get_definition(Worksheet, Reference, index, exclude=[]):
     """
+    This function expects that the Worksheet has a "Definition" and
+    "DefinitionReference_index" column header, with the latter
+    pointing to another "Reference" worksheet.
 
     Parameters
     ----------
@@ -66,6 +71,7 @@ def get_definition(Worksheet, Reference, index, exclude=[]):
 
 def print_header(base_uri, version, label, comment):
     """
+    This function prints out the beginning of an owl file.
 
     Parameters
     ----------
@@ -117,7 +123,7 @@ def print_object_property(property_name, label='', comment='',
                           equivalentURI='', subClassOf_uri='',
                           domain='', range='', exclude=[]):
     """
-    Prints output like::
+    This function prints output like::
 
         :expectsAnswerType rdf:type owl:ObjectProperty ;
                            rdfs:subPropertyOf :relational_property ;
@@ -198,6 +204,13 @@ def print_data_property(property_name, label='', comment='',
                         equivalentURI='', subClassOf_uri='',
                         exclude=[]):
     """
+    This function prints output like:
+
+        :Answer rdf:type owl:DatatypeProperty ;
+                rdfs:label "Answer"^^rdfs:Literal ;
+                owl:equivalentClass [ rdf:type owl:Restriction ;
+                                      owl:onProperty <http://schema.org/Answer>
+                                    ] .
 
     Parameters
     ----------
@@ -258,6 +271,15 @@ def print_class(class_name, label='', comment='',
                 equivalentURI='', subClassOf_uri='',
                 exclude=[]):
     """
+    This function prints output like:
+
+    :IntellectualDisabilityIntellectualDevelopmentDisorder rdf:type owl:Class ;
+            rdfs:label "Intellectual Disability (Intellectual Development Disorder)"^^rdfs:Literal ;
+            rdfs:comment "None"^^rdfs:Literal ;
+            owl:equivalentClass [ rdf:type owl:Restriction ;
+                                  owl:onProperty <http://purl.bioontology.org/ontology/ICD10CM/F71>
+                                ] ;
+            rdfs:subClassOf :http://www.purl.org/mentalhealth#SchizophreniaSpectrumandOtherPsychoticDisorders .
 
     Parameters
     ----------
