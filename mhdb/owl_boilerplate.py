@@ -102,8 +102,8 @@ def print_header(base_uri, version, label, comment):
 
 <{0}> rdf:type owl:Ontology ;
     owl:versionIRI <{0}/{1}> ;
-    rdfs:label "{2}"^^rdfs:Literal ;
     owl:versionInfo "{1}"^^rdfs:Literal ;
+    rdfs:label "{2}"^^rdfs:Literal ;
     rdfs:comment "{3}"^^rdfs:Literal .
 
 """.format(base_uri, version, label, comment)
@@ -147,6 +147,8 @@ def print_object_property(property_name, label='', comment='',
         domain
     range : list of strings
         range
+    exclude : list
+        exclusion list
 
     Returns
     -------
@@ -160,28 +162,34 @@ def print_object_property(property_name, label='', comment='',
     rdfs:subPropertyOf :relational_property ;
     rdf:type owl:FunctionalProperty """.format(property_name)
 
+    label = str(label)
     if label not in exclude:
         object_property_string += """;
         rdfs:label "{0}"^^rdfs:Literal """.format(label)
 
+    comment = str(comment)
     if comment not in exclude:
         object_property_string += """;
         rdfs:comment "{0}"^^rdfs:Literal """.format(comment)
 
+    equivalentURI = str(equivalentURI)
     if equivalentURI not in exclude:
         object_property_string += """;
         owl:equivalentClass [ rdf:type owl:Restriction ;
                               owl:onProperty <{0}>
                             ] """.format(equivalentURI)
 
+    subClassOf_uri = str(subClassOf_uri)
     if subClassOf_uri not in exclude:
         object_property_string += """;
         rdfs:subClassOf :{0} """.format(subClassOf_uri)
 
+    domain = str(domain)
     if domain not in exclude:
         object_property_string += """;
      rdfs:domain :{0} """.format(domain)
 
+    range = str(range)
     if range not in exclude:
         object_property_string += """;
      rdfs:range :{0} """.format(range)
@@ -224,6 +232,8 @@ def print_data_property(property_name, label='', comment='',
         equivalent URI
     subClassOf_uri : string
         subClassOf URI
+    exclude : list
+        exclusion list
 
     Returns
     -------
@@ -235,20 +245,24 @@ def print_data_property(property_name, label='', comment='',
     data_property_string = """
 :{0} rdf:type owl:DatatypeProperty """.format(property_name)
 
+    label = str(label)
     if label not in exclude:
         data_property_string += """;
         rdfs:label "{0}"^^rdfs:Literal """.format(label)
 
+    comment = str(comment)
     if comment not in exclude:
         data_property_string += """;
         rdfs:comment "{0}"^^rdfs:Literal """.format(comment)
 
+    equivalentURI = str(equivalentURI)
     if equivalentURI not in exclude:
         data_property_string += """;
         owl:equivalentClass [ rdf:type owl:Restriction ;
                               owl:onProperty <{0}>
                             ] """.format(equivalentURI)
 
+    subClassOf_uri = str(subClassOf_uri)
     if subClassOf_uri not in exclude:
         data_property_string += """;
         rdfs:subClassOf :{0} """.format(subClassOf_uri)
@@ -293,6 +307,8 @@ def print_class(class_name, label='', comment='',
         equivalent URI
     subClassOf_uri : string
         subClassOf URI
+    exclude : list
+        exclusion list
 
     Returns
     -------
@@ -304,19 +320,24 @@ def print_class(class_name, label='', comment='',
     class_string = """
 :{0} rdf:type owl:Class """.format(class_name)
 
+    label = str(label)
     if label not in exclude:
         class_string += """;
         rdfs:label "{0}"^^rdfs:Literal """.format(label)
 
+    comment = str(comment)
     if comment not in exclude:
         class_string += """;
         rdfs:comment "{0}"^^rdfs:Literal """.format(comment)
 
+    equivalentURI = str(equivalentURI)
     if equivalentURI not in exclude:
         class_string += """;
         owl:equivalentClass [ rdf:type owl:Restriction ;
                               owl:onProperty <{0}>
                             ] """.format(equivalentURI)
+
+    subClassOf_uri = str(subClassOf_uri)
     if subClassOf_uri not in exclude:
         class_string += """;
         rdfs:subClassOf :{0} """.format(subClassOf_uri)

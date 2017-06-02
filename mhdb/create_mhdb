@@ -11,7 +11,6 @@ Copyright 2017, Child Mind Institute (http://childmind.org), Apache v2.0 License
 import os
 import argparse
 import pandas as pd
-import numpy as np
 #import rdflib
 
 from mhdb.info import __version__ as version
@@ -55,7 +54,7 @@ else:
 # Import spreadsheet
 # ------------------------------------------------------------------------------
 xls = pd.ExcelFile(FILE)
-exclude = ['', 'nan', np.nan]
+exclude = ['', 'nan']
 
 # ------------------------------------------------------------------------------
 # Create output RDF file and print header
@@ -178,6 +177,7 @@ for i4, disorder in enumerate(Disorder.DisorderName):
             equivalentClass = ''
         if subClassOf in exclude:
             subClassOf = ''
+
         class_string = print_class(class_name=category0_safe,
                                    label=category0,
                                    comment=category0_definition,
