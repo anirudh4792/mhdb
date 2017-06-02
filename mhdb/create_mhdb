@@ -158,10 +158,10 @@ fid.write(classes_header)
 # Disorder [Category, Subcategory, Subsubcategory, Subsubsubcategory] classes
 # ----------------------------------------------------------------------------
 for i4, disorder in enumerate(Disorder.DisorderName):
-    i0 = Disorder.DisorderCategory_index.iloc[[i][0]]
-    i1 = Disorder.DisorderSubcategory_index.iloc[[i][0]]
-    i2 = Disorder.DisorderSubsubcategory_index.iloc[[i][0]]
-    i3 = Disorder.DisorderSubsubsubcategory_index.iloc[[i][0]]
+    i0 = Disorder.DisorderCategory_index.iloc[[i4][0]]
+    i1 = Disorder.DisorderSubcategory_index.iloc[[i4][0]]
+    i2 = Disorder.DisorderSubsubcategory_index.iloc[[i4][0]]
+    i3 = Disorder.DisorderSubsubsubcategory_index.iloc[[i4][0]]
 
     # Category:
     try:
@@ -177,7 +177,6 @@ for i4, disorder in enumerate(Disorder.DisorderName):
             equivalentClass = ''
         if subClassOf in exclude:
             subClassOf = ''
-
         class_string = print_class(class_name=category0_safe,
                                    label=category0,
                                    comment=category0_definition,

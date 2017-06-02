@@ -52,12 +52,13 @@ def get_definition(Worksheet, Reference, index, exclude=[]):
 
     Returns
     -------
-    definition_string : string
+    definition : string
         output definition string
 
     """
 
     definition = Worksheet.Definition.iloc[[index][0]]
+    definition = str(definition)
     if definition in exclude:
         definition = ''
     else:
@@ -67,6 +68,8 @@ def get_definition(Worksheet, Reference, index, exclude=[]):
             definition += " [{0}]".format(ref)
         except:
             pass
+
+    return definition
 
 
 def print_header(base_uri, version, label, comment):
