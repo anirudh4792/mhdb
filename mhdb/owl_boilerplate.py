@@ -28,7 +28,7 @@ def convert_string_to_label(input_string):
     """
 
     keep_chars = ('-', '.', '_')
-    output_string = "".join(c for c in input_string if c.isalnum()
+    output_string = "".join(c for c in str(input_string) if c.isalnum()
                             or c in keep_chars).rstrip()
 
     return output_string
@@ -45,8 +45,8 @@ def get_definition(Worksheet, Reference, index, exclude=[]):
     Worksheet : pandas dataframe
         worksheet containing "Definition" and
         "DefinitionReference" columns
-    index : integer
-        worksheet row index
+    index : integer or Booleans
+        worksheet row index or Booleans with True indicating row
     exclude : list
         exclusion list
 
@@ -57,14 +57,13 @@ def get_definition(Worksheet, Reference, index, exclude=[]):
 
     """
 
-    definition = Worksheet.Definition.iloc[[index][0]]
-    definition = str(definition)
+    definition = str(Worksheet.Definition[index])
     if definition in exclude:
         definition = ''
     else:
         try:
-            iref = Worksheet.DefinitionReference_index.iloc[[index][0]]
-            ref = Reference.ReferenceName.iloc[[iref][0]]
+            iref = Worksheet.DefinitionReference_index[index]
+            ref = Reference.ReferenceName[Reference['index'] == iref]
             definition += " [{0}]".format(ref)
         except:
             pass
@@ -276,17 +275,17 @@ def print_data_property(property_name, label='', comment='',
     return data_property_string
 
 
-def print_classes_header():
+def print_classes_header(title=''):
     return """
 #################################################################
-#    Classes
+#   {0} Classes
 #################################################################
-"""
+""".format(title)
 
 
-def print_class(class_name, label='', comment='',
-                equivalentURI='', subClassOf_uri='',
-                exclude=[]):
+def print_class_short(class_name, label='', comment='',
+                      equivalentURI='', subClassOf_uri='',
+                      exclude=[]):
     """
     This function prints output like:
 
@@ -344,6 +343,104 @@ def print_class(class_name, label='', comment='',
     if subClassOf_uri not in exclude:
         class_string += """;
         rdfs:subClassOf :{0} """.format(subClassOf_uri)
+
+    class_string += """.
+"""
+
+    return class_string
+
+
+def print_class(class_name, label, comment, index,
+                Worksheet, Reference,
+                equivalentClass='', subClassOf='', exclude=[]):
+    """
+    This function prints output like:
+
+    :IntellectualDisabilityIntellectualDevelopmentDisorder rdf:type owl:Class ;
+            rdfs:label "Intellectual Disability (Intellectual Development Disorder)"^^rdfs:Literal ;
+            rdfs:comment "None"^^rdfs:Literal ;
+            owl:equivalentClass [ rdf:type owl:Restriction ;
+                                  owl:onProperty <http://purl.bioontology.org/ontology/ICD10CM/F71>
+                                ] ;
+            rdfs:subClassOf :http://www.purl.org/mentalhealth#SchizophreniaSpectrumandOtherPsychoticDisorders .
+
+    Parameters
+    ----------
+    class_name : string
+        name of class
+    label : string
+        label
+    comment : string
+        comment
+    index : integer or Booleans
+        pointer to row of Worksheet
+    Worksheet : pandas dataframe
+        spreadsheet worksheet containing properties
+    Reference : pandas dataframe
+        second worksheet containing references
+    equivalentClass : string
+        equivalentClass (to override worksheet)
+    subClassOf : string
+        subClassOf (to override worksheet)
+    exclude : list
+        exclusions
+
+    Returns
+    -------
+    class_string : string
+        owl class string
+
+    """
+    from mhdb.owl_boilerplate import get_definition
+
+    if Worksheet not in exclude and Reference not in exclude:
+        definition = get_definition(Worksheet=Worksheet,
+                                    Reference=Reference,
+                                    index=index,
+                                    exclude=exclude)
+    else:
+        definition = ''
+
+    # If equivalentClass or subClassOf not provided,
+    # get from worksheet:
+    if equivalentClass in exclude:
+        if Worksheet not in exclude:
+            equivalentClass = str(Worksheet.equivalentClass[index])
+            if equivalentClass in exclude:
+                equivalentClass = ''
+        else:
+            equivalentClass = ''
+    if subClassOf in exclude:
+        if Worksheet not in exclude:
+            subClassOf = str(Worksheet.subClassOf[index])
+            if subClassOf in exclude:
+                subClassOf = ''
+        else:
+            subClassOf = ''
+
+    class_string = """
+    :{0} rdf:type owl:Class """.format(class_name)
+
+    label = str(label)
+    if label not in exclude:
+        class_string += """;
+            rdfs:label "{0}"^^rdfs:Literal """.format(label)
+
+    if definition not in exclude:
+        class_string += """;
+            rdfs:comment "{0}"^^rdfs:Literal """.format(definition)
+
+    equivalentClass = str(equivalentClass)
+    if equivalentClass not in exclude:
+        class_string += """;
+            owl:equivalentClass [ rdf:type owl:Restriction ;
+                                  owl:onProperty <{0}>
+                                ] """.format(equivalentClass)
+
+    subClassOf = str(subClassOf)
+    if subClassOf not in exclude:
+        class_string += """;
+            rdfs:subClassOf :{0} """.format(subClassOf)
 
     class_string += """.
 """

@@ -149,9 +149,9 @@ for i, data_property_name in enumerate(Classes.ClassName):
     fid.write(data_property_string)
 
 # ----------------------------------------------------------------------------
-# Print classes
+# Print classes related to mental health disorders
 # ----------------------------------------------------------------------------
-classes_header = print_classes_header()
+classes_header = print_classes_header('Disorder')
 fid.write(classes_header)
 
 # ----------------------------------------------------------------------------
@@ -165,134 +165,85 @@ for i4, disorder in enumerate(Disorder.DisorderName):
 
     # Category:
     try:
-        category0 = DisorderCategory0.DisorderCategoryName[[i0][0]]
-        category0_safe = convert_string_to_label(category0)
-        category0_uri = "{0}#{1}".format(base_uri, category0_safe)
-        category0_definition = get_definition(DisorderCategory0,
-                                              Reference, index=i0,
-                                              exclude=exclude)
-        equivalentClass = DisorderCategory0.equivalentClass.iloc[[i0][0]]
-        subClassOf = DisorderCategory0.subClassOf.iloc[[i0][0]]
-        if equivalentClass in exclude:
-            equivalentClass = ''
-        if subClassOf in exclude:
-            subClassOf = ''
-        class_string = print_class(class_name=category0_safe,
-                                   label=category0,
-                                   comment=category0_definition,
-                                   equivalentURI=equivalentClass,
-                                   subClassOf_uri=subClassOf,
+        ibool = DisorderCategory0['index'] == i0
+        label = DisorderCategory0.DisorderCategoryName[ibool]
+        label_safe = convert_string_to_label(label)
+        class_string = print_class(class_name=label_safe, label=label,
+                                   index=ibool, Worksheet=DisorderCategory0,
+                                   Reference=Reference,
+                                   equivalentURI='',
+                                   subClassOf_uri='',
                                    exclude=exclude)
         fid.write(class_string)
+        category0_uri = "{0}#{1}".format(base_uri, label_safe)
         disorder_superClass_uri = category0_uri
-        category0_uri_string = category0_uri
     except:
+        category0_uri = ''
         disorder_superClass_uri = ''
-        category0_uri_string = ''
 
     # Subcategory:
     try:
-        category1 = DisorderCategory1.DisorderCategoryName[[i1][0]]
-        category1_safe = convert_string_to_label(category1)
-        category1_uri = "{0}#{1}".format(base_uri, category1_safe)
-        category1_definition = get_definition(DisorderCategory1,
-                                              Reference, index=i1,
-                                              exclude=exclude)
-        equivalentClass = DisorderCategory1.equivalentClass.iloc[[i1][0]]
-        #subClassOf = DisorderCategory1.subClassOf.iloc[[i1][0]]
-        if equivalentClass in exclude:
-            equivalentClass = ''
-        #if subClassOf in exclude:
-        #    subClassOf = ''
-        class_string = print_class(class_name=category1_safe,
-                                   label=category1,
-                                   comment=category1_definition,
-                                   equivalentURI=equivalentClass,
-                                   subClassOf_uri=category0_uri_string,
+        ibool = DisorderCategory1['index'] == i1
+        label = DisorderCategory1.DisorderCategoryName[ibool]
+        label_safe = convert_string_to_label(label)
+        class_string = print_class(class_name=label_safe, label=label,
+                                   index=ibool, Worksheet=DisorderCategory1,
+                                   Reference=Reference,
+                                   equivalentURI='',
+                                   subClassOf_uri='',
                                    exclude=exclude)
         fid.write(class_string)
-        disorder_superClass_uri = category1_uri
-        category1_uri_string = category1_uri
+        disorder_superClass_uri = "{0}#{1}".format(base_uri, label_safe)
     except:
-        category1_uri_string = ''
+        pass
 
     # Subsubcategory:
     try:
-        category2 = DisorderCategory2.DisorderCategoryName[[i2][0]]
-        category2_safe = convert_string_to_label(category2)
-        category2_uri = "{0}#{1}".format(base_uri, category2_safe)
-        category2_definition = get_definition(DisorderCategory2,
-                                              Reference, index=i2,
-                                              exclude=exclude)
-        equivalentClass = DisorderCategory2.equivalentClass.iloc[[i2][0]]
-        #subClassOf = DisorderCategory2.subClassOf.iloc[[i2][0]]
-        if equivalentClass in exclude:
-            equivalentClass = ''
-        #if subClassOf in exclude:
-        #    subClassOf = ''
-        class_string = print_class(class_name=category2_safe,
-                                   label=category2,
-                                   comment=category2_definition,
-                                   equivalentURI=equivalentClass,
-                                   subClassOf_uri=category1_uri_string,
+        ibool = DisorderCategory2['index'] == i2
+        label = DisorderCategory2.DisorderCategoryName[ibool]
+        label_safe = convert_string_to_label(label)
+        class_string = print_class(class_name=label_safe, label=label,
+                                   index=ibool, Worksheet=DisorderCategory2,
+                                   Reference=Reference,
+                                   equivalentURI='',
+                                   subClassOf_uri='',
                                    exclude=exclude)
         fid.write(class_string)
-        disorder_superClass_uri = category2_uri
-        category2_uri_string = category2_uri
+        disorder_superClass_uri = "{0}#{1}".format(base_uri, label_safe)
     except:
-        category2_uri_string = ''
+        pass
 
     # Subsubsubcategory:
     try:
-        category3 = DisorderCategory3.DisorderCategoryName[[i3][0]]
-        category3_safe = convert_string_to_label(category3)
-        category3_uri = "{0}#{1}".format(base_uri, category3_safe)
-        category3_definition = get_definition(DisorderCategory3,
-                                              Reference, index=i3,
-                                              exclude=exclude)
-        equivalentClass = DisorderCategory3.equivalentClass.iloc[[i3][0]]
-        #subClassOf = DisorderCategory3.subClassOf.iloc[[i3][0]]
-        if equivalentClass in exclude:
-            equivalentClass = ''
-        #if subClassOf in exclude:
-        #    subClassOf = ''
-        class_string = print_class(class_name=category3_safe,
-                                   label=category3,
-                                   comment=category3_definition,
-                                   equivalentURI=equivalentClass,
-                                   subClassOf_uri=category2_uri_string,
+        ibool = DisorderCategory3['index'] == i3
+        label = DisorderCategory3.DisorderCategoryName[ibool]
+        label_safe = convert_string_to_label(label)
+        class_string = print_class(class_name=label_safe, label=label,
+                                   index=ibool, Worksheet=DisorderCategory3,
+                                   Reference=Reference,
+                                   equivalentURI='',
+                                   subClassOf_uri='',
                                    exclude=exclude)
         fid.write(class_string)
-        disorder_superClass_uri = category3_uri
-        category3_uri_string = category3_uri
+        disorder_superClass_uri = "{0}#{1}".format(base_uri, label_safe)
     except:
-        category3_uri_string = ''
+        pass
 
     # ------------------------------------------------------------------------
     # Disorder classes: Use ICD-10 code's URI as an equivalentURI disorder
     # ------------------------------------------------------------------------
     try:
-        disorder_safe = convert_string_to_label(disorder)
+        label_safe = convert_string_to_label(disorder)
         disorder_uri = "{0}#{1}".format(base_uri, disorder_safe)
-        disorder_definition = get_definition(Disorder,
-                                             Reference, index=i4,
-                                             exclude=exclude)
-        #equivalentClass = Disorder.equivalentClass.iloc[[i4][0]]
-        #subClassOf = Disorder.subClassOf.iloc[[i4][0]]
-        #if equivalentClass in exclude:
-        #    equivalentClass = ''
-        #if subClassOf in exclude:
-        #    subClassOf = ''
-        # note = Disorder.DisorderNote.iloc[[i4][0]]
         ICD9 = Disorder.ICD9code.iloc[[i4][0]]
         ICD10 = Disorder.ICD10code.iloc[[i4][0]]
         if ICD10:
             ICD_uri = "http://purl.bioontology.org/ontology/ICD10CM/" + str(ICD10)
         else:
             ICD_uri = ''
-        class_string = print_class(class_name=disorder_safe,
-                                   label=disorder,
-                                   comment=disorder_definition,
+        class_string = print_class(class_name=label_safe, label=disorder,
+                                   index=i4, Worksheet=Disorder,
+                                   Reference=Reference,
                                    equivalentURI=ICD_uri,
                                    subClassOf_uri=disorder_superClass_uri,
                                    exclude=exclude)
@@ -300,9 +251,7 @@ for i4, disorder in enumerate(Disorder.DisorderName):
     except:
         pass
 
-    # ------------------------------------------------------------------------
-    # DiagnosticSpecifier, In/ExclusionCriterion, DisorderSeverity classes
-    # ------------------------------------------------------------------------
+    # DiagnosticSpecifier class:
     ispecifier = Disorder.DiagnosticSpecifier_index.iloc[[i4][0]]
     iinclusion1 = Disorder.DiagnosticInclusionCriterion_index.iloc[[i4][0]]
     iinclusion2 = Disorder.DiagnosticInclusionCriterion2_index.iloc[[i4][0]]
@@ -310,133 +259,253 @@ for i4, disorder in enumerate(Disorder.DisorderName):
     iexclusion2 = Disorder.DiagnosticExclusionCriterion2_index.iloc[[i4][0]]
     iseverity = Disorder.DisorderSeverity_index.iloc[[i4][0]]
     try:
-        specifier = DiagnosticSpecifier.DiagnosticSpecifierName[ispecifier]
-        specifier_safe = convert_string_to_label(specifier)
-        specifier_definition = get_definition(DiagnosticSpecifier,
-                                              Reference, index=ispecifier,
-                                              exclude=exclude)
-        equivalentClass = DiagnosticSpecifier.equivalentClass[ispecifier]
-        subClassOf = DiagnosticSpecifier.subClassOf[ispecifier]
-        if equivalentClass in exclude:
-            equivalentClass = ''
-        if subClassOf in exclude:
-            subClassOf = ''
-        class_string = print_class(class_name=specifier_safe,
-                                   label=specifier,
-                                   comment=specifier_definition,
-                                   equivalentURI=equivalentClass,
-                                   subClassOf_uri=subClassOf,
+        ibool = DiagnosticSpecifier['index'] == ispecifier
+        label = DiagnosticSpecifier.DiagnosticSpecifierName[ibool]
+        label_safe = convert_string_to_label(label)
+        class_string = print_class(class_name=label_safe, label=label,
+                                   index=ibool, Worksheet=DiagnosticSpecifier,
+                                   Reference=Reference,
+                                   equivalentURI='',
+                                   subClassOf_uri='',
                                    exclude=exclude)
         fid.write(class_string)
     except:
         pass
 
+    # In/ExclusionCriterion classes:
     try:
-        inclusion1 = DiagnosticCriterion.DiagnosticCriterionName[iinclusion1]
-        inclusion1_safe = convert_string_to_label(inclusion1)
-        inclusion1_definition = get_definition(DiagnosticCriterion,
-                                               Reference, index=iinclusion1,
-                                               exclude=exclude)
-        equivalentClass = DiagnosticCriterion.equivalentClass[iinclusion1]
-        subClassOf = DiagnosticCriterion.subClassOf[iinclusion1]
-        if equivalentClass in exclude:
-            equivalentClass = ''
-        if subClassOf in exclude:
-            subClassOf = ''
-        class_string = print_class(class_name=inclusion1_safe,
-                                   label=inclusion1,
-                                   comment=inclusion1_definition,
-                                   equivalentURI=equivalentClass,
-                                   subClassOf_uri=subClassOf,
+        ibool = DiagnosticCriterion['index'] == iinclusion1
+        label = DiagnosticCriterion.DiagnosticCriterionName[ibool]
+        label_safe = convert_string_to_label(label)
+        class_string = print_class(class_name=label_safe, label=label,
+                                   index=ibool, Worksheet=DiagnosticSpecifier,
+                                   Reference=Reference,
+                                   equivalentURI='',
+                                   subClassOf_uri='',
                                    exclude=exclude)
         fid.write(class_string)
     except:
         pass
     try:
-        inclusion2 = DiagnosticCriterion.DiagnosticCriterionName[iinclusion2]
-        inclusion2_safe = convert_string_to_label(inclusion2)
-        inclusion2_definition = get_definition(DiagnosticCriterion,
-                                               Reference, index=iinclusion2,
-                                               exclude=exclude)
-        equivalentClass = DiagnosticCriterion.equivalentClass[iinclusion2]
-        subClassOf = DiagnosticCriterion.subClassOf[iinclusion2]
-        if equivalentClass in exclude:
-            equivalentClass = ''
-        if subClassOf in exclude:
-            subClassOf = ''
-        class_string = print_class(class_name=inclusion2_safe,
-                                   label=inclusion2,
-                                   comment=inclusion2_definition,
-                                   equivalentURI=equivalentClass,
-                                   subClassOf_uri=subClassOf,
+        ibool = DiagnosticCriterion['index'] == iinclusion2
+        label = DiagnosticCriterion.DiagnosticCriterionName[ibool]
+        label_safe = convert_string_to_label(label)
+        class_string = print_class(class_name=label_safe, label=label,
+                                   index=ibool, Worksheet=DiagnosticSpecifier,
+                                   Reference=Reference,
+                                   equivalentURI='',
+                                   subClassOf_uri='',
                                    exclude=exclude)
         fid.write(class_string)
     except:
         pass
     try:
-        exclusion1 = DiagnosticCriterion.DiagnosticCriterionName[iexclusion1]
-        exclusion1_safe = convert_string_to_label(exclusion1)
-        exclusion1_definition = get_definition(DiagnosticCriterion,
-                                               Reference, index=iexclusion1,
-                                               exclude=exclude)
-        equivalentClass = DiagnosticCriterion.equivalentClass[iexclusion1]
-        subClassOf = DiagnosticCriterion.subClassOf[iexclusion1]
-        if equivalentClass in exclude:
-            equivalentClass = ''
-        if subClassOf in exclude:
-            subClassOf = ''
-        class_string = print_class(class_name=exclusion1_safe,
-                                   label=exclusion1,
-                                   comment=exclusion1_definition,
-                                   equivalentURI=equivalentClass,
-                                   subClassOf_uri=subClassOf,
+        ibool = DiagnosticCriterion['index'] == iexclusion1
+        label = DiagnosticCriterion.DiagnosticCriterionName[ibool]
+        label_safe = convert_string_to_label(label)
+        class_string = print_class(class_name=label_safe, label=label,
+                                   index=ibool, Worksheet=DiagnosticSpecifier,
+                                   Reference=Reference,
+                                   equivalentURI='',
+                                   subClassOf_uri='',
                                    exclude=exclude)
         fid.write(class_string)
     except:
         pass
     try:
-        exclusion2 = DiagnosticCriterion.DiagnosticCriterionName[iexclusion2]
-        exclusion2_safe = convert_string_to_label(exclusion2)
-        exclusion2_definition = get_definition(DiagnosticCriterion,
-                                               Reference, index=iexclusion2,
-                                               exclude=exclude)
-        equivalentClass = DiagnosticCriterion.equivalentClass[iexclusion2]
-        subClassOf = DiagnosticCriterion.subClassOf[iexclusion2]
-        if equivalentClass in exclude:
-            equivalentClass = ''
-        if subClassOf in exclude:
-            subClassOf = ''
-        class_string = print_class(class_name=exclusion2_safe,
-                                   label=exclusion2,
-                                   comment=exclusion2_definition,
-                                   equivalentURI=equivalentClass,
-                                   subClassOf_uri=subClassOf,
+        ibool = DiagnosticCriterion['index'] == iexclusion2
+        label = DiagnosticCriterion.DiagnosticCriterionName[ibool]
+        label_safe = convert_string_to_label(label)
+        class_string = print_class(class_name=label_safe, label=label,
+                                   index=ibool, Worksheet=DiagnosticSpecifier,
+                                   Reference=Reference,
+                                   equivalentURI='',
+                                   subClassOf_uri='',
                                    exclude=exclude)
         fid.write(class_string)
     except:
         pass
 
+    # DisorderSeverity class:
     try:
-        severity = DisorderSeverity.DisorderSeverityName[iseverity]
-        severity_safe = convert_string_to_label(severity)
-        severity_definition = get_definition(DisorderSeverity,
-                                             Reference, index=iseverity,
-                                             exclude=exclude)
-        equivalentClass = DisorderSeverity.equivalentClass[iseverity]
-        subClassOf = DisorderSeverity.subClassOf[iseverity]
-        if equivalentClass in exclude:
-            equivalentClass = ''
-        if subClassOf in exclude:
-            subClassOf = ''
-        class_string = print_class(class_name=severity_safe,
-                                   label=severity,
-                                   comment=severity_definition,
-                                   equivalentURI=equivalentClass,
-                                   subClassOf_uri=subClassOf,
+        ibool = DisorderSeverity['index'] == iseverity
+        label = DisorderSeverity.DisorderSeverityName[ibool]
+        label_safe = convert_string_to_label(label)
+        class_string = print_class(class_name=label_safe, label=label,
+                                   index=ibool, Worksheet=DiagnosticSpecifier,
+                                   Reference=Reference,
+                                   equivalentURI='',
+                                   subClassOf_uri='',
                                    exclude=exclude)
         fid.write(class_string)
     except:
         pass
+
+# ----------------------------------------------------------------------------
+# Print classes related to mental health symptoms
+# ----------------------------------------------------------------------------
+classes_header = print_classes_header('Symptom')
+fid.write(classes_header)
+for i5, symptom in enumerate(Symptom.SymptomName):
+
+    # Symptom:
+    try:
+        label_safe = convert_string_to_label(symptom)
+        class_string = print_class(class_name=label_safe, label=label,
+                                   index=ibool, Worksheet=DiagnosticSpecifier,
+                                   Reference=Reference,
+                                   equivalentURI='',
+                                   subClassOf_uri='',
+                                   exclude=exclude)
+        fid.write(class_string)
+    except:
+        pass
+
+    # SymptomCategory:
+    try:
+        isymptomcat = Symptom.SymptomCategory_index.iloc[[i5][0]]
+        ibool = SymptomCategory['index'] == isymptomcat
+        label = SymptomCategory.SymptomCategoryName[ibool]
+        label_safe = convert_string_to_label(label)
+        class_string = print_class(class_name=label_safe, label=label,
+                                   index=ibool, Worksheet=DiagnosticSpecifier,
+                                   Reference=Reference,
+                                   equivalentURI='',
+                                   subClassOf_uri='',
+                                   exclude=exclude)
+        fid.write(class_string)
+    except:
+        pass
+
+# ----------------------------------------------------------------------------
+# Print classes related to mental health questions (from the questionnaires)
+# ----------------------------------------------------------------------------
+classes_header = print_classes_header('Question')
+fid.write(classes_header)
+for i6, question in enumerate(Question.QuestionText):
+
+    # QuestionText:
+    try:
+        question_safe = convert_string_to_label(question)
+        class_string = print_class(class_name=question_safe,
+                                   label=question,
+                                   index='',
+                                   Worksheet='',
+                                   Reference='',
+                                   equivalentURI='',
+                                   subClassOf_uri='',
+                                   exclude=exclude)
+        fid.write(class_string)
+    except:
+        pass
+
+    # Followup QuestionText:
+    try:
+        question2 = Question.Question2Text.iloc[[i6][0]]
+        question2_safe = convert_string_to_label(question2)
+        class_string = print_class(class_name=question2_safe,
+                                   label=question2,
+                                   index='',
+                                   Worksheet='',
+                                   Reference='',
+                                   equivalentURI='',
+                                   subClassOf_uri='',
+                                   exclude=exclude)
+        fid.write(class_string)
+    except:
+        pass
+
+    # AnswerText:
+    try:
+        answer = Question.AnswerText.iloc[[i6][0]]
+        answer_safe = convert_string_to_label(answer)
+        class_string = print_class(class_name=answer_safe,
+                                   label=answer,
+                                   index='',
+                                   Worksheet='',
+                                   Reference='',
+                                   equivalentURI='',
+                                   subClassOf_uri='',
+                                   exclude=exclude)
+        fid.write(class_string)
+    except:
+        pass
+
+    # Followup AnswerText:
+    try:
+        answer2 = Question.Answer2Text.iloc[[i6][0]]
+        answer2_safe = convert_string_to_label(answer2)
+        class_string = print_class(class_name=answer2_safe,
+                                   label=answer2,
+                                   index='',
+                                   Worksheet='',
+                                   Reference='',
+                                   equivalentURI='',
+                                   subClassOf_uri='',
+                                   exclude=exclude)
+        fid.write(class_string)
+    except:
+        pass
+
+    # AnswerType:
+    try:
+        ianswertype = Question.AnswerType_index.iloc[[i6][0]]
+        ibool = AnswerType['index'] == ianswertype
+        label = AnswerType.AnswerTypeName[ibool]
+        label_safe = convert_string_to_label(label)
+        class_string = print_class(class_name=label_safe,
+                                   label=label,
+                                   index='',
+                                   Worksheet='',
+                                   Reference='',
+                                   equivalentURI='',
+                                   subClassOf_uri='',
+                                   exclude=exclude)
+        fid.write(class_string)
+    except:
+        pass
+
+    # Followup AnswerType:
+    try:
+        ianswer2type = Question.Answer2Type_index.iloc[[i6][0]]
+        ibool = AnswerType['index'] == ianswer2type
+        label = AnswerType.Answer2TypeName[ibool]
+        label_safe = convert_string_to_label(label)
+        class_string = print_class(class_name=label_safe,
+                                   label=label,
+                                   index='',
+                                   Worksheet='',
+                                   Reference='',
+                                   equivalentURI='',
+                                   subClassOf_uri='',
+                                   exclude=exclude)
+        fid.write(class_string)
+    except:
+        pass
+
+    # QuestionCategory:
+    try:
+        iqcat = Question.QuestionCategory_index.iloc[[i6][0]]
+        ibool = QuestionCategory['index'] == iqcat
+        label = QuestionCategory.QuestionCategoryName[ibool]
+        label_safe = convert_string_to_label(label)
+        class_string = print_class(class_name=label_safe,
+                                   label=label,
+                                   index='',
+                                   Worksheet='',
+                                   Reference='',
+                                   equivalentURI='',
+                                   subClassOf_uri='',
+                                   exclude=exclude)
+        fid.write(class_string)
+    except:
+        pass
+
+        # Questionnaire (Reference):
+#    iqref = Question.Reference_index.iloc[[i6][0]]
+#    ibool = Reference['index'] == iqref
+#    qreference = Reference.ReferenceLink[ibool]
+#    fid.write(class_string)
 
 # ----------------------------------------------------------------------------
 # Print general axioms
