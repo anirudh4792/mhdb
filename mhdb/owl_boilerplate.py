@@ -27,6 +27,9 @@ def convert_string_to_label(input_string):
 
     """
 
+    input_string = input_string.strip()
+    input_string = input_string.replace(" ", "_")
+    input_string = input_string.replace("_-_", "-")
     keep_chars = ('-', '.', '_')
     output_string = "".join(c for c in str(input_string) if c.isalnum()
                             or c in keep_chars).rstrip()
@@ -34,19 +37,19 @@ def convert_string_to_label(input_string):
     return output_string
 
 
-def get_definition(Worksheet, Reference, index, exclude=[]):
+def get_definition(worksheet, worksheet2, index, exclude=[]):
     """
-    This function expects that the Worksheet has a "Definition" and
-    "DefinitionReference_index" column header, with the latter
-    pointing to another "Reference" worksheet.
+    This function expects that the worksheet has a "Definition" and
+    "Definitionworksheet2_index" column header, with the latter
+    pointing to another "worksheet2" worksheet.
 
     Parameters
     ----------
-    Worksheet : pandas dataframe
+    worksheet : pandas dataframe
         worksheet containing "Definition" and
-        "DefinitionReference" columns
-    index : integer or Booleans
-        worksheet row index or Booleans with True indicating row
+        "Definitionworksheet2" columns
+    index : integer
+        worksheet row index
     exclude : list
         exclusion list
 
@@ -57,14 +60,15 @@ def get_definition(Worksheet, Reference, index, exclude=[]):
 
     """
 
-    definition = str(Worksheet.Definition[index])
+    definition = str(worksheet.Definition[index])
     if definition in exclude:
         definition = ''
     else:
         try:
-            iref = Worksheet.DefinitionReference_index[index]
-            ref = Reference.ReferenceName[Reference['index'] == iref]
-            definition += " [{0}]".format(ref)
+            iref = worksheet.Definitionworksheet2_index[index][0]
+            if iref not in exclude:
+                ref = worksheet2.worksheet2Name[worksheet2['index'] == iref]
+                definition += " [{0}]".format(ref)
         except:
             pass
 
@@ -123,7 +127,7 @@ def print_object_properties_header():
 
 def print_object_property(property_name, label='', comment='',
                           equivalentURI='', subClassOf_uri='',
-                          domain='', range='', exclude=[]):
+                          domain='', range='', exclude=['']):
     """
     This function prints output like::
 
@@ -212,7 +216,7 @@ def print_data_properties_header():
 
 def print_data_property(property_name, label='', comment='',
                         equivalentURI='', subClassOf_uri='',
-                        exclude=[]):
+                        exclude=['']):
     """
     This function prints output like:
 
@@ -276,16 +280,21 @@ def print_data_property(property_name, label='', comment='',
 
 
 def print_classes_header(title=''):
+    if title:
+        space = ' '
+    else:
+        space = ''
+
     return """
 #################################################################
-#   {0} Classes
+#    {0}{1}Classes
 #################################################################
-""".format(title)
+""".format(title, space)
 
 
 def print_class_short(class_name, label='', comment='',
                       equivalentURI='', subClassOf_uri='',
-                      exclude=[]):
+                      exclude=['']):
     """
     This function prints output like:
 
@@ -350,9 +359,9 @@ def print_class_short(class_name, label='', comment='',
     return class_string
 
 
-def print_class(class_name, label, comment, index,
-                Worksheet, Reference,
-                equivalentClass='', subClassOf='', exclude=[]):
+def print_class(class_name, label, comment='', index=None,
+                worksheet=None, worksheet2=None,
+                equivalentClass='', subClassOf='', exclude=['']):
     """
     This function prints output like:
 
@@ -372,11 +381,11 @@ def print_class(class_name, label, comment, index,
         label
     comment : string
         comment
-    index : integer or Booleans
-        pointer to row of Worksheet
-    Worksheet : pandas dataframe
+    index : integer
+        index to row of worksheet
+    worksheet : pandas dataframe
         spreadsheet worksheet containing properties
-    Reference : pandas dataframe
+    worksheet2 : pandas dataframe
         second worksheet containing references
     equivalentClass : string
         equivalentClass (to override worksheet)
@@ -393,42 +402,42 @@ def print_class(class_name, label, comment, index,
     """
     from mhdb.owl_boilerplate import get_definition
 
-    if Worksheet not in exclude and Reference not in exclude:
-        definition = get_definition(Worksheet=Worksheet,
-                                    Reference=Reference,
-                                    index=index,
-                                    exclude=exclude)
-    else:
-        definition = ''
+    if comment in exclude and index is not None and \
+                    worksheet is not None and \
+                    worksheet2 is not None:
+        comment = get_definition(worksheet=worksheet,
+                                 worksheet2=worksheet2,
+                                 index=index,
+                                 exclude=exclude)
 
     # If equivalentClass or subClassOf not provided,
     # get from worksheet:
     if equivalentClass in exclude:
-        if Worksheet not in exclude:
-            equivalentClass = str(Worksheet.equivalentClass[index])
+        if index is not None and worksheet is not None:
+            equivalentClass = str(worksheet.equivalentClass[index])
             if equivalentClass in exclude:
                 equivalentClass = ''
         else:
             equivalentClass = ''
     if subClassOf in exclude:
-        if Worksheet not in exclude:
-            subClassOf = str(Worksheet.subClassOf[index])
+        if index is not None and worksheet is not None:
+            subClassOf = str(worksheet.subClassOf[index])
             if subClassOf in exclude:
                 subClassOf = ''
         else:
             subClassOf = ''
 
     class_string = """
-    :{0} rdf:type owl:Class """.format(class_name)
+:{0} rdf:type owl:Class """.format(class_name)
 
     label = str(label)
     if label not in exclude:
         class_string += """;
             rdfs:label "{0}"^^rdfs:Literal """.format(label)
 
-    if definition not in exclude:
+    if comment not in exclude:
         class_string += """;
-            rdfs:comment "{0}"^^rdfs:Literal """.format(definition)
+            rdfs:comment "{0}"^^rdfs:Literal """.format(comment)
 
     equivalentClass = str(equivalentClass)
     if equivalentClass not in exclude:
