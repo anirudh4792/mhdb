@@ -16,7 +16,8 @@ import pandas as pd
 from mhdb.info import __version__ as version
 from mhdb.info import long_description as comment
 from mhdb.info import description as label
-from mhdb.owl_boilerplate import convert_string_to_label, get_definition, \
+from mhdb.owl_boilerplate import convert_string_to_label, create_uri, \
+    write_triple, get_definition, \
     print_header, print_object_properties_header, \
     print_data_properties_header, print_classes_header, \
     print_general_axioms_header, print_object_property, print_data_property, \
@@ -114,8 +115,10 @@ for i, object_property_name in enumerate(Properties.PropertyName):
     if property_range in exclude:
         property_range = ''
 
-    object_property_string = print_object_property(
-        property_name=convert_string_to_label(object_property_name),
+    label_safe = convert_string_to_label(object_property_name)
+    property_uri = create_uri(base_uri=base_uri, label=label_safe)
+    exec("{0}_uri = '{1}'".format(label_safe, property_uri))
+    object_property_string = print_object_property(property_uri=property_uri,
         label = object_property_name,
         comment = property_definition,
         equivalentURI=equivalentClass,
@@ -143,8 +146,10 @@ for i, data_property_name in enumerate(Classes.ClassName):
     if subClassOf in exclude:
         subClassOf = ''
 
-    data_property_string = print_data_property(
-        property_name=convert_string_to_label(data_property_name),
+    label_safe = convert_string_to_label(data_property_name)
+    property_uri = create_uri(base_uri=base_uri, label=label_safe)
+    exec("{0}_uri = '{1}'".format(label_safe, property_uri))
+    data_property_string = print_data_property(property_uri=property_uri,
         label=data_property_name,
         comment=class_definition,
         equivalentURI=equivalentClass,
@@ -153,7 +158,7 @@ for i, data_property_name in enumerate(Classes.ClassName):
     fid.write(data_property_string)
 
 # ----------------------------------------------------------------------------
-# Print classes related to mental health disorders
+# Print classes and triples related to mental health disorders
 # ----------------------------------------------------------------------------
 classes_header = print_classes_header('Disorder')
 fid.write(classes_header)
@@ -161,6 +166,18 @@ fid.write(classes_header)
 # ----------------------------------------------------------------------------
 # Disorder [Category, Subcategory, Subsubcategory, Subsubsubcategory] classes
 # ----------------------------------------------------------------------------
+category4_list = []
+category3_list = []
+category2_list = []
+category1_list = []
+category0_list = []
+specifier_list = []
+include1_list = []
+include2_list = []
+exclude1_list = []
+exclude2_list = []
+severity_list = []
+
 for i4, disorder in enumerate(Disorder.DisorderName):
     i0 = Disorder.DisorderCategory_index.iloc[[i4][0]]
     i1 = Disorder.DisorderSubcategory_index.iloc[[i4][0]]
@@ -172,17 +189,25 @@ for i4, disorder in enumerate(Disorder.DisorderName):
         index = pd.Index(DisorderCategory0['index']).get_loc(i0)
         label = DisorderCategory0.DisorderCategoryName[index]
         label_safe = convert_string_to_label(label)
-        class_string = print_class(class_name=label_safe,
-                                   label=label,
-                                   comment='',
-                                   index=index, 
-                                   worksheet=DisorderCategory0,
-                                   worksheet2=Reference,
-                                   equivalentClass='',
-                                   subClassOf='',
-                                   exclude=exclude)
-        fid.write(class_string)
+        if label_safe not in category0_list:
+            class_string = print_class(class_name=label_safe,
+                                       label=label,
+                                       comment='',
+                                       index=index,
+                                       worksheet=DisorderCategory0,
+                                       worksheet2=Reference,
+                                       equivalentClass='',
+                                       subClassOf='',
+                                       exclude=exclude)
+            fid.write(class_string)
+            category0_list.append(label_safe)
         category0_uri = "{0}#{1}".format(base_uri, label_safe)
+        output_triple = write_triple(subject_string=category0_uri,
+                                     predicate_string='a',
+                                     object_string=disorder_uri,
+                                     third_literal=False)
+        fid.write(class_string)
+        fid.write(class_string)
         disorder_superClass_uri = category0_uri
     except:
         category0_uri = ''
@@ -193,81 +218,90 @@ for i4, disorder in enumerate(Disorder.DisorderName):
         index = pd.Index(DisorderCategory1['index']).get_loc(i1)
         label = DisorderCategory1.DisorderCategoryName[index]
         label_safe = convert_string_to_label(label)
-        class_string = print_class(class_name=label_safe,
-                                   label=label,
-                                   comment='',
-                                   index=index,
-                                   worksheet=DisorderCategory1,
-                                   worksheet2=Reference,
-                                   equivalentClass='',
-                                   subClassOf='',
-                                   exclude=exclude)
-        fid.write(class_string)
-        disorder_superClass_uri = "{0}#{1}".format(base_uri, label_safe)
+        if label_safe not in category1_list:
+            class_string = print_class(class_name=label_safe,
+                                       label=label,
+                                       comment='',
+                                       index=index,
+                                       worksheet=DisorderCategory1,
+                                       worksheet2=Reference,
+                                       equivalentClass='',
+                                       subClassOf=category0_uri,
+                                       exclude=exclude)
+            fid.write(class_string)
+            category1_list.append(label_safe)
+        category1_uri = "{0}#{1}".format(base_uri, label_safe)
+        disorder_superClass_uri = category1_uri
     except:
-        pass
+        category1_uri = ''
 
     # Subsubcategory:
     try:
         index = pd.Index(DisorderCategory2['index']).get_loc(i2)
         label = DisorderCategory2.DisorderCategoryName[index]
         label_safe = convert_string_to_label(label)
-        class_string = print_class(class_name=label_safe,
-                                   label=label,
-                                   comment='',
-                                   index=index,
-                                   worksheet=DisorderCategory2,
-                                   worksheet2=Reference,
-                                   equivalentClass='',
-                                   subClassOf='',
-                                   exclude=exclude)
-        fid.write(class_string)
-        disorder_superClass_uri = "{0}#{1}".format(base_uri, label_safe)
+        if label_safe not in category2_list:
+            class_string = print_class(class_name=label_safe,
+                                       label=label,
+                                       comment='',
+                                       index=index,
+                                       worksheet=DisorderCategory2,
+                                       worksheet2=Reference,
+                                       equivalentClass='',
+                                       subClassOf=category1_uri,
+                                       exclude=exclude)
+            category2_list.append(label_safe)
+            fid.write(class_string)
+        category2_uri = "{0}#{1}".format(base_uri, label_safe)
+        disorder_superClass_uri = category2_uri
     except:
-        pass
+        category2_uri = ''
 
     # Subsubsubcategory:
     try:
         index = pd.Index(DisorderCategory3['index']).get_loc(i3)
         label = DisorderCategory3.DisorderCategoryName[index]
         label_safe = convert_string_to_label(label)
-        class_string = print_class(class_name=label_safe,
-                                   label=label,
-                                   comment='',
-                                   index=index,
-                                   worksheet=DisorderCategory3,
-                                   worksheet2=Reference,
-                                   equivalentClass='',
-                                   subClassOf='',
-                                   exclude=exclude)
-        fid.write(class_string)
-        disorder_superClass_uri = "{0}#{1}".format(base_uri, label_safe)
+        if label_safe not in category3_list:
+            class_string = print_class(class_name=label_safe,
+                                       label=label,
+                                       comment='',
+                                       index=index,
+                                       worksheet=DisorderCategory3,
+                                       worksheet2=Reference,
+                                       equivalentClass='',
+                                       subClassOf=category2_uri,
+                                       exclude=exclude)
+            category3_list.append(label_safe)
+            fid.write(class_string)
+        category3_uri = "{0}#{1}".format(base_uri, label_safe)
+        disorder_superClass_uri = category3_uri
     except:
-        pass
+        category3_uri = ''
 
-    # ------------------------------------------------------------------------
-    # Disorder classes: Use ICD-10 code's URI as an equivalentURI disorder
-    # ------------------------------------------------------------------------
+    # Disorder class: Use ICD-10 code's URI as an equivalentURI disorder
     try:
         label_safe = convert_string_to_label(disorder)
-        disorder_uri = "{0}#{1}".format(base_uri, label_safe)
-        ICD9 = Disorder.ICD9code.iloc[[i4][0]]
-        ICD10 = Disorder.ICD10code.iloc[[i4][0]]
-        if ICD10:
-            ICD_uri = "http://purl.bioontology.org/ontology/ICD10CM/" + \
-                      str(ICD10)
-        else:
-            ICD_uri = ''
-        class_string = print_class(class_name=label_safe, 
-                                   label=disorder,
-                                   comment='',
-                                   index=i4,
-                                   worksheet=Disorder,
-                                   worksheet2=Reference,
-                                   equivalentClass=ICD_uri,
-                                   subClassOf=disorder_superClass_uri,
-                                   exclude=exclude)
-        fid.write(class_string)
+        if label_safe not in category4_list:
+            disorder_uri = "{0}#{1}".format(base_uri, label_safe)
+            ICD9 = Disorder.ICD9code.iloc[[i4][0]]
+            ICD10 = Disorder.ICD10code.iloc[[i4][0]]
+            if ICD10:
+                ICD_uri = "http://purl.bioontology.org/ontology/ICD10CM/" + \
+                          str(ICD10)
+            else:
+                ICD_uri = ''
+            class_string = print_class(class_name=label_safe,
+                                       label=disorder,
+                                       comment='',
+                                       index=i4,
+                                       worksheet=Disorder,
+                                       worksheet2=Reference,
+                                       equivalentClass=ICD_uri,
+                                       subClassOf=disorder_superClass_uri,
+                                       exclude=exclude)
+            category4_list.append(label_safe)
+            fid.write(class_string)
     except:
         pass
 
@@ -282,16 +316,18 @@ for i4, disorder in enumerate(Disorder.DisorderName):
         index = pd.Index(DiagnosticSpecifier['index']).get_loc(ispecifier)
         label = DiagnosticSpecifier.DiagnosticSpecifierName[index]
         label_safe = convert_string_to_label(label)
-        class_string = print_class(class_name=label_safe, 
-                                   label=label,
-                                   comment='',
-                                   index=index,
-                                   worksheet=DiagnosticSpecifier,
-                                   worksheet2=Reference,
-                                   equivalentClass='',
-                                   subClassOf='',
-                                   exclude=exclude)
-        fid.write(class_string)
+        if label_safe not in specifier_list:
+            class_string = print_class(class_name=label_safe,
+                                       label=label,
+                                       comment='',
+                                       index=index,
+                                       worksheet=DiagnosticSpecifier,
+                                       worksheet2=Reference,
+                                       equivalentClass='',
+                                       subClassOf='',
+                                       exclude=exclude)
+            fid.write(class_string)
+            specifier_list.append(label_safe)
     except:
         pass
 
@@ -300,64 +336,72 @@ for i4, disorder in enumerate(Disorder.DisorderName):
         index = pd.Index(DiagnosticCriterion['index']).get_loc(iinclusion1)
         label = DiagnosticCriterion.DiagnosticCriterionName[index]
         label_safe = convert_string_to_label(label)
-        class_string = print_class(class_name=label_safe, 
-                                   label=label,
-                                   comment='',
-                                   index=index,
-                                   worksheet=DiagnosticSpecifier,
-                                   worksheet2=Reference,
-                                   equivalentClass='',
-                                   subClassOf='',
-                                   exclude=exclude)
-        fid.write(class_string)
+        if label_safe not in include1_list:
+            class_string = print_class(class_name=label_safe,
+                                       label=label,
+                                       comment='',
+                                       index=index,
+                                       worksheet=DiagnosticSpecifier,
+                                       worksheet2=Reference,
+                                       equivalentClass='',
+                                       subClassOf='',
+                                       exclude=exclude)
+            fid.write(class_string)
+            include1_list.append(label_safe)
     except:
         pass
     try:
         index = pd.Index(DiagnosticCriterion['index']).get_loc(iinclusion2)
         label = DiagnosticCriterion.DiagnosticCriterionName[index]
         label_safe = convert_string_to_label(label)
-        class_string = print_class(class_name=label_safe, 
-                                   label=label,
-                                   comment='',
-                                   index=index,
-                                   worksheet=DiagnosticSpecifier,
-                                   worksheet2=Reference,
-                                   equivalentClass='',
-                                   subClassOf='',
-                                   exclude=exclude)
-        fid.write(class_string)
+        if label_safe not in include2_list:
+            class_string = print_class(class_name=label_safe,
+                                       label=label,
+                                       comment='',
+                                       index=index,
+                                       worksheet=DiagnosticSpecifier,
+                                       worksheet2=Reference,
+                                       equivalentClass='',
+                                       subClassOf='',
+                                       exclude=exclude)
+            fid.write(class_string)
+            include2_list.append(label_safe)
     except:
         pass
     try:
         index = pd.Index(DiagnosticCriterion['index']).get_loc(iexclusion1)
         label = DiagnosticCriterion.DiagnosticCriterionName[index]
         label_safe = convert_string_to_label(label)
-        class_string = print_class(class_name=label_safe, 
-                                   label=label,
-                                   comment='',
-                                   index=index,
-                                   worksheet=DiagnosticSpecifier,
-                                   worksheet2=Reference,
-                                   equivalentClass='',
-                                   subClassOf='',
-                                   exclude=exclude)
-        fid.write(class_string)
+        if label_safe not in exclude1_list:
+            class_string = print_class(class_name=label_safe,
+                                       label=label,
+                                       comment='',
+                                       index=index,
+                                       worksheet=DiagnosticSpecifier,
+                                       worksheet2=Reference,
+                                       equivalentClass='',
+                                       subClassOf='',
+                                       exclude=exclude)
+            fid.write(class_string)
+            exclude1_list.append(label_safe)
     except:
         pass
     try:
         index = pd.Index(DiagnosticCriterion['index']).get_loc(iexclusion2)
         label = DiagnosticCriterion.DiagnosticCriterionName[index]
         label_safe = convert_string_to_label(label)
-        class_string = print_class(class_name=label_safe, 
-                                   label=label,
-                                   comment='',
-                                   index=index,
-                                   worksheet=DiagnosticSpecifier,
-                                   worksheet2=Reference,
-                                   equivalentClass='',
-                                   subClassOf='',
-                                   exclude=exclude)
-        fid.write(class_string)
+        if label_safe not in exclude2_list:
+            class_string = print_class(class_name=label_safe,
+                                       label=label,
+                                       comment='',
+                                       index=index,
+                                       worksheet=DiagnosticSpecifier,
+                                       worksheet2=Reference,
+                                       equivalentClass='',
+                                       subClassOf='',
+                                       exclude=exclude)
+            fid.write(class_string)
+            exclude2_list.append(label_safe)
     except:
         pass
 
@@ -366,16 +410,18 @@ for i4, disorder in enumerate(Disorder.DisorderName):
         index = pd.Index(DisorderSeverity['index']).get_loc(iseverity)
         label = DisorderSeverity.DisorderSeverityName[index]
         label_safe = convert_string_to_label(label)
-        class_string = print_class(class_name=label_safe, 
-                                   label=label,
-                                   comment='',
-                                   index=index,
-                                   worksheet=DiagnosticSpecifier,
-                                   worksheet2=Reference,
-                                   equivalentClass='',
-                                   subClassOf='',
-                                   exclude=exclude)
-        fid.write(class_string)
+        if label_safe not in severity_list:
+            class_string = print_class(class_name=label_safe,
+                                       label=label,
+                                       comment='',
+                                       index=index,
+                                       worksheet=DiagnosticSpecifier,
+                                       worksheet2=Reference,
+                                       equivalentClass='',
+                                       subClassOf='',
+                                       exclude=exclude)
+            fid.write(class_string)
+            severity_list.append(label_safe)
     except:
         pass
 
@@ -384,21 +430,26 @@ for i4, disorder in enumerate(Disorder.DisorderName):
 # ----------------------------------------------------------------------------
 classes_header = print_classes_header('Symptom')
 fid.write(classes_header)
+
+symptom_list = []
+symptomcategory_list = []
 for i5, symptom in enumerate(Symptom.SymptomName):
 
     # Symptom:
     try:
         label_safe = convert_string_to_label(symptom)
-        class_string = print_class(class_name=label_safe,
-                                   label=label,
-                                   comment='',
-                                   index=index,
-                                   worksheet=DiagnosticSpecifier,
-                                   worksheet2=Reference,
-                                   equivalentClass='',
-                                   subClassOf='',
-                                   exclude=exclude)
-        fid.write(class_string)
+        if label_safe not in symptom_list:
+            class_string = print_class(class_name=label_safe,
+                                       label=label,
+                                       comment='',
+                                       index=index,
+                                       worksheet=DiagnosticSpecifier,
+                                       worksheet2=Reference,
+                                       equivalentClass='',
+                                       subClassOf='',
+                                       exclude=exclude)
+            fid.write(class_string)
+            symptom_list.append(label_safe)
     except:
         pass
 
@@ -408,16 +459,18 @@ for i5, symptom in enumerate(Symptom.SymptomName):
         index = pd.Index(SymptomCategory['index']).get_loc(isymptomcat)
         label = SymptomCategory.SymptomCategoryName[index]
         label_safe = convert_string_to_label(label)
-        class_string = print_class(class_name=label_safe,
-                                   label=label,
-                                   comment='',
-                                   index=index,
-                                   worksheet=DiagnosticSpecifier,
-                                   worksheet2=Reference,
-                                   equivalentClass='',
-                                   subClassOf='',
-                                   exclude=exclude)
-        fid.write(class_string)
+        if label_safe not in symptomcategory_list:
+            class_string = print_class(class_name=label_safe,
+                                       label=label,
+                                       comment='',
+                                       index=index,
+                                       worksheet=DiagnosticSpecifier,
+                                       worksheet2=Reference,
+                                       equivalentClass='',
+                                       subClassOf='',
+                                       exclude=exclude)
+            fid.write(class_string)
+            symptomcategory_list.append(label_safe)
     except:
         pass
 
@@ -426,6 +479,9 @@ for i5, symptom in enumerate(Symptom.SymptomName):
 # ----------------------------------------------------------------------------
 classes_header = print_classes_header('Question')
 fid.write(classes_header)
+
+answertype_list = []
+questioncategory_list = []
 for i6, question in enumerate(Question.QuestionText):
     if question not in exclude:
 
@@ -463,41 +519,41 @@ for i6, question in enumerate(Question.QuestionText):
         except:
             pass
 
-        # AnswerText:
-        try:
-            label = Question.AnswerText.iloc[[i6][0]]
-            label_safe = convert_string_to_label(label)
-            if label_safe not in exclude:
-                class_string = print_class(class_name=label_safe,
-                                           label=label,
-                                           comment='',
-                                           index=None,
-                                           worksheet=None,
-                                           worksheet2=None,
-                                           equivalentClass='',
-                                           subClassOf='',
-                                           exclude=exclude)
-                fid.write(class_string)
-        except:
-            pass
-
-        # Followup AnswerText:
-        try:
-            label = Question.Answer2Text.iloc[[i6][0]]
-            label_safe = convert_string_to_label(label)
-            if label_safe not in exclude:
-                class_string = print_class(class_name=label_safe,
-                                           label=label,
-                                           comment='',
-                                           index=None,
-                                           worksheet=None,
-                                           worksheet2=None,
-                                           equivalentClass='',
-                                           subClassOf='',
-                                           exclude=exclude)
-                fid.write(class_string)
-        except:
-            pass
+        # # AnswerText:
+        # try:
+        #     label = Question.AnswerText.iloc[[i6][0]]
+        #     label_safe = convert_string_to_label(label)
+        #     if label_safe not in exclude:
+        #         class_string = print_class(class_name=label_safe,
+        #                                    label=label,
+        #                                    comment='',
+        #                                    index=None,
+        #                                    worksheet=None,
+        #                                    worksheet2=None,
+        #                                    equivalentClass='',
+        #                                    subClassOf='',
+        #                                    exclude=exclude)
+        #         fid.write(class_string)
+        # except:
+        #     pass
+        #
+        # # Followup AnswerText:
+        # try:
+        #     label = Question.Answer2Text.iloc[[i6][0]]
+        #     label_safe = convert_string_to_label(label)
+        #     if label_safe not in exclude:
+        #         class_string = print_class(class_name=label_safe,
+        #                                    label=label,
+        #                                    comment='',
+        #                                    index=None,
+        #                                    worksheet=None,
+        #                                    worksheet2=None,
+        #                                    equivalentClass='',
+        #                                    subClassOf='',
+        #                                    exclude=exclude)
+        #         fid.write(class_string)
+        # except:
+        #     pass
 
         # AnswerType:
         try:
@@ -506,16 +562,18 @@ for i6, question in enumerate(Question.QuestionText):
             label = AnswerType.AnswerTypeName[index]
             label_safe = convert_string_to_label(label)
             if label_safe not in exclude:
-                class_string = print_class(class_name=label_safe,
-                                           label=label,
-                                           comment='',
-                                           index=None,
-                                           worksheet=None,
-                                           worksheet2=None,
-                                           equivalentClass='',
-                                           subClassOf='',
-                                           exclude=exclude)
-                fid.write(class_string)
+                if label_safe not in answertype_list:
+                    class_string = print_class(class_name=label_safe,
+                                               label=label,
+                                               comment='',
+                                               index=None,
+                                               worksheet=None,
+                                               worksheet2=None,
+                                               equivalentClass='',
+                                               subClassOf='',
+                                               exclude=exclude)
+                    fid.write(class_string)
+                    answertype_list.append(label_safe)
         except:
             pass
 
@@ -526,16 +584,18 @@ for i6, question in enumerate(Question.QuestionText):
             label = AnswerType.Answer2TypeName[index]
             label_safe = convert_string_to_label(label)
             if label_safe not in exclude:
-                class_string = print_class(class_name=label_safe,
-                                           label=label,
-                                           comment='',
-                                           index=None,
-                                           worksheet=None,
-                                           worksheet2=None,
-                                           equivalentClass='',
-                                           subClassOf='',
-                                           exclude=exclude)
-                fid.write(class_string)
+                if label_safe not in answertype_list:
+                    class_string = print_class(class_name=label_safe,
+                                               label=label,
+                                               comment='',
+                                               index=None,
+                                               worksheet=None,
+                                               worksheet2=None,
+                                               equivalentClass='',
+                                               subClassOf='',
+                                               exclude=exclude)
+                    fid.write(class_string)
+                    answertype_list.append(label_safe)
         except:
             pass
 
@@ -544,6 +604,56 @@ for i6, question in enumerate(Question.QuestionText):
             iqcat = Question.QuestionCategory_index.iloc[[i6][0]]
             index = pd.Index(QuestionCategory['index']).get_loc(iqcat)
             label = QuestionCategory.QuestionCategoryName[index]
+            label_safe = convert_string_to_label(label)
+            if label_safe not in exclude:
+                if label_safe not in questioncategory_list:
+                    class_string = print_class(class_name=label_safe,
+                                               label=label,
+                                               comment='',
+                                               index=None,
+                                               worksheet=None,
+                                               worksheet2=None,
+                                               equivalentClass='',
+                                               subClassOf='',
+                                               exclude=exclude)
+                    fid.write(class_string)
+                    questioncategory_list.append(label_safe)
+        except:
+            pass
+
+        # Questionnaire (Reference):
+#    iqref = Question.Reference_index.iloc[[i6][0]]
+#    index = pd.Index(Reference['index']).get_loc(iqref)
+#    qreference = Reference.ReferenceLink[index]
+#    fid.write(class_string)
+
+# ----------------------------------------------------------------------------
+# Print classes related to references
+# ----------------------------------------------------------------------------
+classes_header = print_classes_header('Reference')
+fid.write(classes_header)
+for i7, label in enumerate(Reference.ReferenceName):
+    if label not in exclude:
+
+        try:
+            label_safe = convert_string_to_label(label)
+            class_string = print_class(class_name=label_safe,
+                                       label=label,
+                                       comment='',
+                                       index=None,
+                                       worksheet=None,
+                                       worksheet2=None,
+                                       equivalentClass='',
+                                       subClassOf='',
+                                       exclude=exclude)
+            fid.write(class_string)
+        except:
+            pass
+
+        try:
+            ireftype = Reference.ReferenceType_index.iloc[[i7][0]]
+            index = pd.Index(ReferenceType['index']).get_loc(ireftype)
+            label = ReferenceType.ReferenceTypeName[index]
             label_safe = convert_string_to_label(label)
             if label_safe not in exclude:
                 class_string = print_class(class_name=label_safe,
@@ -559,11 +669,32 @@ for i6, question in enumerate(Question.QuestionText):
         except:
             pass
 
-        # Questionnaire (Reference):
-#    iqref = Question.Reference_index.iloc[[i6][0]]
-#    index = pd.Index(Reference['index']).get_loc(iqref)
-#    qreference = Reference.ReferenceLink[index]
-#    fid.write(class_string)
+# ----------------------------------------------------------------------------
+# Print classes related to references
+# ----------------------------------------------------------------------------
+classes_header = print_classes_header('Reference')
+fid.write(classes_header)
+for i8, label in enumerate(Reference.ReferenceName):
+    if label not in exclude:
+
+        try:
+            ireftype = Reference.ReferenceType_index.iloc[[i7][0]]
+            index = pd.Index(ReferenceType['index']).get_loc(ireftype)
+            label = ReferenceType.ReferenceTypeName[index]
+            label_safe = convert_string_to_label(label)
+            if label_safe not in exclude:
+                class_string = print_class(class_name=label_safe,
+                                           label=label,
+                                           comment='',
+                                           index=None,
+                                           worksheet=None,
+                                           worksheet2=None,
+                                           equivalentClass='',
+                                           subClassOf='',
+                                           exclude=exclude)
+                fid.write(class_string)
+        except:
+            pass
 
 # ----------------------------------------------------------------------------
 # Print general axioms

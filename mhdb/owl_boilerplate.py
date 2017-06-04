@@ -37,6 +37,65 @@ def convert_string_to_label(input_string):
     return output_string
 
 
+def create_uri(base_uri, label):
+    """
+    This function creates a safe URI.
+
+    Parameters
+    ----------
+    base_uri : string
+        base URI
+    label : string
+        input string
+
+    Returns
+    -------
+    output_uri : string
+        output URI
+
+    """
+
+    label_safe = convert_string_to_label(label)
+    output_uri = base_uri + "#" + label_safe
+
+    return output_uri
+
+
+def write_triple(subject_string, predicate_string, object_string,
+                 third_literal=False):
+    """
+    This function writes a triple from three URIs.
+
+    Parameters
+    ----------
+    subject_string : string
+        subject URI
+    predicate_string : string
+        predicate URI or in ['a', 'rdf:type']
+    object_string : string
+        object URI or literal
+    third_literal : Boolean
+        is the object_string a literal?
+
+    Returns
+    -------
+    output_triple : string
+        output triple
+
+    """
+
+    if predicate_string not in ['a', 'rdf:type']:
+        predicate_string = "<0>".format(predicate_string)
+    if not third_literal:
+        object_string = "<0>".format(object_string)
+
+    output_triple = "<{0}> {1} {2}".format(subject_string,
+                                           predicate_string,
+                                           object_string)
+
+    return output_triple
+
+
 def get_definition(worksheet, worksheet2, index, exclude=[]):
     """
     This function expects that the worksheet has a "Definition" and
@@ -125,22 +184,15 @@ def print_object_properties_header():
 """
 
 
-def print_object_property(property_name, label='', comment='',
+def print_object_property(property_uri, label='', comment='',
                           equivalentURI='', subClassOf_uri='',
                           domain='', range='', exclude=['']):
     """
-    This function prints output like::
-
-        :expectsAnswerType rdf:type owl:ObjectProperty ;
-                           rdfs:subPropertyOf :relational_property ;
-                           rdf:type owl:FunctionalProperty ;
-                           rdfs:domain :Question ;
-                           rdfs:range :AnswerType .
 
     Parameters
     ----------
-    property_name : string
-        property name
+    property_uri : string
+        property URI
     label : string
         label
     comment : string
@@ -164,9 +216,10 @@ def print_object_property(property_name, label='', comment='',
     """
 
     object_property_string = """
-:{0} rdf:type owl:ObjectProperty ;
+### {0}
+:<{1}> rdf:type owl:ObjectProperty ;
     rdfs:subPropertyOf :relational_property ;
-    rdf:type owl:FunctionalProperty """.format(property_name)
+    rdf:type owl:FunctionalProperty """.format(label, property_uri)
 
     label = str(label)
     if label not in exclude:
@@ -214,22 +267,15 @@ def print_data_properties_header():
 """
 
 
-def print_data_property(property_name, label='', comment='',
+def print_data_property(property_uri, label='', comment='',
                         equivalentURI='', subClassOf_uri='',
                         exclude=['']):
     """
-    This function prints output like:
-
-        :Answer rdf:type owl:DatatypeProperty ;
-                rdfs:label "Answer"^^rdfs:Literal ;
-                owl:equivalentClass [ rdf:type owl:Restriction ;
-                                      owl:onProperty <http://schema.org/Answer>
-                                    ] .
 
     Parameters
     ----------
-    property_name : string
-        property name
+    property_uri : string
+        property URI
     label : string
         label
     comment : string
@@ -249,7 +295,8 @@ def print_data_property(property_name, label='', comment='',
     """
 
     data_property_string = """
-:{0} rdf:type owl:DatatypeProperty """.format(property_name)
+### {0}
+:<{1}> rdf:type owl:DatatypeProperty """.format(label, property_uri)
 
     label = str(label)
     if label not in exclude:
