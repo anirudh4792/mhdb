@@ -184,15 +184,15 @@ def print_object_properties_header():
 """
 
 
-def print_object_property(property_uri, label='', comment='',
+def print_object_property(property_uri_stem, label='', comment='',
                           equivalentURI='', subClassOf_uri='',
                           domain='', range='', exclude=['']):
     """
 
     Parameters
     ----------
-    property_uri : string
-        property URI
+    property_uri_stem : string
+        property URI stem
     label : string
         label
     comment : string
@@ -217,9 +217,9 @@ def print_object_property(property_uri, label='', comment='',
 
     object_property_string = """
 ### {0}
-:<{1}> rdf:type owl:ObjectProperty ;
+:{0} rdf:type owl:ObjectProperty ;
     rdfs:subPropertyOf :relational_property ;
-    rdf:type owl:FunctionalProperty """.format(label, property_uri)
+    rdf:type owl:FunctionalProperty """.format(label, property_uri_stem)
 
     label = str(label)
     if label not in exclude:
@@ -267,15 +267,15 @@ def print_data_properties_header():
 """
 
 
-def print_data_property(property_uri, label='', comment='',
+def print_data_property(property_uri_stem, label='', comment='',
                         equivalentURI='', subClassOf_uri='',
                         exclude=['']):
     """
 
     Parameters
     ----------
-    property_uri : string
-        property URI
+    property_uri_stem : string
+        property URI stem
     label : string
         label
     comment : string
@@ -296,7 +296,7 @@ def print_data_property(property_uri, label='', comment='',
 
     data_property_string = """
 ### {0}
-:<{1}> rdf:type owl:DatatypeProperty """.format(label, property_uri)
+:{0} rdf:type owl:DatatypeProperty """.format(label, property_uri_stem)
 
     label = str(label)
     if label not in exclude:
@@ -339,74 +339,7 @@ def print_classes_header(title=''):
 """.format(title, space)
 
 
-def print_class_short(class_name, label='', comment='',
-                      equivalentURI='', subClassOf_uri='',
-                      exclude=['']):
-    """
-    This function prints output like:
-
-    :IntellectualDisabilityIntellectualDevelopmentDisorder rdf:type owl:Class ;
-            rdfs:label "Intellectual Disability (Intellectual Development Disorder)"^^rdfs:Literal ;
-            rdfs:comment "None"^^rdfs:Literal ;
-            owl:equivalentClass [ rdf:type owl:Restriction ;
-                                  owl:onProperty <http://purl.bioontology.org/ontology/ICD10CM/F71>
-                                ] ;
-            rdfs:subClassOf :http://www.purl.org/mentalhealth#SchizophreniaSpectrumandOtherPsychoticDisorders .
-
-    Parameters
-    ----------
-    class_name : string
-        class name
-    label : string
-        label
-    comment : string
-        comment
-    equivalentURI : string
-        equivalent URI
-    subClassOf_uri : string
-        subClassOf URI
-    exclude : list
-        exclusion list
-
-    Returns
-    -------
-    class_string : string
-        owl class
-
-    """
-
-    class_string = """
-:{0} rdf:type owl:Class """.format(class_name)
-
-    label = str(label)
-    if label not in exclude:
-        class_string += """;
-        rdfs:label "{0}"^^rdfs:Literal """.format(label)
-
-    comment = str(comment)
-    if comment not in exclude:
-        class_string += """;
-        rdfs:comment "{0}"^^rdfs:Literal """.format(comment)
-
-    equivalentURI = str(equivalentURI)
-    if equivalentURI not in exclude:
-        class_string += """;
-        owl:equivalentClass [ rdf:type owl:Restriction ;
-                              owl:onProperty <{0}>
-                            ] """.format(equivalentURI)
-
-    subClassOf_uri = str(subClassOf_uri)
-    if subClassOf_uri not in exclude:
-        class_string += """;
-        rdfs:subClassOf :{0} """.format(subClassOf_uri)
-
-    class_string += """.
-"""
-
-    return class_string
-
-
-def print_class(class_name, label, comment='', index=None,
+def print_class(class_uri_stem, label, comment='', index=None,
                 worksheet=None, worksheet2=None,
                 equivalentClass='', subClassOf='', exclude=['']):
     """
@@ -422,8 +355,8 @@ def print_class(class_name, label, comment='', index=None,
 
     Parameters
     ----------
-    class_name : string
-        name of class
+    class_uri_stem : string
+        class URI stem
     label : string
         label
     comment : string
@@ -475,7 +408,9 @@ def print_class(class_name, label, comment='', index=None,
             subClassOf = ''
 
     class_string = """
-:{0} rdf:type owl:Class """.format(class_name)
+
+### {0}
+:{0} rdf:type owl:Class """.format(label, class_uri_stem)
 
     label = str(label)
     if label not in exclude:
