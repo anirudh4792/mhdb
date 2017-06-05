@@ -16,12 +16,8 @@ import pandas as pd
 from mhdb.info import __version__ as version
 from mhdb.info import long_description as comment
 from mhdb.info import description as label
-from mhdb.owl_boilerplate import convert_string_to_label, create_uri, \
-    write_triple, get_definition, \
-    print_header, print_object_properties_header, \
-    print_data_properties_header, print_classes_header, \
-    print_general_axioms_header, print_object_property, print_data_property, \
-    print_class, print_general_axioms
+from mhdb.owl_boilerplate import convert_string_to_label, safestr, \
+    build_owl_string, print_header, print_subheader, print_general_axioms
 
 # ------------------------------------------------------------------------------
 # Command-line arguments
@@ -55,7 +51,7 @@ else:
 # Import spreadsheet
 # ------------------------------------------------------------------------------
 xls = pd.ExcelFile(FILE)
-exclude = ['', 'nan']
+X = ['', 'nan', 'None', None]
 
 # ------------------------------------------------------------------------------
 # Create output RDF file and print header
@@ -92,75 +88,53 @@ AnswerType = xls.parse("AnswerType")
 ChildMindInstituteCategory = xls.parse("ChildMindInstituteCategory")
 
 # ------------------------------------------------------------------------
-# Print object properties
+# Properties
 # ------------------------------------------------------------------------
-object_properties_header = print_object_properties_header()
-fid.write(object_properties_header)
-for i, object_property_name in enumerate(Properties.PropertyName):
-
-    property_definition = get_definition(worksheet=Properties, 
-                                         worksheet2=Reference, 
-                                         index=i,
-                                         exclude=exclude)
-    equivalentClass = Properties.equivalentClass.iloc[[i][0]]
-    subClassOf = Properties.subClassOf.iloc[[i][0]]
-    property_domain = Properties.propertyDomain.iloc[[i][0]]
-    property_range = Properties.propertyRange.iloc[[i][0]]
-    if equivalentClass in exclude:
-        equivalentClass = ''
-    if subClassOf in exclude:
-        subClassOf = ''
-    if property_domain in exclude:
-        property_domain = ''
-    if property_range in exclude:
-        property_range = ''
-
-    label_safe = convert_string_to_label(object_property_name)
+subheader = print_subheader('Properties')
+fid.write(subheader)
+for index, label in enumerate(Properties.PropertyName):
+    label_safe = convert_string_to_label(label)
+    owl_string = build_owl_string(uri_stem=label_safe, 
+                                  owl_type='ObjectProperty', 
+                                  label=label,
+                                  comment=None,
+                                  index=index,
+                                  worksheet=Properties,
+                                  worksheet2=Reference,
+                                  equivalent_class_uri=None,
+                                  subclassof_uri=None,
+                                  property_domain=None,
+                                  property_range=None,
+                                  exclude=X)
+    fid.write(owl_string)
     exec("{0}_uri = ':{0}'".format(label_safe))
-    object_property_string = print_object_property(
-        property_uri_stem=label_safe,
-        label = object_property_name,
-        comment = property_definition,
-        equivalentURI=equivalentClass,
-        subClassOf_uri=subClassOf,
-        domain=property_domain,
-        range=property_range,
-        exclude=exclude)
-    fid.write(object_property_string)
 
 # ------------------------------------------------------------------------
-# Print data properties
+# Objects
 # ------------------------------------------------------------------------
-data_properties_header = print_data_properties_header()
-fid.write(data_properties_header)
-for i, data_property_name in enumerate(Classes.ClassName):
-
-    class_definition = get_definition(worksheet=Classes, 
-                                      worksheet2=Reference, 
-                                      index=i,
-                                      exclude=exclude)
-    equivalentClass = Classes.equivalentClass.iloc[[i][0]]
-    subClassOf = Classes.subClassOf.iloc[[i][0]]
-    if equivalentClass in exclude:
-        equivalentClass = ''
-    if subClassOf in exclude:
-        subClassOf = ''
-
-    label_safe = convert_string_to_label(data_property_name)
+subheader = print_subheader('Classes')
+fid.write(subheader)
+for index, label in enumerate(Classes.ClassName):
+    label_safe = convert_string_to_label(label)
+    owl_string = build_owl_string(uri_stem=label_safe,
+                                  owl_type='ObjectProperty',
+                                  label=label,
+                                  comment=None,
+                                  index=index,
+                                  worksheet=Classes,
+                                  worksheet2=Reference,
+                                  equivalent_class_uri=None,
+                                  subclassof_uri=None,
+                                  property_domain=None,
+                                  property_range=None,
+                                  exclude=X)
+    fid.write(owl_string)
     exec("{0}_uri = ':{0}'".format(label_safe))
-    data_property_string = print_data_property(property_uri_stem=label_safe,
-        label=data_property_name,
-        comment=class_definition,
-        equivalentURI=equivalentClass,
-        subClassOf_uri=subClassOf,
-        exclude=exclude)
-    fid.write(data_property_string)
 
 # ----------------------------------------------------------------------------
-# Print classes and triples related to mental health disorders
+# Classes and triples related to mental health disorders
 # ----------------------------------------------------------------------------
-classes_header = print_classes_header('Disorder')
-fid.write(classes_header)
+fid.write(print_subheader('Disorder classes and triples'))
 
 # ----------------------------------------------------------------------------
 # Disorder [Category, Subcategory, Subsubcategory, Subsubsubcategory] classes
@@ -178,10 +152,10 @@ exclude2_list = []
 severity_list = []
 
 for i4, disorder in enumerate(Disorder.DisorderName):
-    i0 = Disorder.DisorderCategory_index.iloc[[i4][0]]
-    i1 = Disorder.DisorderSubcategory_index.iloc[[i4][0]]
-    i2 = Disorder.DisorderSubsubcategory_index.iloc[[i4][0]]
-    i3 = Disorder.DisorderSubsubsubcategory_index.iloc[[i4][0]]
+    i0 = safestr(Disorder.DisorderCategory_index[i4], X)
+    i1 = safestr(Disorder.DisorderSubcategory_index[i4], X)
+    i2 = safestr(Disorder.DisorderSubsubcategory_index[i4], X)
+    i3 = safestr(Disorder.DisorderSubsubsubcategory_index[i4], X)
 
     # Category:
     try:
@@ -190,24 +164,24 @@ for i4, disorder in enumerate(Disorder.DisorderName):
         label_safe = convert_string_to_label(label)
         category0_uri = ":{0}".format(label_safe)
         if label_safe not in category0_list:
-            class_string = print_class(class_uri_stem=label_safe,
-                                       label=label,
-                                       comment='',
-                                       index=index,
-                                       worksheet=DisorderCategory0,
-                                       worksheet2=Reference,
-                                       equivalentClass='',
-                                       subClassOf='',
-                                       exclude=exclude)
-            fid.write(class_string)
             category0_list.append(label_safe)
-            fid.write("{0} {1} {2}".format(category0_uri,
-                                           'rdf:type',
-                                           MentalDisorder_uri))
-        disorder_superClass_uri = category0_uri
+            owl_string = build_owl_string(uri_stem=label_safe,
+                                          owl_type='Class',
+                                          label=label,
+                                          comment=None,
+                                          index=index,
+                                          worksheet=DisorderCategory0,
+                                          worksheet2=Reference,
+                                          equivalent_class_uri=None,
+                                          subclassof_uri=MentalDisorder_uri,
+                                          property_domain=None,
+                                          property_range=None,
+                                          exclude=X)
+            fid.write(owl_string)
+        superClass_uri = category0_uri
     except:
         category0_uri = ''
-        disorder_superClass_uri = ''
+        superClass_uri = ''
 
     # Subcategory:
     try:
@@ -215,19 +189,22 @@ for i4, disorder in enumerate(Disorder.DisorderName):
         label = DisorderCategory1.DisorderCategoryName[index]
         label_safe = convert_string_to_label(label)
         if label_safe not in category1_list:
-            class_string = print_class(class_uri_stem=label_safe,
-                                       label=label,
-                                       comment='',
-                                       index=index,
-                                       worksheet=DisorderCategory1,
-                                       worksheet2=Reference,
-                                       equivalentClass='',
-                                       subClassOf=category0_uri,
-                                       exclude=exclude)
-            fid.write(class_string)
             category1_list.append(label_safe)
+            owl_string = build_owl_string(uri_stem=label_safe,
+                                          owl_type='Class',
+                                          label=label,
+                                          comment=None,
+                                          index=index,
+                                          worksheet=DisorderCategory1,
+                                          worksheet2=Reference,
+                                          equivalent_class_uri=None,
+                                          subclassof_uri=category0_uri,
+                                          property_domain=None,
+                                          property_range=None,
+                                          exclude=X)
+            fid.write(owl_string)
         category1_uri = ":{0}".format(label_safe)
-        disorder_superClass_uri = category1_uri
+        superClass_uri = category1_uri
     except:
         category1_uri = ''
 
@@ -237,19 +214,22 @@ for i4, disorder in enumerate(Disorder.DisorderName):
         label = DisorderCategory2.DisorderCategoryName[index]
         label_safe = convert_string_to_label(label)
         if label_safe not in category2_list:
-            class_string = print_class(class_uri_stem=label_safe,
-                                       label=label,
-                                       comment='',
-                                       index=index,
-                                       worksheet=DisorderCategory2,
-                                       worksheet2=Reference,
-                                       equivalentClass='',
-                                       subClassOf=category1_uri,
-                                       exclude=exclude)
             category2_list.append(label_safe)
-            fid.write(class_string)
+            owl_string = build_owl_string(uri_stem=label_safe,
+                                          owl_type='Class',
+                                          label=label,
+                                          comment=None,
+                                          index=index,
+                                          worksheet=DisorderCategory2,
+                                          worksheet2=Reference,
+                                          equivalent_class_uri=None,
+                                          subclassof_uri=category1_uri,
+                                          property_domain=None,
+                                          property_range=None,
+                                          exclude=X)
+            fid.write(owl_string)
         category2_uri = ":{0}".format(label_safe)
-        disorder_superClass_uri = category2_uri
+        superClass_uri = category2_uri
     except:
         category2_uri = ''
 
@@ -259,323 +239,372 @@ for i4, disorder in enumerate(Disorder.DisorderName):
         label = DisorderCategory3.DisorderCategoryName[index]
         label_safe = convert_string_to_label(label)
         if label_safe not in category3_list:
-            class_string = print_class(class_uri_stem=label_safe,
-                                       label=label,
-                                       comment='',
-                                       index=index,
-                                       worksheet=DisorderCategory3,
-                                       worksheet2=Reference,
-                                       equivalentClass='',
-                                       subClassOf=category2_uri,
-                                       exclude=exclude)
             category3_list.append(label_safe)
-            fid.write(class_string)
+            owl_string = build_owl_string(uri_stem=label_safe,
+                                          owl_type='Class',
+                                          label=label,
+                                          comment=None,
+                                          index=index,
+                                          worksheet=DisorderCategory3,
+                                          worksheet2=Reference,
+                                          equivalent_class_uri=None,
+                                          subclassof_uri=category2_uri,
+                                          property_domain=None,
+                                          property_range=None,
+                                          exclude=X)
+            fid.write(owl_string)
         category3_uri = ":{0}".format(label_safe)
-        disorder_superClass_uri = category3_uri
+        superClass_uri = category3_uri
     except:
         category3_uri = ''
 
-    # Disorder class: Use ICD-10 code's URI as an equivalentURI disorder
+    # Disorder class: Use ICD-10 code's URI as an equivalentClass disorder
     try:
         label_safe = convert_string_to_label(disorder)
         if label_safe not in disorder_list:
-            ICD9 = Disorder.ICD9code.iloc[[i4][0]]
-            ICD10 = Disorder.ICD10code.iloc[[i4][0]]
-            if ICD10:
-                ICD_uri = "http://purl.bioontology.org/ontology/ICD10CM/" + \
-                          str(ICD10)
-            else:
-                ICD_uri = ''
-            class_string = print_class(class_uri_stem=label_safe,
-                                       label=disorder,
-                                       comment='',
-                                       index=i4,
-                                       worksheet=Disorder,
-                                       worksheet2=Reference,
-                                       equivalentClass=ICD_uri,
-                                       subClassOf=disorder_superClass_uri,
-                                       exclude=exclude)
             disorder_list.append(label_safe)
-            fid.write(class_string)
+            ICD10code = safestr(Disorder.ICD10code[i4], X)[0]
+            if ICD10code not in X:
+                ICD_base_uri = "http://purl.bioontology.org/ontology/ICD10CM/"
+                ICD_uri = ICD_base_uri + ICD10code
+            else:
+                ICD_uri = None
+            owl_string = build_owl_string(uri_stem=label_safe,
+                                          owl_type='Class',
+                                          label=disorder,
+                                          comment=None,
+                                          index=i4,
+                                          worksheet=Disorder,
+                                          worksheet2=Reference,
+                                          equivalent_class_uri=ICD_uri,
+                                          subclassof_uri=superClass_uri,
+                                          property_domain=None,
+                                          property_range=None,
+                                          exclude=X)
+            fid.write(owl_string)
             #exec("{0}_uri = ':{0}'".format(label_safe))
         disorder_uri = ":{0}".format(label_safe)
         disorder_superClass_uri = disorder_uri
 
         # Indices to other Disorder worksheet columns:
-        ispecfr = Disorder.DiagnosticSpecifier_index.iloc[[i4][0]]
-        inclsn1 = Disorder.DiagnosticInclusionCriterion_index.iloc[[i4][0]]
-        inclsn2 = Disorder.DiagnosticInclusionCriterion2_index.iloc[[i4][0]]
-        ixclsn1 = Disorder.DiagnosticExclusionCriterion_index.iloc[[i4][0]]
-        ixclsn2 = Disorder.DiagnosticExclusionCriterion2_index.iloc[[i4][0]]
-        isevrty = Disorder.DisorderSeverity_index.iloc[[i4][0]]
+        ispecfr = safestr(Disorder.DiagnosticSpecifier_index[i4], X)
+        inclsn1 = safestr(Disorder.DiagnosticInclusionCriterion_index[i4], X)
+        inclsn2 = safestr(Disorder.DiagnosticInclusionCriterion2_index[i4], X)
+        ixclsn1 = safestr(Disorder.DiagnosticExclusionCriterion_index[i4], X)
+        ixclsn2 = safestr(Disorder.DiagnosticExclusionCriterion2_index[i4], X)
+        isevrty = safestr(Disorder.DisorderSeverity_index[i4], X)
 
         # DiagnosticSpecifier class:
         try:
             index = pd.Index(DiagnosticSpecifier['index']).get_loc(ispecfr)
-            label = DiagnosticSpecifier.DiagnosticSpecifierName[index]
-            label_safe = convert_string_to_label(label)
-            specifier_uri = ":{0}".format(label_safe)
+            label, label_safe = safestr(
+                DiagnosticSpecifier.DiagnosticSpecifierName[index], X)
             if label_safe not in specifier_list:
-                class_string = print_class(class_uri=label_safe,
-                                           label=label,
-                                           comment='',
-                                           index=index,
-                                           worksheet=DiagnosticSpecifier,
-                                           worksheet2=Reference,
-                                           equivalentClass='',
-                                           subClassOf='',
-                                           exclude=exclude)
-                fid.write(class_string)
-                fid.write("{0} {1} {2}".format(disorder_uri,
-                                               hasDiagnosticSpecifier_uri,
-                                               specifier_uri))
                 specifier_list.append(label_safe)
+                owl_string = build_owl_string(uri_stem=label_safe,
+                                              owl_type='Class',
+                                              label=label,
+                                              comment=None,
+                                              index=index,
+                                              worksheet=DiagnosticSpecifier,
+                                              worksheet2=Reference,
+                                              equivalent_class_uri=None,
+                                              subclassof_uri=None,
+                                              property_domain=None,
+                                              property_range=None,
+                                              exclude=X)
+                fid.write(owl_string)
+                specifier_uri = ":{0}".format(label_safe)
+                fid.write("{0} {1} {2}\n".format(disorder_uri,
+                                                 hasDiagnosticSpecifier_uri,
+                                                 specifier_uri))
         except:
             specifier_uri = None
 
         # In/ExclusionCriterion classes:
         try:
             index = pd.Index(DiagnosticCriterion['index']).get_loc(inclsn1)
-            label = DiagnosticCriterion.DiagnosticCriterionName[index]
-            label_safe = convert_string_to_label(label)
-            inclusion1_uri = ":{0}".format(label_safe)
+            label, label_safe = safestr(
+                DiagnosticCriterion.DiagnosticCriterionName[index], X)
             if label_safe not in include1_list:
-                class_string = print_class(class_uri=label_safe,
-                                           label=label,
-                                           comment='',
-                                           index=index,
-                                           worksheet=DiagnosticSpecifier,
-                                           worksheet2=Reference,
-                                           equivalentClass='',
-                                           subClassOf='',
-                                           exclude=exclude)
-                fid.write(class_string)
-                fid.write("{0} {1} {2}".format(disorder_uri,
-                                               hasInclusionCriterion_uri,
-                                               inclusion1_uri))
                 include1_list.append(label_safe)
+                owl_string = build_owl_string(uri_stem=label_safe,
+                                              owl_type='Class',
+                                              label=label,
+                                              comment=None,
+                                              index=index,
+                                              worksheet=DiagnosticCriterion,
+                                              worksheet2=Reference,
+                                              equivalent_class_uri=None,
+                                              subclassof_uri=None,
+                                              property_domain=None,
+                                              property_range=None,
+                                              exclude=X)
+                fid.write(owl_string)
+                inclusion1_uri = ":{0}".format(label_safe)
+                fid.write("{0} {1} {2}\n".format(disorder_uri,
+                                                 hasInclusionCriterion_uri,
+                                                 inclusion1_uri))
         except:
             pass
         try:
             index = pd.Index(DiagnosticCriterion['index']).get_loc(inclsn2)
-            label = DiagnosticCriterion.DiagnosticCriterionName[index]
-            label_safe = convert_string_to_label(label)
-            inclusion2_uri = ":{0}".format(label_safe)
+            label, label_safe = safestr(
+                DiagnosticCriterion.DiagnosticCriterionName[index], X)
             if label_safe not in include2_list:
-                class_string = print_class(class_uri=label_safe,
-                                           label=label,
-                                           comment='',
-                                           index=index,
-                                           worksheet=DiagnosticSpecifier,
-                                           worksheet2=Reference,
-                                           equivalentClass='',
-                                           subClassOf='',
-                                           exclude=exclude)
-                fid.write(class_string)
-                fid.write("{0} {1} {2}".format(disorder_uri,
-                                               hasInclusionCriterion_uri,
-                                               inclusion2_uri))
                 include2_list.append(label_safe)
+                owl_string = build_owl_string(uri_stem=label_safe,
+                                              owl_type='Class',
+                                              label=label,
+                                              comment=None,
+                                              index=index,
+                                              worksheet=DiagnosticCriterion,
+                                              worksheet2=Reference,
+                                              equivalent_class_uri=None,
+                                              subclassof_uri=None,
+                                              property_domain=None,
+                                              property_range=None,
+                                              exclude=X)
+                fid.write(owl_string)
+                inclusion2_uri = ":{0}".format(label_safe)
+                fid.write("{0} {1} {2}\n".format(disorder_uri,
+                                                 hasInclusionCriterion_uri,
+                                                 inclusion2_uri))
         except:
             pass
         try:
             index = pd.Index(DiagnosticCriterion['index']).get_loc(ixclsn1)
-            label = DiagnosticCriterion.DiagnosticCriterionName[index]
-            label_safe = convert_string_to_label(label)
-            exclusion1_uri = ":{0}".format(label_safe)
+            label, label_safe = safestr(
+                DiagnosticCriterion.DiagnosticCriterionName[index], X)
             if label_safe not in exclude1_list:
-                class_string = print_class(class_uri=label_safe,
-                                           label=label,
-                                           comment='',
-                                           index=index,
-                                           worksheet=DiagnosticSpecifier,
-                                           worksheet2=Reference,
-                                           equivalentClass='',
-                                           subClassOf='',
-                                           exclude=exclude)
-                fid.write(class_string)
-                fid.write("{0} {1} {2}".format(disorder_uri,
-                                               hasExclusionCriterion_uri,
-                                               exclusion1_uri))
                 exclude1_list.append(label_safe)
+                owl_string = build_owl_string(uri_stem=label_safe,
+                                              owl_type='Class',
+                                              label=label,
+                                              comment=None,
+                                              index=index,
+                                              worksheet=DiagnosticCriterion,
+                                              worksheet2=Reference,
+                                              equivalent_class_uri=None,
+                                              subclassof_uri=None,
+                                              property_domain=None,
+                                              property_range=None,
+                                              exclude=X)
+                fid.write(owl_string)
+                exclusion1_uri = ":{0}".format(label_safe)
+                fid.write("{0} {1} {2}\n".format(disorder_uri,
+                                                 hasExclusionCriterion_uri,
+                                                 exclusion1_uri))
         except:
             pass
         try:
             index = pd.Index(DiagnosticCriterion['index']).get_loc(ixclsn2)
-            label = DiagnosticCriterion.DiagnosticCriterionName[index]
-            label_safe = convert_string_to_label(label)
-            exclusion2_uri = ":{0}".format(label_safe)
+            label, label_safe = safestr(
+                DiagnosticCriterion.DiagnosticCriterionName[index], X)
             if label_safe not in exclude2_list:
-                class_string = print_class(class_uri=label_safe,
-                                           label=label,
-                                           comment='',
-                                           index=index,
-                                           worksheet=DiagnosticSpecifier,
-                                           worksheet2=Reference,
-                                           equivalentClass='',
-                                           subClassOf='',
-                                           exclude=exclude)
-                fid.write(class_string)
-                fid.write("{0} {1} {2}".format(disorder_uri,
-                                               hasExclusionCriterion_uri,
-                                               exclusion2_uri))
                 exclude2_list.append(label_safe)
+                owl_string = build_owl_string(uri_stem=label_safe,
+                                              owl_type='Class',
+                                              label=label,
+                                              comment=None,
+                                              index=index,
+                                              worksheet=DiagnosticCriterion,
+                                              worksheet2=Reference,
+                                              equivalent_class_uri=None,
+                                              subclassof_uri=None,
+                                              property_domain=None,
+                                              property_range=None,
+                                              exclude=X)
+                fid.write(owl_string)
+                exclusion2_uri = ":{0}".format(label_safe)
+                fid.write("{0} {1} {2}\n".format(disorder_uri,
+                                                 hasExclusionCriterion_uri,
+                                                 exclusion2_uri))
         except:
             pass
 
         # DisorderSeverity class:
         try:
             index = pd.Index(DisorderSeverity['index']).get_loc(isevrty)
-            label = DisorderSeverity.DisorderSeverityName[index]
-            label_safe = convert_string_to_label(label)
-            severity_uri = ":{0}".format(label_safe)
+            label, label_safe = safestr(
+                DisorderSeverity.DisorderSeverityName[index], X)
             if label_safe not in severity_list:
-                class_string = print_class(class_uri=label_safe,
-                                           label=label,
-                                           comment='',
-                                           index=index,
-                                           worksheet=DiagnosticSpecifier,
-                                           worksheet2=Reference,
-                                           equivalentClass='',
-                                           subClassOf='',
-                                           exclude=exclude)
-                fid.write(class_string)
-                fid.write("{0} {1} {2}".format(disorder_uri,
-                                               hasSeverity_uri,
-                                               severity_uri))
                 severity_list.append(label_safe)
+                owl_string = build_owl_string(uri_stem=label_safe,
+                                              owl_type='Class',
+                                              label=label,
+                                              comment=None,
+                                              index=index,
+                                              worksheet=DisorderSeverity,
+                                              worksheet2=Reference,
+                                              equivalent_class_uri=None,
+                                              subclassof_uri=None,
+                                              property_domain=None,
+                                              property_range=None,
+                                              exclude=X)
+                fid.write(owl_string)
+                severity_uri = ":{0}".format(label_safe)
+                fid.write("{0} {1} {2}\n".format(disorder_uri,
+                                                 hasSeverity_uri,
+                                                 severity_uri))
         except:
             pass
     except:
         disorder_uri = ''
 
 # ----------------------------------------------------------------------------
-# Print classes related to mental health symptoms
+# Symptom classes
 # ----------------------------------------------------------------------------
-classes_header = print_classes_header('Symptom')
-fid.write(classes_header)
+fid.write(print_subheader('Symptom classes and triples'))
 
 symptom_list = []
 symptomcategory_list = []
 for i5, symptom in enumerate(Symptom.SymptomName):
 
+    # SymptomCategory:
+    try:
+        isymptomcat = safestr(Symptom, 'SymptomCategory_index', i5, X)
+        index = pd.Index(SymptomCategory['index']).get_loc(isymptomcat)
+        label, label_safe = safestr(
+            SymptomCategory.SymptomCategoryName[index], X)
+        if label_safe not in symptomcategory_list:
+            symptomcategory_list.append(label_safe)
+            owl_string = build_owl_string(uri_stem=label_safe,
+                                          owl_type='Class',
+                                          label=label,
+                                          comment=None,
+                                          index=index,
+                                          worksheet=SymptomCategory,
+                                          worksheet2=Reference,
+                                          equivalent_class_uri=None,
+                                          subclassof_uri=None,
+                                          property_domain=None,
+                                          property_range=None,
+                                          exclude=X)
+            fid.write(owl_string)
+            isymcatdis = safestr(
+                SymptomCategory.Disorder_index[i5], X)
+            index = pd.Index(Disorder['index']).get_loc(isymcatdis)
+            disnam, disnam_safe = safestr(
+                Disorder.DisorderName[index], X)
+            disorder_for_symptom_uri = ":{0}".format(disnam_safe)
+            symptom_category_uri = ":{0}".format(label_safe)
+            fid.write("{0} {1} {2}\n".format(symptom_category_uri,
+                                             'rdf:type',
+                                             Symptom_uri))
+            fid.write("{0} {1} {2}\n".format(disorder_for_symptom_uri,
+                                             hasSymptom_uri,
+                                             symptom_category_uri))
+    except:
+        symptom_category_uri = None
+
     # Symptom:
     try:
         label_safe = convert_string_to_label(symptom)
         if label_safe not in symptom_list:
-            class_string = print_class(class_uri=label_safe,
-                                       label=label,
-                                       comment='',
-                                       index=index,
-                                       worksheet=DiagnosticSpecifier,
-                                       worksheet2=Reference,
-                                       equivalentClass='',
-                                       subClassOf='',
-                                       exclude=exclude)
-            fid.write(class_string)
             symptom_list.append(label_safe)
-    except:
-        pass
-
-    # SymptomCategory:
-    try:
-        isymptomcat = Symptom.SymptomCategory_index.iloc[[i5][0]]
-        index = pd.Index(SymptomCategory['index']).get_loc(isymptomcat)
-        label = SymptomCategory.SymptomCategoryName[index]
-        label_safe = convert_string_to_label(label)
-        if label_safe not in symptomcategory_list:
-            class_string = print_class(class_uri=label_safe,
-                                       label=label,
-                                       comment='',
-                                       index=index,
-                                       worksheet=DiagnosticSpecifier,
-                                       worksheet2=Reference,
-                                       equivalentClass='',
-                                       subClassOf='',
-                                       exclude=exclude)
-            fid.write(class_string)
-            symptomcategory_list.append(label_safe)
+            owl_string = build_owl_string(uri_stem=label_safe,
+                                          owl_type='Class',
+                                          label=symptom,
+                                          comment=None,
+                                          index=index,
+                                          worksheet=Symptom,
+                                          worksheet2=Reference,
+                                          equivalent_class_uri=None,
+                                          subclassof_uri=symptom_category_uri,
+                                          property_domain=None,
+                                          property_range=None,
+                                          exclude=X)
+            fid.write(owl_string)
     except:
         pass
 
 # ----------------------------------------------------------------------------
-# Print classes related to mental health questions (from the questionnaires)
+# Questions/questionnaire classes
 # ----------------------------------------------------------------------------
-classes_header = print_classes_header('Question')
-fid.write(classes_header)
+fid.write(print_subheader('Question classes and triples'))
 
 answertype_list = []
 questioncategory_list = []
 for i6, question in enumerate(Question.QuestionText):
-    if question not in exclude:
+    if question not in X:
 
         # QuestionText:
         try:
-            question_safe = convert_string_to_label(question)
-            class_string = print_class(class_name=question_safe,
-                                       label=question,
-                                       comment='',
-                                       index=None,
-                                       worksheet=None,
-                                       worksheet2=None,
-                                       equivalentClass='',
-                                       subClassOf='',
-                                       exclude=exclude)
-            fid.write(class_string)
+            label_safe = convert_string_to_label(question)
+            owl_string = build_owl_string(uri_stem=label_safe,
+                                          owl_type='Class',
+                                          label=question,
+                                          comment=None,
+                                          index=index,
+                                          worksheet=Question,
+                                          worksheet2=Reference,
+                                          equivalent_class_uri=None,
+                                          subclassof_uri=None,
+                                          property_domain=None,
+                                          property_range=None,
+                                          exclude=X)
+            fid.write(owl_string)
         except:
             pass
 
         # Followup QuestionText:
         try:
-            question2 = Question.Question2Text.iloc[[i6][0]]
-            question2_safe = convert_string_to_label(question2)
-            if question2_safe not in exclude:
-                class_string = print_class(class_name=question2_safe,
-                                           label=question2,
-                                           comment='',
-                                           index=None,
-                                           worksheet=None,
-                                           worksheet2=None,
-                                           equivalentClass='',
-                                           subClassOf='',
-                                           exclude=exclude)
-                fid.write(class_string)
+            label, label_safe = safestr(Question.Question2Text[i6], X)
+            if label_safe not in X:
+                owl_string = build_owl_string(uri_stem=label_safe,
+                                              owl_type='Class',
+                                              label=label,
+                                              comment=None,
+                                              index=index,
+                                              worksheet=Question,
+                                              worksheet2=Reference,
+                                              equivalent_class_uri=None,
+                                              subclassof_uri=None,
+                                              property_domain=None,
+                                              property_range=None,
+                                              exclude=X)
+                fid.write(owl_string)
         except:
             pass
 
         # # AnswerText:
         # try:
-        #     label = Question.AnswerText.iloc[[i6][0]]
-        #     label_safe = convert_string_to_label(label)
-        #     if label_safe not in exclude:
-        #         class_string = print_class(class_uri=label_safe,
-        #                                    label=label,
-        #                                    comment='',
-        #                                    index=None,
-        #                                    worksheet=None,
-        #                                    worksheet2=None,
-        #                                    equivalentClass='',
-        #                                    subClassOf='',
-        #                                    exclude=exclude)
-        #         fid.write(class_string)
+        #     label, label_safe = safestr(Question.AnswerText[i6], X)
+        #     if label_safe not in X:
+        #         owl_string = build_owl_string(uri_stem=label_safe,
+        #                                       owl_type='Class',
+        #                                       label=label,
+        #                                       comment=None,
+        #                                       index=index,
+        #                                       worksheet=Question,
+        #                                       worksheet2=Reference,
+        #                                       equivalent_class_uri=None,
+        #                                       subclassof_uri=None,
+        #                                       property_domain=None,
+        #                                       property_range=None,
+        #                                       exclude=X)
+        #         fid.write(owl_string)
         # except:
         #     pass
         #
         # # Followup AnswerText:
         # try:
-        #     label = Question.Answer2Text.iloc[[i6][0]]
-        #     label_safe = convert_string_to_label(label)
-        #     if label_safe not in exclude:
-        #         class_string = print_class(class_uri=label_safe,
-        #                                    label=label,
-        #                                    comment='',
-        #                                    index=None,
-        #                                    worksheet=None,
-        #                                    worksheet2=None,
-        #                                    equivalentClass='',
-        #                                    subClassOf='',
-        #                                    exclude=exclude)
-        #         fid.write(class_string)
+        #     label, label_safe = safestr(Question.Answer2Text[i6], X)
+        #     if label_safe not in X:
+        #         owl_string = build_owl_string(uri_stem=label_safe,
+        #                                       owl_type='Class',
+        #                                       label=label,
+        #                                       comment=None,
+        #                                       index=index,
+        #                                       worksheet=Question,
+        #                                       worksheet2=Reference,
+        #                                       equivalent_class_uri=None,
+        #                                       subclassof_uri=None,
+        #                                       property_domain=None,
+        #                                       property_range=None,
+        #                                       exclude=X)
+        #         fid.write(owl_string)
         # except:
         #     pass
 
@@ -583,20 +612,22 @@ for i6, question in enumerate(Question.QuestionText):
         try:
             ianswertype = Question.AnswerType_index.iloc[[i6][0]]
             index = pd.Index(AnswerType['index']).get_loc(ianswertype)
-            label = AnswerType.AnswerTypeName[index]
-            label_safe = convert_string_to_label(label)
-            if label_safe not in exclude:
+            label, label_safe = safestr(AnswerType.AnswerTypeName[index], X)
+            if label_safe not in X:
                 if label_safe not in answertype_list:
-                    class_string = print_class(class_uri=label_safe,
-                                               label=label,
-                                               comment='',
-                                               index=None,
-                                               worksheet=None,
-                                               worksheet2=None,
-                                               equivalentClass='',
-                                               subClassOf='',
-                                               exclude=exclude)
-                    fid.write(class_string)
+                    owl_string = build_owl_string(uri_stem=label_safe,
+                                                  owl_type='Class',
+                                                  label=label,
+                                                  comment=None,
+                                                  index=index,
+                                                  worksheet=AnswerType,
+                                                  worksheet2=Reference,
+                                                  equivalent_class_uri=None,
+                                                  subclassof_uri=None,
+                                                  property_domain=None,
+                                                  property_range=None,
+                                                  exclude=X)
+                    fid.write(owl_string)
                     answertype_list.append(label_safe)
         except:
             pass
@@ -605,20 +636,22 @@ for i6, question in enumerate(Question.QuestionText):
         try:
             ianswer2type = Question.Answer2Type_index.iloc[[i6][0]]
             index = pd.Index(AnswerType['index']).get_loc(ianswer2type)
-            label = AnswerType.Answer2TypeName[index]
-            label_safe = convert_string_to_label(label)
-            if label_safe not in exclude:
+            label, label_safe = safestr(AnswerType.Answer2TypeName[index], X)
+            if label_safe not in X:
                 if label_safe not in answertype_list:
-                    class_string = print_class(class_uri=label_safe,
-                                               label=label,
-                                               comment='',
-                                               index=None,
-                                               worksheet=None,
-                                               worksheet2=None,
-                                               equivalentClass='',
-                                               subClassOf='',
-                                               exclude=exclude)
-                    fid.write(class_string)
+                    owl_string = build_owl_string(uri_stem=label_safe,
+                                                  owl_type='Class',
+                                                  label=label,
+                                                  comment=None,
+                                                  index=index,
+                                                  worksheet=AnswerType,
+                                                  worksheet2=Reference,
+                                                  equivalent_class_uri=None,
+                                                  subclassof_uri=None,
+                                                  property_domain=None,
+                                                  property_range=None,
+                                                  exclude=X)
+                    fid.write(owl_string)
                     answertype_list.append(label_safe)
         except:
             pass
@@ -627,20 +660,23 @@ for i6, question in enumerate(Question.QuestionText):
         try:
             iqcat = Question.QuestionCategory_index.iloc[[i6][0]]
             index = pd.Index(QuestionCategory['index']).get_loc(iqcat)
-            label = QuestionCategory.QuestionCategoryName[index]
-            label_safe = convert_string_to_label(label)
-            if label_safe not in exclude:
+            label, label_safe = safestr(
+                QuestionCategory.QuestionCategoryName[index], X)
+            if label_safe not in X:
                 if label_safe not in questioncategory_list:
-                    class_string = print_class(class_uri=label_safe,
-                                               label=label,
-                                               comment='',
-                                               index=None,
-                                               worksheet=None,
-                                               worksheet2=None,
-                                               equivalentClass='',
-                                               subClassOf='',
-                                               exclude=exclude)
-                    fid.write(class_string)
+                    owl_string = build_owl_string(uri_stem=label_safe,
+                                                  owl_type='Class',
+                                                  label=label,
+                                                  comment=None,
+                                                  index=index,
+                                                  worksheet=QuestionCategory,
+                                                  worksheet2=Reference,
+                                                  equivalent_class_uri=None,
+                                                  subclassof_uri=None,
+                                                  property_domain=None,
+                                                  property_range=None,
+                                                  exclude=X)
+                    fid.write(owl_string)
                     questioncategory_list.append(label_safe)
         except:
             pass
@@ -649,88 +685,65 @@ for i6, question in enumerate(Question.QuestionText):
 #    iqref = Question.Reference_index.iloc[[i6][0]]
 #    index = pd.Index(Reference['index']).get_loc(iqref)
 #    qreference = Reference.ReferenceLink[index]
-#    fid.write(class_string)
+#    fid.write(owl_string)
 
 # ----------------------------------------------------------------------------
-# Print classes related to references
+# Reference classes and triples
 # ----------------------------------------------------------------------------
-classes_header = print_classes_header('Reference')
-fid.write(classes_header)
-for i7, label in enumerate(Reference.ReferenceName):
-    if label not in exclude:
+fid.write(print_subheader('Reference classes and triples'))
+for i7, reference in enumerate(Reference.ReferenceName):
+    if reference not in X:
 
         try:
-            label_safe = convert_string_to_label(label)
-            class_string = print_class(class_uri=label_safe,
-                                       label=label,
-                                       comment='',
-                                       index=None,
-                                       worksheet=None,
-                                       worksheet2=None,
-                                       equivalentClass='',
-                                       subClassOf='',
-                                       exclude=exclude)
-            fid.write(class_string)
+            label_safe = convert_string_to_label(reference)
+            owl_string = build_owl_string(uri_stem=label_safe,
+                                          owl_type='Class',
+                                          label=reference,
+                                          comment=None,
+                                          index=index,
+                                          worksheet=Reference,
+                                          worksheet2=None,
+                                          equivalent_class_uri=None,
+                                          subclassof_uri=None,
+                                          property_domain=None,
+                                          property_range=None,
+                                          exclude=X)
+            fid.write(owl_string)
         except:
             pass
 
         try:
             ireftype = Reference.ReferenceType_index.iloc[[i7][0]]
             index = pd.Index(ReferenceType['index']).get_loc(ireftype)
-            label = ReferenceType.ReferenceTypeName[index]
-            label_safe = convert_string_to_label(label)
-            if label_safe not in exclude:
-                class_string = print_class(class_uri=label_safe,
-                                           label=label,
-                                           comment='',
-                                           index=None,
-                                           worksheet=None,
-                                           worksheet2=None,
-                                           equivalentClass='',
-                                           subClassOf='',
-                                           exclude=exclude)
-                fid.write(class_string)
+            label, label_safe = safestr(
+                ReferenceType.ReferenceTypeName[index], X)
+            if label_safe not in X:
+                owl_string = build_owl_string(uri_stem=label_safe,
+                                              owl_type='Class',
+                                              label=label,
+                                              comment=None,
+                                              index=index,
+                                              worksheet=ReferenceType,
+                                              worksheet2=Reference,
+                                              equivalent_class_uri=None,
+                                              subclassof_uri=None,
+                                              property_domain=None,
+                                              property_range=None,
+                                              exclude=X)
+                fid.write(owl_string)
         except:
             pass
 
 # ----------------------------------------------------------------------------
-# Print classes related to references
+# General axioms
 # ----------------------------------------------------------------------------
-classes_header = print_classes_header('Reference')
-fid.write(classes_header)
-for i8, label in enumerate(Reference.ReferenceName):
-    if label not in exclude:
-
-        try:
-            ireftype = Reference.ReferenceType_index.iloc[[i7][0]]
-            index = pd.Index(ReferenceType['index']).get_loc(ireftype)
-            label = ReferenceType.ReferenceTypeName[index]
-            label_safe = convert_string_to_label(label)
-            if label_safe not in exclude:
-                class_string = print_class(class_uri=label_safe,
-                                           label=label,
-                                           comment='',
-                                           index=None,
-                                           worksheet=None,
-                                           worksheet2=None,
-                                           equivalentClass='',
-                                           subClassOf='',
-                                           exclude=exclude)
-                fid.write(class_string)
-        except:
-            pass
-
-# ----------------------------------------------------------------------------
-# Print general axioms
-# ----------------------------------------------------------------------------
-general_axioms_header = print_general_axioms_header()
+fid.write(print_subheader('General axioms'))
 general_axioms_string = print_general_axioms(disjoint_classes_list=[])
-fid.write(general_axioms_header)
 fid.write(general_axioms_string)
 
 # ============================================================================
 # Doctests
 # ============================================================================
-if __name__ == "__main__":
-    import doctest
-    doctest.testmod(verbose=True)
+#if __name__ == "__main__":
+#    import doctest
+#    doctest.testmod(verbose=True)
