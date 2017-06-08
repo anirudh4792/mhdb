@@ -246,17 +246,22 @@ def get_cell(worksheet, column_label, index, exclude=[], no_nan=True):
     """
     from mhdb.owl_boilerplate import return_none_for_nan
 
-    if column_label in worksheet.index:
-        column = getattr(worksheet, column_label)
-        cell = column[index]
-        if no_nan:
-            cell = return_none_for_nan(cell)
-        if exclude and cell in exclude:
-            return None
+    if column_label in worksheet.columns:
+        column = worksheet[column_label]
+        if index < len(column):
+            cell = column[index]
+            if no_nan:
+                cell = return_none_for_nan(cell)
+            if exclude and cell in exclude:
+                return None
+            else:
+                return cell
         else:
-            return cell
+            raise Exception("index={0} for column length {1}.".
+                            format(index, len(column)))
     else:
         return None
+        #raise Exception("column {0} not in worksheet.".format(column_label))
 
 
 def get_index2(worksheet1, column1_label, index1, worksheet2):
@@ -381,56 +386,6 @@ def get_cells(worksheet, index, worksheet2=None, exclude=[], no_nan=True):
            definition, definition_ref, definition_ref_uri
 
 
-def print_header(base_uri, version, label, comment):
-    """
-    This function prints out the beginning of an owl file.
-
-    Parameters
-    ----------
-    base_uri : string
-        base URI
-    version : string
-        version
-    label : string
-        label
-    comment : string
-        comment
-
-    Returns
-    -------
-    header : string
-        owl header
-
-    """
-
-    header = """
-@prefix : <{0}#> .
-@prefix owl: <http://www.w3.org/2002/07/owl#> .
-@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
-@prefix xml: <http://www.w3.org/XML/1998/namespace> .
-@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
-@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
-@base <{0}> .
-
-<{0}> rdf:type owl:Ontology ;
-    owl:versionIRI <{0}/{1}> ;
-    owl:versionInfo "{1}"^^rdfs:Literal ;
-    rdfs:label "{2}"^^rdfs:Literal ;
-    rdfs:comment "{3}"^^rdfs:Literal .
-
-""".format(base_uri, version, label, comment)
-
-    return header
-
-
-def print_subheader(object_type):
-    return """
-#################################################################
-#    {0}
-#################################################################
-""".format(object_type)
-
-
 def build_rdf(uri_stem, rdf_type, label, comment=None,
               index=None, worksheet=None, worksheet2=None,
               equivalent_class_uri=None, subclassof_uri=None,
@@ -482,7 +437,7 @@ def build_rdf(uri_stem, rdf_type, label, comment=None,
 
     # Get worksheet contents:
     class_uri, subclass_uri, prop_domain, prop_range, \
-    definition, definition_ref, definition_uri = get_cells(worksheet, index, 
+    definition, definition_ref, definition_uri = get_cells(worksheet, index,
                                                            worksheet2, exclude, True)
     # If arguments not provided, get from worksheet:
     if comment in exclude:
@@ -541,6 +496,56 @@ def build_rdf(uri_stem, rdf_type, label, comment=None,
 """
 
     return rdf_string
+
+
+def print_header(base_uri, version, label, comment):
+    """
+    This function prints out the beginning of an owl file.
+
+    Parameters
+    ----------
+    base_uri : string
+        base URI
+    version : string
+        version
+    label : string
+        label
+    comment : string
+        comment
+
+    Returns
+    -------
+    header : string
+        owl header
+
+    """
+
+    header = """
+@prefix : <{0}#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xml: <http://www.w3.org/XML/1998/namespace> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@base <{0}> .
+
+<{0}> rdf:type owl:Ontology ;
+    owl:versionIRI <{0}/{1}> ;
+    owl:versionInfo "{1}"^^rdfs:Literal ;
+    rdfs:label "{2}"^^rdfs:Literal ;
+    rdfs:comment "{3}"^^rdfs:Literal .
+
+""".format(base_uri, version, label, comment)
+
+    return header
+
+
+def print_subheader(object_type):
+    return """
+#################################################################
+#    {0}
+#################################################################
+""".format(object_type)
 
 
 def print_general_axioms(disjoint_classes_list=[]):

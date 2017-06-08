@@ -139,7 +139,7 @@ fid.write(print_subheader('Disorder classes and triples'))
 
 label_list = []
 sheet1 = Disorder
-sheets2 = [Level0, Level1, Level2, Level3, Severity, Specifier,
+sheets2 = [Level0, Level1, Level2, Level3, Disorder, Severity, Specifier,
            Criterion, Criterion, Criterion, Criterion]
 column1_headers = ['DisorderCategory_index',
                    'DisorderSubcategory_index',
@@ -151,11 +151,14 @@ column1_headers = ['DisorderCategory_index',
                    'DiagnosticInclusionCriterion2_index',
                    'DiagnosticExclusionCriterion_index',
                    'DiagnosticExclusionCriterion2_index']
-name_headers = ['DisorderCategoryName', 'DisorderSubcategoryName',
-                'DisorderSubsubcategoryName', 'DisorderSubsubsubcategoryName',
-                'DisorderSeverityName', 'DiagnosticSpecifierName',
-                'DiagnosticCriterionName', 'DiagnosticCriterionName',
-                'DiagnosticCriterionName', 'DiagnosticCriterionName']
+column2_headers = ['DisorderCategoryName',
+                   'DisorderSubcategoryName',
+                   'DisorderSubsubcategoryName',
+                   'DisorderSubsubsubcategoryName',
+                   'DisorderSeverityName',
+                   'DiagnosticSpecifierName',
+                   'DiagnosticCriterionName', 'DiagnosticCriterionName',
+                   'DiagnosticCriterionName', 'DiagnosticCriterionName']
 
 # Loop through Disorders:
 for iD, disorder in enumerate(Disorder.DisorderName):
@@ -171,63 +174,76 @@ for iD, disorder in enumerate(Disorder.DisorderName):
         ilvl1 = get_index2(sheet1, column1_headers[1], iD, sheets2[1])
         ilvl2 = get_index2(sheet1, column1_headers[2], iD, sheets2[2])
         ilvl3 = get_index2(sheet1, column1_headers[3], iD, sheets2[3])
-        isevr = get_index2(sheet1, column1_headers[4], iD, sheets2[4])
-        ispec = get_index2(sheet1, column1_headers[5], iD, sheets2[5])
-        incl1 = get_index2(sheet1, column1_headers[6], iD, sheets2[6])
-        incl2 = get_index2(sheet1, column1_headers[7], iD, sheets2[7])
-        ixcl1 = get_index2(sheet1, column1_headers[8], iD, sheets2[8])
-        ixcl2 = get_index2(sheet1, column1_headers[9], iD, sheets2[9])
+        # iD
+        isevr = get_index2(sheet1, column1_headers[4], iD, sheets2[5])
+        ispec = get_index2(sheet1, column1_headers[5], iD, sheets2[6])
+        incl1 = get_index2(sheet1, column1_headers[6], iD, sheets2[7])
+        incl2 = get_index2(sheet1, column1_headers[7], iD, sheets2[8])
+        ixcl1 = get_index2(sheet1, column1_headers[8], iD, sheets2[9])
+        ixcl2 = get_index2(sheet1, column1_headers[9], iD, sheets2[10])
 
         # Unique labels and URIs:
-        disorder, disorder_ok = create_label(disorder)
-        disorder_uri = ":{0}".format(disorder_ok)
         try:
-            level0, level0_ok = create_label(get_cell(sheets2[0], name_headers[0], ilvl0, X, True))
+            cell = get_cell(sheets2[0], column2_headers[0], ilvl0, X, True)
+            level0, level0_ok = create_label(cell)
             level0_uri = ":{0}".format(level0_ok)
         except:
             level0, level0_ok, level0_uri = None, None, None
         try:
-            level1, level1_ok = create_label(get_cell(sheets2[1], name_headers[1], ilvl1, X, True))
+            cell = get_cell(sheets2[1], column2_headers[1], ilvl1, X, True)
+            level1, level1_ok = create_label(cell)
             level1_uri = ":{0}".format(level1_ok)
         except:
             level1, level1_ok, level1_uri = None, None, None
         try:
-            level2, level2_ok = create_label(get_cell(sheets2[2], name_headers[2], ilvl2, X, True))
+            cell = get_cell(sheets2[2], column2_headers[2], ilvl2, X, True)
+            level2, level2_ok = create_label(cell)
             level2_uri = ":{0}".format(level2_ok)
         except:
             level2, level2_ok, level2_uri = None, None, None
         try:
-            level3, level3_ok = create_label(get_cell(sheets2[3], name_headers[3], ilvl3, X, True))
+            cell = get_cell(sheets2[3], column2_headers[3], ilvl3, X, True)
+            level3, level3_ok = create_label(cell)
             level3_uri = ":{0}".format(level3_ok)
         except:
             level3, level3_ok, level3_uri = None, None, None
         try:
-            severity, severity_ok = create_label(get_cell(sheets2[4], name_headers[4], isevr, X, True))
+            cell = get_cell(sheets2[4], column2_headers[4], isevr, X, True)
+            severity, severity_ok = create_label(cell)
             severity_uri = ":{0}".format(severity_ok)
         except:
             severity, severity_ok, severity_uri = None, None, None
+
+        disorder, disorder_ok = create_label(disorder)
+        disorder_uri = ":{0}".format(disorder_ok)
+
         try:
-            specifier, specifier_ok = create_label(get_cell(sheets2[5], name_headers[5], ispec, X, True))
+            cell = get_cell(sheets2[6], column2_headers[5], ispec, X, True)
+            specifier, specifier_ok = create_label(cell)
             specifier_uri = ":{0}".format(specifier_ok)
         except:
             specifier, specifier_ok, specifier_uri = None, None, None
         try:
-            include1, include1_ok = create_label(get_cell(sheets2[6], name_headers[6], incl1, X, True))
+            cell = get_cell(sheets2[7], column2_headers[6], incl1, X, True)
+            include1, include1_ok = create_label(cell)
             include1_uri = ":{0}".format(include1_ok)
         except:
             include1, include1_ok, include1_uri = None, None, None
         try:
-            include2, include2_ok = create_label(get_cell(sheets2[7], name_headers[7], incl2, X, True))
+            cell = get_cell(sheets2[8], column2_headers[7], incl2, X, True)
+            include2, include2_ok = create_label(cell)
             include2_uri = ":{0}".format(include2_ok)
         except:
             include2, include2_ok, include2_uri = None, None, None
         try:
-            exclude1, exclude1_ok = create_label(get_cell(sheets2[8], name_headers[8], ixcl1, X, True))
+            cell = get_cell(sheets2[9], column2_headers[8], ixcl1, X, True)
+            exclude1, exclude1_ok = create_label(cell)
             exclude1_uri = ":{0}".format(exclude1_ok)
         except:
             exclude1, exclude1_ok, exclude1_uri = None, None, None
         try:
-            exclude2, exclude2_ok = create_label(get_cell(sheets2[9], name_headers[9], ixcl2, X, True))
+            cell = get_cell(sheets2[10], column2_headers[9], ixcl2, X, True)
+            exclude2, exclude2_ok = create_label(cell)
             exclude2_uri = ":{0}".format(exclude2_ok)
         except:
             exclude2, exclude2_ok, exclude2_uri = None, None, None
@@ -283,28 +299,28 @@ for iD, disorder in enumerate(Disorder.DisorderName):
                     # --------------------------------------------------------
                     if severity_uri:
                         fid.write("\n{0} {1} {2}\n".format(disorder_uri,
-                                                         hasSeverity_uri,
-                                                         severity_uri))
+                                                           hasSeverity_uri,
+                                                           severity_uri))
                     if specifier_uri:
                         fid.write("\n{0} {1} {2}\n".format(disorder_uri,
-                                                         hasDiagnosticSpecifier_uri,
-                                                         specifier_uri))
+                                                           hasDiagnosticSpecifier_uri,
+                                                           specifier_uri))
                     if include1_uri:
                         fid.write("\n{0} {1} {2}\n".format(disorder_uri,
-                                                         hasInclusionCriterion_uri,
-                                                         include1_uri))
+                                                           hasInclusionCriterion_uri,
+                                                           include1_uri))
                     if include2_uri:
                         fid.write("\n{0} {1} {2}\n".format(disorder_uri,
-                                                         hasInclusionCriterion_uri,
-                                                         include2_uri))
+                                                           hasInclusionCriterion_uri,
+                                                           include2_uri))
                     if exclude1_uri:
                         fid.write("\n{0} {1} {2}\n".format(disorder_uri,
-                                                         hasExclusionCriterion_uri,
-                                                         exclude1_uri))
+                                                           hasExclusionCriterion_uri,
+                                                           exclude1_uri))
                     if exclude2_uri:
                         fid.write("\n{0} {1} {2}\n".format(disorder_uri,
-                                                         hasExclusionCriterion_uri,
-                                                         exclude2_uri))
+                                                           hasExclusionCriterion_uri,
+                                                           exclude2_uri))
 
 # ----------------------------------------------------------------------------
 # Symptom-related classes and triples
