@@ -126,8 +126,40 @@ def return_float(input_number):
         else:
             return False
 
-    if input_number and is_number(input_number):
+    if is_number(input_number):
         return float(input_number)
+    else:
+        return None
+
+
+def return_none_for_nan(input_value):
+    """
+    Return None if input is a NaN value; otherwise, return the input.
+
+    Parameters
+    ----------
+    input_value : string or number or NaN
+
+    Returns
+    -------
+    value_not_nan : string or number
+
+    """
+    import numpy as np
+
+    def is_not_nan(s):
+        if s:
+            if isinstance(s, float) and np.isnan(s):
+                return False
+            elif str(s) in ['NaN', 'nan']:
+                return False
+            else:
+                return True
+        else:
+            return False
+
+    if is_not_nan(input_value):
+        return input_value
     else:
         return None
 
@@ -163,8 +195,6 @@ def create_label(input_string):
     ----------
     input_string : string
         arbitrary string
-    exclude : list
-        exclusion list
 
     Returns
     -------
@@ -177,18 +207,21 @@ def create_label(input_string):
     from mhdb.owl_boilerplate import clean_string
     from mhdb.owl_boilerplate import convert_string_to_label
 
-    if input_string and isinstance(input_string, str):
-        output_string = clean_string(input_string)
-        if output_string:
-            label_string = convert_string_to_label(output_string)
-            return output_string, label_string
+    if input_string:
+        if isinstance(input_string, str):
+            output_string = clean_string(input_string)
+            if output_string:
+                label_string = convert_string_to_label(output_string)
+                return output_string, label_string
+            else:
+                return '', ''
         else:
-            return '', ''
+            raise Exception('input_string is not a string!')
     else:
-        raise Exception('"{0}" is not a string!'.format(input_string))
+        raise Exception('input_string is None!')
 
 
-def get_cell(worksheet, column_label, index):
+def get_cell(worksheet, column_label, index, exclude=[], no_nan=True):
     """
     Fetch a worksheet cell given a row index and column header.
 
@@ -200,6 +233,10 @@ def get_cell(worksheet, column_label, index):
         worksheet column header
     index : integer
         worksheet row index
+    exclude : list
+        exclusion list
+    no_nan : Boolean
+        return None if NaN?
 
     Returns
     -------
@@ -207,16 +244,22 @@ def get_cell(worksheet, column_label, index):
         worksheet cell
 
     """
+    from mhdb.owl_boilerplate import return_none_for_nan
 
-    try:
+    if column_label in worksheet.index:
         column = getattr(worksheet, column_label)
         cell = column[index]
-        return cell
-    except ValueError:
+        if no_nan:
+            cell = return_none_for_nan(cell)
+        if exclude and cell in exclude:
+            return None
+        else:
+            return cell
+    else:
         return None
 
 
-def get_index2(worksheet1, column1_label, index1, worksheet2, exclude=[]):
+def get_index2(worksheet1, column1_label, index1, worksheet2):
     """
     Find the location of an 'index' value in a worksheet.
 
@@ -234,8 +277,6 @@ def get_index2(worksheet1, column1_label, index1, worksheet2, exclude=[]):
         worksheet1 row index
     worksheet2 : pandas dataframe
         second worksheet with 'index' column header
-    exclude : list
-        exclusion list
 
     Returns
     -------
@@ -248,10 +289,8 @@ def get_index2(worksheet1, column1_label, index1, worksheet2, exclude=[]):
     from mhdb.owl_boilerplate import get_cell
     from mhdb.owl_boilerplate import return_float
 
-    cell = get_cell(worksheet1, column1_label, index1)
-    if cell in exclude:
-        return None
-    else:
+    cell = get_cell(worksheet1, column1_label, index1, exclude=[], no_nan=True)
+    if cell:
         index1to2 = return_float(cell)
         if index1to2:
             try:
@@ -266,9 +305,11 @@ def get_index2(worksheet1, column1_label, index1, worksheet2, exclude=[]):
                                 "it doesn't have an 'index' column.")
         else:
             return None
+    else:
+        return None
 
 
-def get_cells(worksheet, index, worksheet2=None, exclude=[]):
+def get_cells(worksheet, index, worksheet2=None, exclude=[], no_nan=True):
     """
     This function looks for the following worksheet column headers:
     "equivalentClass"
@@ -292,6 +333,8 @@ def get_cells(worksheet, index, worksheet2=None, exclude=[]):
         second worksheet with definition reference information
     exclude : list
         exclusion list
+    no_nan : Boolean
+        return None for NaN values?
 
     Returns
     -------
@@ -315,49 +358,23 @@ def get_cells(worksheet, index, worksheet2=None, exclude=[]):
     from mhdb.owl_boilerplate import get_index2
 
     # equivalentClass and subClassOf:
-    try:
-        equivalent_class_uri = get_cell(worksheet, 'equivalentClass', index)
-    except:
-        equivalent_class_uri = None
-    try:
-        subclassof_uri = get_cell(worksheet, 'subClassOf', index)
-    except:
-        subclassof_uri = None
+    equivalent_class_uri = get_cell(worksheet, 'equivalentClass', index, exclude, True)
+    subclassof_uri = get_cell(worksheet, 'subClassOf', index, exclude, True)
 
     # Property domain and range:
-    try:
-        property_domain = get_cell(worksheet, 'propertyDomain', index)
-    except:
-        property_domain = None
-    try:
-        property_range = get_cell(worksheet, 'propertyRange', index)
-    except:
-        property_range = None
+    property_domain = get_cell(worksheet, 'propertyDomain', index, exclude, True)
+    property_range = get_cell(worksheet, 'propertyRange', index, exclude, True)
 
-    # Definition:
-    try:
-        definition = get_cell(worksheet, 'Definition', index)
-    except:
-        definition = None
-
-    # Definition reference and link:
+    # Definition, reference and link:
+    definition = get_cell(worksheet, 'Definition', index, exclude, True)
     definition_ref = None
     definition_ref_uri = None
     if worksheet2 is not None:
-        try:
-            index2 = get_index2(worksheet, 'DefinitionReference_index', index,
-                                worksheet2, exclude)
-            try:
-                definition_ref = get_cell(worksheet2, 'ReferenceName', index2)
-            except:
-                definition_ref = None
-            try:
-                definition_ref_uri = get_cell(worksheet2, 'ReferenceLink', index2)
-            except:
-                definition_ref_uri = None
-        except:
-            definition_ref = None
-            definition_ref_uri = None
+        index2 = get_index2(worksheet, 'DefinitionReference_index', index,
+                            worksheet2)
+        if index2:
+            definition_ref = get_cell(worksheet2, 'ReferenceName', index2, exclude, True)
+            definition_ref_uri = get_cell(worksheet2, 'ReferenceLink', index2, exclude, True)
 
     return equivalent_class_uri, subclassof_uri, \
            property_domain, property_range, \
@@ -418,7 +435,7 @@ def build_rdf(uri_stem, rdf_type, label, comment=None,
               index=None, worksheet=None, worksheet2=None,
               equivalent_class_uri=None, subclassof_uri=None,
               property_domain=None, property_range=None,
-              exclude=[None]):
+              exclude=[], no_nan=True):
     """
 
     Parameters
@@ -452,11 +469,13 @@ def build_rdf(uri_stem, rdf_type, label, comment=None,
         property range (override worksheet)
     exclude : list
         exclusions
+    no_nan : Boolean
+        return None if NaN?
 
     Returns
     -------
     rdf_string : string
-        owl class string
+        RDF triples
 
     """
     from mhdb.owl_boilerplate import get_cells
@@ -464,19 +483,14 @@ def build_rdf(uri_stem, rdf_type, label, comment=None,
     # Get worksheet contents:
     class_uri, subclass_uri, prop_domain, prop_range, \
     definition, definition_ref, definition_uri = get_cells(worksheet, index, 
-                                                           worksheet2, exclude)
+                                                           worksheet2, exclude, True)
+    # If arguments not provided, get from worksheet:
     if comment in exclude:
         comment = definition
-
-    # If equivalent_class_uri or subclassof_uri not provided,
-    # get from worksheet:
     if equivalent_class_uri in exclude:
         equivalent_class_uri = class_uri
     if subclassof_uri in exclude:
         subclassof_uri = subclass_uri
-
-    # If property_domain or property_range not provided,
-    # get from worksheet:
     if property_domain in exclude:
         property_domain = prop_domain
     if property_range in exclude:
@@ -486,7 +500,6 @@ def build_rdf(uri_stem, rdf_type, label, comment=None,
 ### {0}
 :{1} rdf:type {2} """.format(label, uri_stem, rdf_type)
 
-    label = str(label)
     if label not in exclude:
         rdf_string += """;
             rdfs:label "{0}"^^rdfs:Literal """.format(label)
@@ -504,14 +517,12 @@ def build_rdf(uri_stem, rdf_type, label, comment=None,
         rdf_string += """;
             rdfs:isDefinedBy "{0}"^^rdfs:Literal """.format(definition_uri)
 
-    equivalent_class_uri = str(equivalent_class_uri)
     if equivalent_class_uri not in exclude:
         rdf_string += """;
             owl:equivalentClass [ rdf:type owl:Restriction ;
                                   owl:onProperty <{0}>
                                 ] """.format(equivalent_class_uri)
 
-    subclassof_uri = str(subclassof_uri)
     if subclassof_uri not in exclude:
         if not subclassof_uri.startswith(':'):
             subclassof_uri = "<{0}>".format(subclassof_uri)
