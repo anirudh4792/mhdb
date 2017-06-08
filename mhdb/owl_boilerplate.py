@@ -12,8 +12,7 @@ Copyright 2017, Child Mind Institute (http://childmind.org), Apache v2.0 License
 
 def convert_string_to_label(input_string):
     """
-    This function removes all non-alphanumeric characters
-    from a string, which is useful for creating safe URIs.
+    Remove all non-alphanumeric characters from a string.
 
     Parameters
     ----------
@@ -27,19 +26,20 @@ def convert_string_to_label(input_string):
 
     """
 
-    input_string = input_string.strip()
-    input_string = input_string.replace(" ", "_")
-    input_string = input_string.replace("_-_", "-")
-    keep_chars = ('-', '.', '_')
-    output_string = "".join(c for c in str(input_string) if c.isalnum()
-                            or c in keep_chars).rstrip()
-
-    return output_string
-
+    if input_string and isinstance(input_string, str):
+        input_string = input_string.strip()
+        input_string = input_string.replace(" ", "_")
+        input_string = input_string.replace("_-_", "-")
+        keep_chars = ('-', '.', '_')
+        output_string = "".join(c for c in str(input_string) if c.isalnum()
+                                or c in keep_chars).rstrip()
+        return output_string
+    else:
+        raise Exception('"{0}" is not a string!'.format(input_string))
 
 # def create_uri(base_uri, label):
 #     """
-#     This function creates a safe URI.
+#     Create a safe URI.
 #
 #     Parameters
 #     ----------
@@ -54,6 +54,7 @@ def convert_string_to_label(input_string):
 #         output URI
 #
 #     """
+#     from mhdb.owl_boilerplate import convert_string_to_label
 #
 #     label_safe = convert_string_to_label(label)
 #     output_uri = base_uri + "#" + label_safe
@@ -61,10 +62,10 @@ def convert_string_to_label(input_string):
 #     return output_uri
 #
 #
-# def write_triple(subject_string, predicate_string, owl_string,
+# def write_triple(subject_string, predicate_string, object_string,
 #                  third_literal=False):
 #     """
-#     This function writes a triple from three URIs.
+#     Writes a triple from three URIs.
 #
 #     Parameters
 #     ----------
@@ -72,10 +73,10 @@ def convert_string_to_label(input_string):
 #         subject URI
 #     predicate_string : string
 #         predicate URI or in ['a', 'rdf:type']
-#     owl_string : string
+#     object_string : string
 #         object URI or literal
 #     third_literal : Boolean
-#         is the owl_string a literal?
+#         is the object_string a literal?
 #
 #     Returns
 #     -------
@@ -87,57 +88,187 @@ def convert_string_to_label(input_string):
 #     if predicate_string not in ['a', 'rdf:type']:
 #         predicate_string = "<0>".format(predicate_string)
 #     if not third_literal:
-#         owl_string = "<0>".format(owl_string)
+#         object_string = "<0>".format(object_string)
 #
 #     output_triple = "<{0}> {1} {2}".format(subject_string,
 #                                            predicate_string,
-#                                            owl_string)
+#                                            object_string)
 #
 #     return output_triple
 
 
-def safestr(cell, exclude=[None]):
+def return_float(input_number):
     """
-    This function cleans up a string.
+    Return input as a float if it's a number (or string of a number).
 
     Parameters
     ----------
-    cell : string
+    input_number : string or number
+
+    Returns
+    -------
+    output_number : float
+        raise exception if not a number or string of a number
+
+    """
+    import numpy as np
+
+    def is_number(s):
+        if s:
+            if isinstance(s, float) and np.isnan(s):
+                return False
+            else:
+                try:
+                    float(s)
+                    return True
+                except ValueError:
+                    return False
+        else:
+            return False
+
+    if input_number and is_number(input_number):
+        return float(input_number)
+    else:
+        return None
+
+
+def clean_string(input_string):
+    """
+    Cleans up a string and creates a corresponding label.
+
+    Parameters
+    ----------
+    input_string : string
+        arbitrary string
+
+    Returns
+    -------
+    output_string : string
+        stripped input_string
+
+    """
+
+    if input_string and isinstance(input_string, str):
+        output_string = input_string.strip()
+        return output_string
+    else:
+        raise Exception('"{0}" is not a string!'.format(input_string))
+
+
+def create_label(input_string):
+    """
+    This function cleans up a string and creates a corresponding label.
+
+    Parameters
+    ----------
+    input_string : string
         arbitrary string
     exclude : list
         exclusion list
 
     Returns
     -------
-    cell : string or integer
-    cell_safe : string [only generated if cell is a string]
-        alphanumeric characters of cell string
+    output_string : string
+        stripped input_string
+    label_string : string
+        alphanumeric characters of input_string
 
     """
+    from mhdb.owl_boilerplate import clean_string
     from mhdb.owl_boilerplate import convert_string_to_label
 
-    def is_number(s):
-        try:
-            float(s)
-            return True
-        except ValueError:
-            return False
-
-    if is_number(cell):
-        return float(cell)
-    else:
-        cell = str(cell)
-        cell = cell.strip()
-        if cell not in exclude:
-            cell_safe = convert_string_to_label(cell)
+    if input_string and isinstance(input_string, str):
+        output_string = clean_string(input_string)
+        if output_string:
+            label_string = convert_string_to_label(output_string)
+            return output_string, label_string
         else:
-            cell = None
-            cell_safe = None
+            return '', ''
+    else:
+        raise Exception('"{0}" is not a string!'.format(input_string))
 
-        return cell, cell_safe
+
+def get_cell(worksheet, column_label, index):
+    """
+    Fetch a worksheet cell given a row index and column header.
+
+    Parameters
+    ----------
+    worksheet : pandas dataframe
+        worksheet with column headers
+    column_label : string
+        worksheet column header
+    index : integer
+        worksheet row index
+
+    Returns
+    -------
+    cell : string or number
+        worksheet cell
+
+    """
+
+    try:
+        column = getattr(worksheet, column_label)
+        cell = column[index]
+        return cell
+    except ValueError:
+        return None
 
 
-def get_cells(worksheet, index, worksheet2=None, exclude=[None]):
+def get_index2(worksheet1, column1_label, index1, worksheet2, exclude=[]):
+    """
+    Find the location of an 'index' value in a worksheet.
+
+    If index1 points to a row of column1 in worksheet1, the cell contains
+    an integer value. Find the corresponding row of the "index" column
+    in worksheet2 with that value.
+
+    Parameters
+    ----------
+    worksheet1 : pandas dataframe
+        worksheet with column headers
+    column1_label : string
+        worksheet1 column header
+    index1 : integer
+        worksheet1 row index
+    worksheet2 : pandas dataframe
+        second worksheet with 'index' column header
+    exclude : list
+        exclusion list
+
+    Returns
+    -------
+    index2 : integer
+        worksheet2 row index
+
+    """
+    #import pandas as pd
+
+    from mhdb.owl_boilerplate import get_cell
+    from mhdb.owl_boilerplate import return_float
+
+    cell = get_cell(worksheet1, column1_label, index1)
+    if cell in exclude:
+        return None
+    else:
+        index1to2 = return_float(cell)
+        if index1to2:
+            try:
+                index_column = worksheet2['index']
+                if any(index_column.isin([index1to2])):
+                    index2 = index_column[index_column == index1to2].index[0]
+                    return index2
+                else:
+                    return None
+            except ValueError:
+                raise Exception("Either the worksheet2 doesn't exist or "
+                                "it doesn't have an 'index' column.")
+        else:
+            return None
+
+
+def get_cells(worksheet, index, worksheet2=None, exclude=[]):
     """
     This function looks for the following worksheet column headers:
     "equivalentClass"
@@ -180,61 +311,57 @@ def get_cells(worksheet, index, worksheet2=None, exclude=[None]):
         definition source URI
 
     """
-    import pandas as pd
-
-    from mhdb.owl_boilerplate import safestr
+    from mhdb.owl_boilerplate import get_cell
+    from mhdb.owl_boilerplate import get_index2
 
     # equivalentClass and subClassOf:
     try:
-        equivalent_class_uri, f = safestr(worksheet.equivalentClass[index],
-                                          exclude)
+        equivalent_class_uri = get_cell(worksheet, 'equivalentClass', index)
     except:
         equivalent_class_uri = None
     try:
-        subclassof_uri, f = safestr(worksheet.subClassOf[index], exclude)
+        subclassof_uri = get_cell(worksheet, 'subClassOf', index)
     except:
         subclassof_uri = None
 
     # Property domain and range:
     try:
-        property_domain, f = safestr(worksheet.propertyDomain[index], exclude)
+        property_domain = get_cell(worksheet, 'propertyDomain', index)
     except:
         property_domain = None
     try:
-        property_range, f = safestr(worksheet.propertyRange[index], exclude)
+        property_range = get_cell(worksheet, 'propertyRange', index)
     except:
         property_range = None
 
     # Definition:
     try:
-        definition, f = safestr(worksheet.Definition[index], exclude)
+        definition = get_cell(worksheet, 'Definition', index)
     except:
         definition = None
 
-    # Definition source and link:
-    definition_source_name = None
-    definition_source_uri = None
+    # Definition reference and link:
+    definition_ref = None
+    definition_ref_uri = None
     if worksheet2 is not None:
         try:
-            iref, f = safestr(worksheet.DefinitionReference_index[index], exclude)
-            if iref not in exclude:
-                index2 = pd.Index(worksheet2['index']).get_loc(iref)
-                try:
-                    definition_source_name, foo = safestr(
-                        worksheet2.ReferenceName[index2], exclude)
-                except:
-                    definition_source_name = None
-                try:
-                    definition_source_uri, foo = safestr(
-                        worksheet2.ReferenceLink[index2], exclude)
-                except:
-                    definition_source_uri = None
+            index2 = get_index2(worksheet, 'DefinitionReference_index', index,
+                                worksheet2, exclude)
+            try:
+                definition_ref = get_cell(worksheet2, 'ReferenceName', index2)
+            except:
+                definition_ref = None
+            try:
+                definition_ref_uri = get_cell(worksheet2, 'ReferenceLink', index2)
+            except:
+                definition_ref_uri = None
         except:
-            pass
+            definition_ref = None
+            definition_ref_uri = None
 
     return equivalent_class_uri, subclassof_uri, \
            property_domain, property_range, \
-           definition, definition_source_name, definition_source_uri
+           definition, definition_ref, definition_ref_uri
 
 
 def print_header(base_uri, version, label, comment):
@@ -287,23 +414,24 @@ def print_subheader(object_type):
 """.format(object_type)
 
 
-def build_owl_string(uri_stem, owl_type, label, comment=None,
-                     index=None, worksheet=None, worksheet2=None,
-                     equivalent_class_uri=None, subclassof_uri=None,
-                     property_domain=None, property_range=None,
-                     exclude=[None]):
+def build_rdf(uri_stem, rdf_type, label, comment=None,
+              index=None, worksheet=None, worksheet2=None,
+              equivalent_class_uri=None, subclassof_uri=None,
+              property_domain=None, property_range=None,
+              exclude=[None]):
     """
 
     Parameters
     ----------
     uri_stem : string
         class URI stem
-    owl_type : string
-        owl type, such as:
-        'Class',
-        'ObjectProperty',
-        'DatatypeProperty',
-        'FunctionalProperty'
+    rdf_type : string
+        rdf:type, such as:
+        ':Disorder',
+        'owl:Class',
+        'owl:ObjectProperty',
+        'owl:DatatypeProperty',
+        'owl:FunctionalProperty'
     label : string
         label
     comment : string
@@ -327,7 +455,7 @@ def build_owl_string(uri_stem, owl_type, label, comment=None,
 
     Returns
     -------
-    owl_string : string
+    rdf_string : string
         owl class string
 
     """
@@ -335,9 +463,8 @@ def build_owl_string(uri_stem, owl_type, label, comment=None,
 
     # Get worksheet contents:
     class_uri, subclass_uri, prop_domain, prop_range, \
-    definition, definition_source, definition_uri = get_cells(
-        worksheet, index, worksheet2, exclude)
-
+    definition, definition_ref, definition_uri = get_cells(worksheet, index, 
+                                                           worksheet2, exclude)
     if comment in exclude:
         comment = definition
 
@@ -355,27 +482,31 @@ def build_owl_string(uri_stem, owl_type, label, comment=None,
     if property_range in exclude:
         property_range = prop_range
 
-    owl_string = """
+    rdf_string = """
 ### {0}
-:{1} rdf:type owl:{2} """.format(label, uri_stem, owl_type)
+:{1} rdf:type {2} """.format(label, uri_stem, rdf_type)
 
     label = str(label)
     if label not in exclude:
-        owl_string += """;
+        rdf_string += """;
             rdfs:label "{0}"^^rdfs:Literal """.format(label)
 
     if comment not in exclude:
-        owl_string += """;
-            rdfs:comment "{0} [from: {1}]"^^rdfs:Literal """.\
-            format(definition, definition_source)
+        if definition_ref in exclude:
+            refstring = ""
+        else:
+            refstring = " [from: {0}]".format(definition_ref)
+        rdf_string += """;
+            rdfs:comment "{0}{1}"^^rdfs:Literal """.\
+            format(definition, refstring)
 
     if definition_uri not in exclude:
-        owl_string += """;
+        rdf_string += """;
             rdfs:isDefinedBy "{0}"^^rdfs:Literal """.format(definition_uri)
 
     equivalent_class_uri = str(equivalent_class_uri)
     if equivalent_class_uri not in exclude:
-        owl_string += """;
+        rdf_string += """;
             owl:equivalentClass [ rdf:type owl:Restriction ;
                                   owl:onProperty <{0}>
                                 ] """.format(equivalent_class_uri)
@@ -384,21 +515,21 @@ def build_owl_string(uri_stem, owl_type, label, comment=None,
     if subclassof_uri not in exclude:
         if not subclassof_uri.startswith(':'):
             subclassof_uri = "<{0}>".format(subclassof_uri)
-        owl_string += """;
+        rdf_string += """;
             rdfs:subClassOf {0} """.format(subclassof_uri)
 
     if property_domain not in exclude:
-        owl_string += """;
+        rdf_string += """;
      rdfs:domain :{0} """.format(property_domain)
 
     if property_range not in exclude:
-        owl_string += """;
+        rdf_string += """;
      rdfs:range :{0} """.format(property_range)
 
-    owl_string += """.
+    rdf_string += """.
 """
 
-    return owl_string
+    return rdf_string
 
 
 def print_general_axioms(disjoint_classes_list=[]):
