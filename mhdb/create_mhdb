@@ -14,8 +14,8 @@ import pandas as pd
 #import rdflib
 
 from mhdb.info import __version__ as version
-from mhdb.info import long_description as comment
-from mhdb.info import description as label
+#from mhdb.info import long_description as comment
+#from mhdb.info import description as label
 from mhdb.owl_boilerplate import convert_string_to_label, create_label, \
     get_index2, get_cell, build_rdf, print_header, print_subheader, \
     print_general_axioms
@@ -57,6 +57,18 @@ X = ['', 'nan', 'None', None]
 # ------------------------------------------------------------------------------
 # Create output RDF file and print header
 # ------------------------------------------------------------------------------
+label = "mental health database"
+comment="""
+======================
+Mental Health Database
+======================
+
+This mental health database inter-relates information about mental health
+diagnoses, symptoms, assessement questionnaires, etc., and is licensed
+under the terms of the Creative Commons BY license.
+Current information can be found on the website, http://mentalhealth.tech.
+"""
+
 fid = open(outfile, 'w')
 header_string = print_header(base_uri, version, label, comment)
 fid.write(header_string)
@@ -300,30 +312,31 @@ for iD, disorder in enumerate(Disorder.DisorderName):
                     # --------------------------------------------------------
                     # Disorder-related triples
                     # --------------------------------------------------------
-                    if severity_uri:
-                        fid.write("\n{0} {1} {2} .\n".format(disorder_uri,
-                                                             hasSeverity_uri,
-                                                             severity_uri))
-                    if specifier_uri:
-                        fid.write("\n{0} {1} {2} .\n".format(disorder_uri,
-                                                             hasDiagnosticSpecifier_uri,
-                                                             specifier_uri))
-                    if include1_uri:
-                        fid.write("\n{0} {1} {2} .\n".format(disorder_uri,
-                                                             hasInclusionCriterion_uri,
-                                                             include1_uri))
-                    if include2_uri:
-                        fid.write("\n{0} {1} {2} .\n".format(disorder_uri,
-                                                             hasInclusionCriterion_uri,
-                                                             include2_uri))
-                    if exclude1_uri:
-                        fid.write("\n{0} {1} {2} .\n".format(disorder_uri,
-                                                             hasExclusionCriterion_uri,
-                                                             exclude1_uri))
-                    if exclude2_uri:
-                        fid.write("\n{0} {1} {2} .\n".format(disorder_uri,
-                                                             hasExclusionCriterion_uri,
-                                                             exclude2_uri))
+                    if i == 4:
+                        if severity_uri:
+                            fid.write("\n{0} {1} {2} .\n".format(disorder_uri,
+                                                                 hasSeverity_uri,
+                                                                 severity_uri))
+                        if specifier_uri:
+                            fid.write("\n{0} {1} {2} .\n".format(disorder_uri,
+                                                                 hasDiagnosticSpecifier_uri,
+                                                                 specifier_uri))
+                        if include1_uri:
+                            fid.write("\n{0} {1} {2} .\n".format(disorder_uri,
+                                                                 hasInclusionCriterion_uri,
+                                                                 include1_uri))
+                        if include2_uri:
+                            fid.write("\n{0} {1} {2} .\n".format(disorder_uri,
+                                                                 hasInclusionCriterion_uri,
+                                                                 include2_uri))
+                        if exclude1_uri:
+                            fid.write("\n{0} {1} {2} .\n".format(disorder_uri,
+                                                                 hasExclusionCriterion_uri,
+                                                                 exclude1_uri))
+                        if exclude2_uri:
+                            fid.write("\n{0} {1} {2} .\n".format(disorder_uri,
+                                                                 hasExclusionCriterion_uri,
+                                                                 exclude2_uri))
 
 # ----------------------------------------------------------------------------
 # Symptom-related classes and triples
