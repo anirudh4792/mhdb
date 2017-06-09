@@ -130,7 +130,10 @@ for index, label in enumerate(Classes.ClassName):
     fid.write(rdf_string)
     exec("{0}_uri = ':{0}'".format(label_safe))
 
-fid.write("\n{0} {1} {2}\n".format(MentalDisorder_uri, 'rdfs:subClassOf', Disorder_uri))
+fid.write("\n{0} {1} {2} .\n".format(MentalDisorder_uri, 'rdfs:subClassOf',
+                                     Disorder_uri))
+fid.write("\n{0} {1} {2} .\n".format(SignOrSymptom_uri, 'rdfs:subClassOf',
+                                     SignOrSymptomCategory_uri))
 
 # ----------------------------------------------------------------------------
 # Disorder-related classes and triples
@@ -298,29 +301,29 @@ for iD, disorder in enumerate(Disorder.DisorderName):
                     # Disorder-related triples
                     # --------------------------------------------------------
                     if severity_uri:
-                        fid.write("\n{0} {1} {2}\n".format(disorder_uri,
-                                                           hasSeverity_uri,
-                                                           severity_uri))
+                        fid.write("\n{0} {1} {2} .\n".format(disorder_uri,
+                                                             hasSeverity_uri,
+                                                             severity_uri))
                     if specifier_uri:
-                        fid.write("\n{0} {1} {2}\n".format(disorder_uri,
-                                                           hasDiagnosticSpecifier_uri,
-                                                           specifier_uri))
+                        fid.write("\n{0} {1} {2} .\n".format(disorder_uri,
+                                                             hasDiagnosticSpecifier_uri,
+                                                             specifier_uri))
                     if include1_uri:
-                        fid.write("\n{0} {1} {2}\n".format(disorder_uri,
-                                                           hasInclusionCriterion_uri,
-                                                           include1_uri))
+                        fid.write("\n{0} {1} {2} .\n".format(disorder_uri,
+                                                             hasInclusionCriterion_uri,
+                                                             include1_uri))
                     if include2_uri:
-                        fid.write("\n{0} {1} {2}\n".format(disorder_uri,
-                                                           hasInclusionCriterion_uri,
-                                                           include2_uri))
+                        fid.write("\n{0} {1} {2} .\n".format(disorder_uri,
+                                                             hasInclusionCriterion_uri,
+                                                             include2_uri))
                     if exclude1_uri:
-                        fid.write("\n{0} {1} {2}\n".format(disorder_uri,
-                                                           hasExclusionCriterion_uri,
-                                                           exclude1_uri))
+                        fid.write("\n{0} {1} {2} .\n".format(disorder_uri,
+                                                             hasExclusionCriterion_uri,
+                                                             exclude1_uri))
                     if exclude2_uri:
-                        fid.write("\n{0} {1} {2}\n".format(disorder_uri,
-                                                           hasExclusionCriterion_uri,
-                                                           exclude2_uri))
+                        fid.write("\n{0} {1} {2} .\n".format(disorder_uri,
+                                                             hasExclusionCriterion_uri,
+                                                             exclude2_uri))
 
 # ----------------------------------------------------------------------------
 # Symptom-related classes and triples
@@ -388,22 +391,21 @@ for iS, symptom in enumerate(Symptom.SymptomName):
                     # --------------------------------------------------------
                     # Symptom-related triples
                     # --------------------------------------------------------
-                    if symptomcat_uri:
-                        fid.write("\n{0} {1} {2}\n".format(symptomcat_uri,
-                                                           'rdfs:subClassOf',
-                                                           SignOrSymptom_uri))
-                        fid.write("\n{0} {1} {2}\n".format(symptom_uri,
-                                                           'rdfs:subClassOf',
-                                                           SignOrSymptomCategory_uri))
-                    else:
-                        fid.write("\n{0} {1} {2}\n".format(symptom_uri,
-                                                           'rdfs:subClassOf',
-                                                           SignOrSymptom_uri))
-                    if disorder_for_symptom_uri:
-                        fid.write("\n{0} {1} {2}\n".format(disorder_for_symptom_uri,
-                                                           hasSymptom_uri,
-                                                           symptom_uri))
-
+                    if i == 0:
+                        if disorder_for_symptom_uri:
+                            fid.write("\n{0} {1} {2} .\n".format(disorder_for_symptom_uri,
+                                                                 hasSymptom_uri,
+                                                                 symptom_uri))
+                        fid.write("\n{0} {1} {2} .\n".format(symptom_uri,
+                                                             'rdfs:subClassOf',
+                                                             SignOrSymptom_uri))
+                    elif i == 1 and symptomcat_uri:
+                        fid.write("\n{0} {1} {2} .\n".format(symptom_uri,
+                                                             'rdfs:subClassOf',
+                                                             symptomcat_uri))
+                        fid.write("\n{0} {1} {2} .\n".format(symptomcat_uri,
+                                                             'rdfs:subClassOf',
+                                                             SignOrSymptom_uri))
 
 # ----------------------------------------------------------------------------
 # Questions/questionnaire classes
@@ -492,44 +494,55 @@ for iQ, question in enumerate(Question.QuestionText):
                     # --------------------------------------------------------
                     # Question-related triples
                     # --------------------------------------------------------
-                    fid.write("\n{0} {1} {2}\n".format(question_uri,
-                                                     'rdfs:type',
-                                                     Question_uri))
-                    if answertype_uri:
-                        fid.write("\n{0} {1} {2}\n".format(question_uri,
-                                                         hasAnswerType_uri,
-                                                         answertype_uri))
-                        fid.write("\n{0} {1} {2}\n".format(answertype_uri,
-                                                         'rdfs:type',
-                                                         AnswerType_uri))
-                    if question2_uri:
-                        fid.write("\n{0} {1} {2}\n".format(question_uri,
-                                                         hasFollowupQuestion_uri,
-                                                         question2_uri))
-                        fid.write("\n{0} {1} {2}\n".format(question2_uri,
-                                                         'rdfs:type',
-                                                         Question_uri))
+                    # Since writing only unique labels, push to i == 0:
+                    if i == 0:
+                        # fid.write("\n{0} {1} {2} .\n".format(question_uri,
+                        #                                      'rdf:type',
+                        #                                      Question_uri))
+                        if answertype_uri:
+                            fid.write("\n{0} {1} {2} .\n".format(question_uri,
+                                                                 hasAnswerType_uri,
+                                                                 answertype_uri))
+                        if question2_uri:
+                            fid.write("\n{0} {1} {2} .\n".format(question_uri,
+                                                                 hasFollowupQuestion_uri,
+                                                                 question2_uri))
+                        if questioncat_uri:
+                            fid.write("\n{0} {1} {2} .\n".format(question_uri,
+                                                                 'rdfs:member',
+                                                                 questioncat_uri))
+                        if questionnaire_uri:
+                            fid.write("\n{0} {1} {2} .\n".format(question_uri,
+                                                                 'rdfs:member',
+                                                                 questionnaire_uri))
+                    elif i == 1 and question2_uri:
+                        # fid.write("\n{0} {1} {2} .\n".format(question2_uri,
+                        #                                      'rdf:type',
+                        #                                      Question_uri))
                         if answer2type_uri:
-                            fid.write("\n{0} {1} {2}\n".format(question2_uri,
-                                                             hasAnswerType_uri,
-                                                             answer2type_uri))
-                            fid.write("\n{0} {1} {2}\n".format(answer2type_uri,
-                                                             'rdfs:type',
-                                                             AnswerType_uri))
-                    if questioncat_uri:
-                        fid.write("\n{0} {1} {2}\n".format(question_uri,
-                                                         typeOf_uri,
-                                                         QuestionCategory_uri))
-                        fid.write("\n{0} {1} {2}\n".format(questioncat_uri,
-                                                         'rdfs:type',
-                                                         QuestionCategory_uri))
-                    if questionnaire_uri:
-                        fid.write("\n{0} {1} {2}\n".format(question_uri,
-                                                         containedWithin_uri,
-                                                         questionnaire_uri))
-                        fid.write("\n{0} {1} {2}\n".format(questionnaire_uri,
-                                                         'rdfs:type',
-                                                         Questionnaire_uri))
+                            fid.write("\n{0} {1} {2} .\n".format(question2_uri,
+                                                                 hasAnswerType_uri,
+                                                                 answer2type_uri))
+                    # elif i == 2 and answertype_uri:
+                    #     fid.write("\n{0} {1} {2} .\n".format(answertype_uri,
+                    #                                          'rdfs:subClassOf',
+                    #                                          AnswerType_uri))
+                    # elif i == 3 and answer2type_uri:
+                    #     fid.write("\n{0} {1} {2} .\n".format(answer2type_uri,
+                    #                                          'rdfs:subClassOf',
+                    #                                          AnswerType_uri))
+                    elif i == 4 and questioncat_uri:
+                        # fid.write("\n{0} {1} {2} .\n".format(questioncat_uri,
+                        #                                      'rdfs:subClassOf',
+                        #                                      QuestionCategory_uri))
+                        if questionnaire_uri:
+                            fid.write("\n{0} {1} {2} .\n".format(questioncat_uri,
+                                                                 'rdfs:member',
+                                                                 questionnaire_uri))
+                    # elif i == 5 and questionnaire_uri:
+                    #     fid.write("\n{0} {1} {2} .\n".format(questionnaire_uri,
+                    #                                          'rdf:type',
+                    #                                          Questionnaire_uri))
 
 # ----------------------------------------------------------------------------
 # Reference classes and triples
@@ -592,8 +605,8 @@ for iR, reference in enumerate(Reference.ReferenceName):
     # ------------------------------------------------------------------------
     # Reference-related triples
     # ------------------------------------------------------------------------
-    fid.write("\n{0} {1} {2}\n".format(reference_uri, 'rdfs:type',
-                                       Reference_uri))
+    # fid.write("\n{0} {1} {2} .\n".format(reference_uri, 'rdf:type',
+    #                                      Reference_uri))
 
 # ----------------------------------------------------------------------------
 # General axioms

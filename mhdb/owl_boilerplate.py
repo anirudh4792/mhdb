@@ -25,12 +25,13 @@ def convert_string_to_label(input_string):
         output string
 
     """
+    from mhdb.owl_boilerplate import return_string
 
     if input_string and isinstance(input_string, str):
         input_string = input_string.strip()
         input_string = input_string.replace(" ", "_")
         input_string = input_string.replace("_-_", "-")
-        keep_chars = ('-', '.', '_')
+        keep_chars = ('-', '_')
         output_string = "".join(c for c in str(input_string) if c.isalnum()
                                 or c in keep_chars).rstrip()
         return output_string
@@ -97,6 +98,38 @@ def convert_string_to_label(input_string):
 #     return output_triple
 
 
+def return_none_for_nan(input_value):
+    """
+    Return None if input is a NaN value; otherwise, return the input.
+
+    Parameters
+    ----------
+    input_value : string or number or NaN
+
+    Returns
+    -------
+    value_not_nan : string or number
+
+    """
+    import numpy as np
+
+    def is_not_nan(s):
+        if s:
+            if isinstance(s, float) and np.isnan(s):
+                return False
+            elif str(s) in ['NaN', 'nan']:
+                return False
+            else:
+                return True
+        else:
+            return False
+
+    if is_not_nan(input_value):
+        return input_value
+    else:
+        return None
+
+
 def return_float(input_number):
     """
     Return input as a float if it's a number (or string of a number).
@@ -132,46 +165,18 @@ def return_float(input_number):
         return None
 
 
-def return_none_for_nan(input_value):
+def return_string(input_string, replace=[], replace_with=[]):
     """
-    Return None if input is a NaN value; otherwise, return the input.
-
-    Parameters
-    ----------
-    input_value : string or number or NaN
-
-    Returns
-    -------
-    value_not_nan : string or number
-
-    """
-    import numpy as np
-
-    def is_not_nan(s):
-        if s:
-            if isinstance(s, float) and np.isnan(s):
-                return False
-            elif str(s) in ['NaN', 'nan']:
-                return False
-            else:
-                return True
-        else:
-            return False
-
-    if is_not_nan(input_value):
-        return input_value
-    else:
-        return None
-
-
-def clean_string(input_string):
-    """
-    Cleans up a string and creates a corresponding label.
+    Returns a stripped string.
 
     Parameters
     ----------
     input_string : string
         arbitrary string
+    replace : list of strings
+        strings to substitute
+    replace_with : list of strings
+        strings with which to substitute 'replace' strings
 
     Returns
     -------
@@ -180,11 +185,15 @@ def clean_string(input_string):
 
     """
 
-    if input_string and isinstance(input_string, str):
+    if input_string:
+        if not isinstance(input_string, str):
+            input_string = str(input_string)
         output_string = input_string.strip()
+        for s in replace:
+            output_string = output_string.replace(s, ' ')
         return output_string
     else:
-        raise Exception('"{0}" is not a string!'.format(input_string))
+        return ""
 
 
 def create_label(input_string):
@@ -204,12 +213,14 @@ def create_label(input_string):
         alphanumeric characters of input_string
 
     """
-    from mhdb.owl_boilerplate import clean_string
+    from mhdb.owl_boilerplate import return_string
     from mhdb.owl_boilerplate import convert_string_to_label
 
     if input_string:
         if isinstance(input_string, str):
-            output_string = clean_string(input_string)
+            output_string = return_string(input_string,
+                                          replace=['"', '\n'],
+                                          replace_with=['', ''])
             if output_string:
                 label_string = convert_string_to_label(output_string)
                 return output_string, label_string
@@ -392,6 +403,7 @@ def build_rdf(uri_stem, rdf_type, label, comment=None,
               property_domain=None, property_range=None,
               exclude=[], no_nan=True):
     """
+    Build RDF (with \" to escape for some strings).
 
     Parameters
     ----------
@@ -433,12 +445,13 @@ def build_rdf(uri_stem, rdf_type, label, comment=None,
         RDF triples
 
     """
-    from mhdb.owl_boilerplate import get_cells
+    from mhdb.owl_boilerplate import return_string
 
     # Get worksheet contents:
     class_uri, subclass_uri, prop_domain, prop_range, \
     definition, definition_ref, definition_uri = get_cells(worksheet, index,
-                                                           worksheet2, exclude, True)
+                                                           worksheet2, exclude,
+                                                           True)
     # If arguments not provided, get from worksheet:
     if comment in exclude:
         comment = definition
@@ -457,40 +470,41 @@ def build_rdf(uri_stem, rdf_type, label, comment=None,
 
     if label not in exclude:
         rdf_string += """;
-            rdfs:label "{0}"^^rdfs:Literal """.format(label)
+    rdfs:label "{0}"^^rdfs:Literal """.format(label)
 
     if comment not in exclude:
         if definition_ref in exclude:
             refstring = ""
         else:
-            refstring = " [from: {0}]".format(definition_ref)
+            refstring = " [from: {0}]".format(return_string(definition_ref,
+                                                            ['"'], ["'"]))
         rdf_string += """;
-            rdfs:comment "{0}{1}"^^rdfs:Literal """.\
-            format(definition, refstring)
+    rdfs:comment "{0}{1}"^^rdfs:Literal """.\
+            format(return_string(comment, ['"'], ["'"]), refstring)
 
     if definition_uri not in exclude:
         rdf_string += """;
-            rdfs:isDefinedBy "{0}"^^rdfs:Literal """.format(definition_uri)
+    rdfs:isDefinedBy "{0}"^^rdfs:Literal """.format(return_string(definition_uri))
 
     if equivalent_class_uri not in exclude:
         rdf_string += """;
-            owl:equivalentClass [ rdf:type owl:Restriction ;
-                                  owl:onProperty <{0}>
-                                ] """.format(equivalent_class_uri)
+    owl:equivalentClass [ rdf:type owl:Restriction ;
+                          owl:onProperty <{0}>
+                        ] """.format(return_string(equivalent_class_uri))
 
     if subclassof_uri not in exclude:
         if not subclassof_uri.startswith(':'):
-            subclassof_uri = "<{0}>".format(subclassof_uri)
+            subclassof_uri = "<{0}>".format(return_string(subclassof_uri))
         rdf_string += """;
-            rdfs:subClassOf {0} """.format(subclassof_uri)
+    rdfs:subClassOf {0} """.format(return_string(subclassof_uri))
 
     if property_domain not in exclude:
         rdf_string += """;
-     rdfs:domain :{0} """.format(property_domain)
+    rdfs:domain :{0} """.format(return_string(property_domain))
 
     if property_range not in exclude:
         rdf_string += """;
-     rdfs:range :{0} """.format(property_range)
+    rdfs:range :{0} """.format(return_string(property_range))
 
     rdf_string += """.
 """
