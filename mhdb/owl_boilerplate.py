@@ -539,6 +539,7 @@ def print_header(base_uri, version, label, comment):
 @prefix xml: <http://www.w3.org/XML/1998/namespace> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix dc: <http://dublincore.org/2010/10/11/dcelements.rdf#> .
 @base <{0}> .
 
 <{0}> rdf:type owl:Ontology ;

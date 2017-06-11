@@ -525,11 +525,11 @@ for iQ, question in enumerate(Question.QuestionText):
                                                                  question2_uri))
                         if questioncat_uri:
                             fid.write("\n{0} {1} {2} .\n".format(question_uri,
-                                                                 'rdfs:member',
+                                                                 'dc:isPartOf',
                                                                  questioncat_uri))
                         if questionnaire_uri:
                             fid.write("\n{0} {1} {2} .\n".format(question_uri,
-                                                                 'rdfs:member',
+                                                                 'dc:isPartOf',
                                                                  questionnaire_uri))
                     elif i == 1 and question2_uri:
                         # fid.write("\n{0} {1} {2} .\n".format(question2_uri,
@@ -553,7 +553,7 @@ for iQ, question in enumerate(Question.QuestionText):
                         #                                      QuestionCategory_uri))
                         if questionnaire_uri:
                             fid.write("\n{0} {1} {2} .\n".format(questioncat_uri,
-                                                                 'rdfs:member',
+                                                                 'dc:isPartOf',
                                                                  questionnaire_uri))
                     # elif i == 5 and questionnaire_uri:
                     #     fid.write("\n{0} {1} {2} .\n".format(questionnaire_uri,
