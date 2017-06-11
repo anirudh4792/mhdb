@@ -488,9 +488,7 @@ def build_rdf(uri_stem, rdf_type, label, comment=None,
 
     if equivalent_class_uri not in exclude:
         rdf_string += """;
-    owl:equivalentClass [ rdf:type owl:Restriction ;
-                          owl:onProperty <{0}>
-                        ] """.format(return_string(equivalent_class_uri))
+    owl:equivalentClass <{0}> """.format(return_string(equivalent_class_uri))
 
     if subclassof_uri not in exclude:
         if not subclassof_uri.startswith(':'):
@@ -595,4 +593,3 @@ def print_general_axioms(disjoint_classes_list=[]):
 """
 
     return general_axioms_string
-

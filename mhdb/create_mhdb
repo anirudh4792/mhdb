@@ -25,7 +25,7 @@ from mhdb.owl_boilerplate import convert_string_to_label, create_label, \
 # ------------------------------------------------------------------------------
 debug = True
 if debug:
-    FILE = '/data/mentalhealth.xlsx'
+    FILE = 'data/mentalhealth.xlsx'
     base_uri = "http://www.purl.org/mentalhealth"
     outfile = os.path.join(os.getcwd(), 'mhdb.ttl')
 else:
@@ -181,8 +181,11 @@ for iD, disorder in enumerate(Disorder.DisorderName):
 
         # ICD-10 code:
         #print(get_cell(Disorder, 'ICD10code', iD, X, True))
-        ICD10_uri = "http://purl.bioontology.org/ontology/ICD10CM/" #+ \
-                        #get_cell(Disorder, 'ICD10code', iD, X, True)
+        try:
+            ICD10_uri = "http://purl.bioontology.org/ontology/ICD10CM/" + \
+                        get_cell(Disorder, 'ICD10code', iD, X, True)
+        except:
+            ICD10_uri = None
 
         # Indices to rows in Disorder-related worksheets:
         ilvl0 = get_index2(sheet1, column1_headers[0], iD, sheets2[0])
