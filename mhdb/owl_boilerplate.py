@@ -4,6 +4,7 @@ This is a program to construct boilerplate owl rdf document text.
 
 Authors:
     - Arno Klein, 2017  (arno@childmind.org)  http://binarybottle.com
+    - Jon Clucas, 2017 (jon.clucas@childmind.org)
 
 Copyright 2017, Child Mind Institute (http://childmind.org), Apache v2.0 License
 
@@ -401,7 +402,7 @@ def build_rdf(uri_stem, rdf_type, label, comment=None,
               index=None, worksheet=None, worksheet2=None,
               equivalent_class_uri=None, subclassof_uri=None,
               property_domain=None, property_range=None,
-              exclude=[], no_nan=True):
+              exclude=[], no_nan=True, **kwargs):
     """
     Build RDF (with \" to escape for some strings).
 
@@ -463,8 +464,12 @@ def build_rdf(uri_stem, rdf_type, label, comment=None,
         property_domain = prop_domain
     if property_range in exclude:
         property_range = prop_range
-
-    rdf_string = """
+    if ":" in uri_stem:
+        rdf_string = """
+### {0}
+{1} rdf:type {2} """.format(label, uri_stem, rdf_type)
+    else:
+        rdf_string = """
 ### {0}
 :{1} rdf:type {2} """.format(label, uri_stem, rdf_type)
 
@@ -504,6 +509,22 @@ def build_rdf(uri_stem, rdf_type, label, comment=None,
         rdf_string += """;
     rdfs:range :{0} """.format(return_string(property_range))
 
+    if kwargs is not None:
+        for key, value in kwargs.iteritems():
+            if ":" in key:
+                if ":" in value:
+                    rdf_string +=""";
+    {0} {1} """.format(key, value)
+                else:
+                    rdf_string +=""";
+    {0} \"{1}\"^^rdfs:Literal """.format(key, value)
+            elif ":" in value:
+                rdf_string +=""";
+    :{0} {1} """.format(key, value)
+            else:
+                rdf_string +=""";
+    :{0} \"{1}\"^^rdfs:Literal """.format(key, value)
+
     rdf_string += """.
 """
 
@@ -539,7 +560,8 @@ def print_header(base_uri, version, label, comment):
 @prefix xml: <http://www.w3.org/XML/1998/namespace> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
-@prefix dc: <http://dublincore.org/2010/10/11/dcelements.rdf#> .
+@prefix dcterms: <http://dublincore.org/documents/2012/06/14/dcmi-terms/> .
+@prefix health-lifesci: <http://health-lifesci.schema.org/> .
 @base <{0}> .
 
 <{0}> rdf:type owl:Ontology ;
