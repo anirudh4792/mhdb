@@ -4,6 +4,7 @@ This is a program to convert a mental health spreadsheet to RDF.
 
 Authors:
     - Arno Klein, 2017  (arno@childmind.org)  http://binarybottle.com
+    - Jon Clucas, 2017 (jon.clucas@childmind.org)
 
 Copyright 2017, Child Mind Institute (http://childmind.org), Apache v2.0 License
 
@@ -187,6 +188,13 @@ for iD, disorder in enumerate(Disorder.DisorderName):
         except:
             ICD10_uri = None
 
+        # ICD-9 code:
+        try:
+            ICD9_uri = "http://purl.bioontology.org/ontology/ICD9CM/" + \
+                        get_cell(Disorder, 'ICD9code', iD, X, True)
+        except:
+            ICD9_uri = None
+
         # Indices to rows in Disorder-related worksheets:
         ilvl0 = get_index2(sheet1, column1_headers[0], iD, sheets2[0])
         ilvl1 = get_index2(sheet1, column1_headers[1], iD, sheets2[1])
@@ -277,7 +285,7 @@ for iD, disorder in enumerate(Disorder.DisorderName):
         uris = [level0_uri, level1_uri, level2_uri, level3_uri, disorder_uri,
                 severity_uri, specifier_uri,
                 include1_uri, include2_uri, exclude1_uri, exclude2_uri]
-        equivalentclasses = [None, None, None, None, ICD10_uri,
+        equivalentclasses = [None, None, None, None, None,
                              None, None, None, None, None, None]
         subclassofs = [MentalDisorder_uri, level0_uri, level1_uri, level2_uri,
                        None, None, None, None, None, None, None]
@@ -340,6 +348,12 @@ for iD, disorder in enumerate(Disorder.DisorderName):
                             fid.write("\n{0} {1} {2} .\n".format(disorder_uri,
                                                                  hasExclusionCriterion_uri,
                                                                  exclude2_uri))
+                        if ICD10_uri:
+                            fid.write("\n{0} :codeICD10 <{1}> .\n".format(disorder_uri,
+                                                                         ICD10_uri))
+                        if ICD9_uri:
+                            fid.write("\n{0} :codeICD9 <{1}> .\n".format(disorder_uri,
+                                                                         ICD9_uri))
 
 # ----------------------------------------------------------------------------
 # Symptom-related classes and triples
@@ -432,7 +446,7 @@ fid.write(print_subheader('Question classes and triples'))
 sheets2 = [Question, Question, AnswerType, AnswerType,
            QuestionCat, Questionnaire]
 rdf_types = [Question_uri, Question_uri, 'owl:Class', 'owl:Class',
-             'owl:Class', Questionnaire_uri]
+             ':DisorderName', Questionnaire_uri]
 for iQ, question in enumerate(Question.QuestionText):
     if question not in X:
 
@@ -525,11 +539,11 @@ for iQ, question in enumerate(Question.QuestionText):
                                                                  question2_uri))
                         if questioncat_uri:
                             fid.write("\n{0} {1} {2} .\n".format(question_uri,
-                                                                 'rdfs:member',
+                                                                 'dcterms:isPartOf',
                                                                  questioncat_uri))
                         if questionnaire_uri:
                             fid.write("\n{0} {1} {2} .\n".format(question_uri,
-                                                                 'rdfs:member',
+                                                                 'dcterms:isPartOf',
                                                                  questionnaire_uri))
                     elif i == 1 and question2_uri:
                         # fid.write("\n{0} {1} {2} .\n".format(question2_uri,
@@ -553,7 +567,7 @@ for iQ, question in enumerate(Question.QuestionText):
                         #                                      QuestionCategory_uri))
                         if questionnaire_uri:
                             fid.write("\n{0} {1} {2} .\n".format(questioncat_uri,
-                                                                 'rdfs:member',
+                                                                 'dcterms:isPartOf',
                                                                  questionnaire_uri))
                     # elif i == 5 and questionnaire_uri:
                     #     fid.write("\n{0} {1} {2} .\n".format(questionnaire_uri,

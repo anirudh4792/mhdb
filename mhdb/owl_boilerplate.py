@@ -4,6 +4,7 @@ This is a program to construct boilerplate owl rdf document text.
 
 Authors:
     - Arno Klein, 2017  (arno@childmind.org)  http://binarybottle.com
+    - Jon Clucas, 2017 (jon.clucas@childmind.org)
 
 Copyright 2017, Child Mind Institute (http://childmind.org), Apache v2.0 License
 
@@ -452,6 +453,10 @@ def build_rdf(uri_stem, rdf_type, label, comment=None,
     definition, definition_ref, definition_uri = get_cells(worksheet, index,
                                                            worksheet2, exclude,
                                                            True)
+    try:
+        codingSystem = get_cell(worksheet, "health-lifesci:codingSystem", index, exclude=[], no_nan=True)
+    except:
+        codingSystem = None
     # If arguments not provided, get from worksheet:
     if comment in exclude:
         comment = definition
@@ -463,8 +468,12 @@ def build_rdf(uri_stem, rdf_type, label, comment=None,
         property_domain = prop_domain
     if property_range in exclude:
         property_range = prop_range
-
-    rdf_string = """
+    if ":" in uri_stem:
+        rdf_string = """
+### {0}
+{1} rdf:type {2} """.format(label, uri_stem, rdf_type)
+    else:
+        rdf_string = """
 ### {0}
 :{1} rdf:type {2} """.format(label, uri_stem, rdf_type)
 
@@ -487,13 +496,21 @@ def build_rdf(uri_stem, rdf_type, label, comment=None,
     rdfs:isDefinedBy "{0}"^^rdfs:Literal """.format(return_string(definition_uri))
 
     if equivalent_class_uri not in exclude:
-        rdf_string += """;
-    owl:equivalentClass <{0}> """.format(return_string(equivalent_class_uri))
+        if rdf_type=='owl:ObjectProperty':
+            rdf_string += """;
+        owl:equivalentProperty <{0}> """.format(return_string(equivalent_class_uri))
+        else:
+            rdf_string += """;
+        owl:equivalentClass <{0}> """.format(return_string(equivalent_class_uri))
 
     if subclassof_uri not in exclude:
-        if not subclassof_uri.startswith(':'):
+        if not subclassof_uri.startswith(':') and "//" in subclassof_uri:
             subclassof_uri = "<{0}>".format(return_string(subclassof_uri))
-        rdf_string += """;
+        if rdf_type=='owl:ObjectProperty':
+            rdf_string += """;
+    rdfs:subPropertyOf {0} """.format(return_string(subclassof_uri))
+        else:
+            rdf_string += """;
     rdfs:subClassOf {0} """.format(return_string(subclassof_uri))
 
     if property_domain not in exclude:
@@ -503,6 +520,10 @@ def build_rdf(uri_stem, rdf_type, label, comment=None,
     if property_range not in exclude:
         rdf_string += """;
     rdfs:range :{0} """.format(return_string(property_range))
+
+    if codingSystem:
+        rdf_string += """;
+    health-lifesci:codingSystem :{0} """.format(return_string(codingSystem))
 
     rdf_string += """.
 """
@@ -539,6 +560,8 @@ def print_header(base_uri, version, label, comment):
 @prefix xml: <http://www.w3.org/XML/1998/namespace> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix dcterms: <http://dublincore.org/documents/2012/06/14/dcmi-terms/> .
+@prefix health-lifesci: <http://health-lifesci.schema.org/> .
 @base <{0}> .
 
 <{0}> rdf:type owl:Ontology ;
