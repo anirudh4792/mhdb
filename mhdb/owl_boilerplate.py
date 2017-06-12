@@ -523,7 +523,7 @@ def build_rdf(uri_stem, rdf_type, label, comment=None,
 
     if codingSystem:
         rdf_string += """;
-    health-lifesci:codingSystem :{0} """.format(return_string(codingSystem))
+    health-lifesci:codingSystem \"{0}\"^^rdfs:Literal """.format(return_string(codingSystem))
 
     rdf_string += """.
 """

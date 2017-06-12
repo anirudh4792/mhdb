@@ -191,7 +191,7 @@ for iD, disorder in enumerate(Disorder.DisorderName):
         # ICD-9 code:
         try:
             ICD9_uri = "http://purl.bioontology.org/ontology/ICD9CM/" + \
-                        get_cell(Disorder, 'ICD9code', iD, X, True)
+                        str(get_cell(Disorder, 'ICD9code', iD, X, True))
         except:
             ICD9_uri = None
 
@@ -349,10 +349,10 @@ for iD, disorder in enumerate(Disorder.DisorderName):
                                                                  hasExclusionCriterion_uri,
                                                                  exclude2_uri))
                         if ICD10_uri:
-                            fid.write("\n{0} :codeICD10 <{1}> .\n".format(disorder_uri,
+                            fid.write("\n{0} :hasICD10Code <{1}> .\n".format(disorder_uri,
                                                                          ICD10_uri))
                         if ICD9_uri:
-                            fid.write("\n{0} :codeICD9 <{1}> .\n".format(disorder_uri,
+                            fid.write("\n{0} :hasICD9Code <{1}> .\n".format(disorder_uri,
                                                                          ICD9_uri))
 
 # ----------------------------------------------------------------------------
