@@ -402,7 +402,7 @@ def build_rdf(uri_stem, rdf_type, label, comment=None,
               index=None, worksheet=None, worksheet2=None,
               equivalent_class_uri=None, subclassof_uri=None,
               property_domain=None, property_range=None,
-              exclude=[], no_nan=True, **kwargs):
+              exclude=[], no_nan=True):
     """
     Build RDF (with \" to escape for some strings).
 
@@ -453,6 +453,10 @@ def build_rdf(uri_stem, rdf_type, label, comment=None,
     definition, definition_ref, definition_uri = get_cells(worksheet, index,
                                                            worksheet2, exclude,
                                                            True)
+    try:
+        codingSystem = get_cell(worksheet, "health-lifesci:codingSystem", index, exclude=[], no_nan=True)
+    except:
+        codingSystem = None
     # If arguments not provided, get from worksheet:
     if comment in exclude:
         comment = definition
@@ -492,14 +496,22 @@ def build_rdf(uri_stem, rdf_type, label, comment=None,
     rdfs:isDefinedBy "{0}"^^rdfs:Literal """.format(return_string(definition_uri))
 
     if equivalent_class_uri not in exclude:
-        rdf_string += """;
-    owl:equivalentProperty <{0}> """.format(return_string(equivalent_class_uri))
+        if rdf_type=='owl:ObjectProperty':
+            rdf_string += """;
+        owl:equivalentProperty <{0}> """.format(return_string(equivalent_class_uri))
+        else:
+            rdf_string += """;
+        owl:equivalentClass <{0}> """.format(return_string(equivalent_class_uri))
 
     if subclassof_uri not in exclude:
         if not subclassof_uri.startswith(':') and "//" in subclassof_uri:
             subclassof_uri = "<{0}>".format(return_string(subclassof_uri))
-        rdf_string += """;
+        if rdf_type=='owl:ObjectProperty':
+            rdf_string += """;
     rdfs:subPropertyOf {0} """.format(return_string(subclassof_uri))
+        else:
+            rdf_string += """;
+    rdfs:subClassOf {0} """.format(return_string(subclassof_uri))
 
     if property_domain not in exclude:
         rdf_string += """;
@@ -509,21 +521,9 @@ def build_rdf(uri_stem, rdf_type, label, comment=None,
         rdf_string += """;
     rdfs:range :{0} """.format(return_string(property_range))
 
-    if kwargs is not None:
-        for key, value in kwargs:
-            if ":" in key:
-                if ":" in value:
-                    rdf_string +=""";
-    {0} {1} """.format(key, value)
-                else:
-                    rdf_string +=""";
-    {0} \"{1}\"^^rdfs:Literal """.format(key, value)
-            elif ":" in value:
-                rdf_string +=""";
-    :{0} {1} """.format(key, value)
-            else:
-                rdf_string +=""";
-    :{0} \"{1}\"^^rdfs:Literal """.format(key, value)
+    if codingSystem:
+        rdf_string += """;
+    health-lifesci:codingSystem :{0} """.format(return_string(codingSystem))
 
     rdf_string += """.
 """
