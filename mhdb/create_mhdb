@@ -119,10 +119,7 @@ for index, label in enumerate(Properties.PropertyName):
                            property_range=None,
                            exclude=X)
     fid.write(rdf_string)
-    if ':' in label_safe:
-        exec("{0}_uri = '{0}'".format(label_safe))
-    else:
-        exec("{0}_uri = ':{0}'".format(label_safe))
+    exec("{0}_uri = ':{0}'".format(label_safe))
 
 # ------------------------------------------------------------------------
 # Classes and triples

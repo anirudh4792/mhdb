@@ -493,13 +493,13 @@ def build_rdf(uri_stem, rdf_type, label, comment=None,
 
     if equivalent_class_uri not in exclude:
         rdf_string += """;
-    owl:equivalentClass <{0}> """.format(return_string(equivalent_class_uri))
+    owl:equivalentProperty <{0}> """.format(return_string(equivalent_class_uri))
 
     if subclassof_uri not in exclude:
-        if not subclassof_uri.startswith(':'):
+        if not subclassof_uri.startswith(':') and "//" in subclassof_uri:
             subclassof_uri = "<{0}>".format(return_string(subclassof_uri))
         rdf_string += """;
-    rdfs:subClassOf {0} """.format(return_string(subclassof_uri))
+    rdfs:subPropertyOf {0} """.format(return_string(subclassof_uri))
 
     if property_domain not in exclude:
         rdf_string += """;
@@ -510,7 +510,7 @@ def build_rdf(uri_stem, rdf_type, label, comment=None,
     rdfs:range :{0} """.format(return_string(property_range))
 
     if kwargs is not None:
-        for key, value in kwargs.iteritems():
+        for key, value in kwargs:
             if ":" in key:
                 if ":" in value:
                     rdf_string +=""";
