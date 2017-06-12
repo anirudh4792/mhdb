@@ -568,7 +568,7 @@ def print_header(base_uri, version, label, comment):
     owl:versionIRI <{0}/{1}> ;
     owl:versionInfo "{1}"^^rdfs:Literal ;
     rdfs:label "{2}"^^rdfs:Literal ;
-    rdfs:comment "{3}"^^rdfs:Literal .
+    rdfs:comment \"\"\"{3}\"\"\"^^rdfs:Literal .
 
 """.format(base_uri, version, label, comment)
 
