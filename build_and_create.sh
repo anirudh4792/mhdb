@@ -16,4 +16,6 @@
 
 python3 setup.py build
 python3 setup.py install
-mhdb/create_mhdb
+cd mhdb
+./create_mhdb
+cd ..
