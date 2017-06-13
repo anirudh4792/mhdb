@@ -21,6 +21,18 @@ from mhdb.owl_boilerplate import convert_string_to_label, create_label, \
     get_index2, get_cell, build_rdf, print_header, print_subheader, \
     print_general_axioms
 
+def ICD_code(Disorder, ICD, id, X):
+    # function to turtle ICD code and coding system
+    ICD = str(ICD)
+    ICD_uri_code = get_cell(Disorder, ('ICD' + ICD + 'code'), iD, X, True)
+    if ICD_uri_code:
+        ICD_uri = "ICD" + ICD + ":" + str(ICD_uri_code)
+        ICD_coding_string = ICD_uri + """ health-lifesci:codingSystem \"ICD""" \
+                            + ICD + """CM\"^^rdfs:Literal """
+    else:
+        ICD_uri, ICD_coding_string = None, None
+    return(ICD_uri, ICD_coding_string)
+
 # ------------------------------------------------------------------------------
 # Command-line arguments
 # ------------------------------------------------------------------------------
@@ -183,23 +195,10 @@ column2_headers = ['DisorderCategoryName',
 # Loop through Disorders:
 for iD, disorder in enumerate(Disorder.DisorderName):
     if disorder not in X:
+        # ICD 9 and 10 code:
+        ICD9_uri, ICD9_coding_string = ICD_code(Disorder, 9, id, X)
+        ICD10_uri, ICD10_coding_string = ICD_code(Disorder, 10, id, X)
 
-        # ICD-10 code:
-        #print(get_cell(Disorder, 'ICD10code', iD, X, True))
-        try:
-            ICD10_uri = "http://purl.bioontology.org/ontology/ICD10CM/" + \
-                        get_cell(Disorder, 'ICD10code', iD, X, True)
-        except:
-            ICD10_uri = None
-
-        # ICD-9 code:
-        ICD_9_uri_code = get_cell(Disorder, 'ICD9code', iD, X, True)
-        if ICD_9_uri_code:
-            ICD9_uri = "http://purl.bioontology.org/ontology/ICD9CM/" + \
-                       str(ICD_9_uri_code)
-        else:
-            ICD9_uri = None                
-        
         # Indices to rows in Disorder-related worksheets:
         ilvl0 = get_index2(sheet1, column1_headers[0], iD, sheets2[0])
         ilvl1 = get_index2(sheet1, column1_headers[1], iD, sheets2[1])
@@ -354,11 +353,11 @@ for iD, disorder in enumerate(Disorder.DisorderName):
                                                                  hasExclusionCriterion_uri,
                                                                  exclude2_uri))
                         if ICD10_uri:
-                            fid.write("\n{0} :hasICD10Code <{1}> .\n".format(disorder_uri,
-                                                                         ICD10_uri))
+                            fid.write("\n{0} :hasICD10Code {1} .\n\n{2}.\n".format(disorder_uri,
+                                                                         ICD10_uri, ICD10_coding_string))
                         if ICD9_uri:
-                            fid.write("\n{0} :hasICD9Code <{1}> .\n".format(disorder_uri,
-                                                                         ICD9_uri))
+                            fid.write("\n{0} :hasICD9Code {1} .\n{2}.\n".format(disorder_uri,
+                                                                         ICD9_uri, ICD9_coding_string))
 
 # ----------------------------------------------------------------------------
 # Symptom-related classes and triples

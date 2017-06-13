@@ -521,10 +521,6 @@ def build_rdf(uri_stem, rdf_type, label, comment=None,
         rdf_string += """;
     rdfs:range :{0} """.format(return_string(property_range))
 
-    if codingSystem:
-        rdf_string += """;
-    health-lifesci:codingSystem \"{0}\"^^rdfs:Literal """.format(return_string(codingSystem))
-
     rdf_string += """.
 """
 
@@ -562,6 +558,8 @@ def print_header(base_uri, version, label, comment):
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix dcterms: <http://dublincore.org/documents/2012/06/14/dcmi-terms/> .
 @prefix health-lifesci: <http://health-lifesci.schema.org/> .
+@prefix ICD10: <http://purl.bioontology.org/ontology/ICD10CM/> .
+@prefix ICD9: <http://purl.bioontology.org/ontology/ICD9CM/> .
 @base <{0}> .
 
 <{0}> rdf:type owl:Ontology ;
