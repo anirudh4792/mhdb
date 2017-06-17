@@ -292,13 +292,13 @@ for iD, disorder in enumerate(Disorder.DisorderName):
         equivalentclasses = [None, None, None, None, None,
                              None, None, None, None, None, None]
         subclassofs = [MentalDisorder_uri, level0_uri, level1_uri, level2_uri,
-                       None, None, None, None, None, None, None]
+                       level3_uri, None, None, None, None, None, None]
         nlabels = len(labels)
         for i in range(nlabels):
             if indices[i]:
 
                 # subClassOf is direct upper level (disorder is any upper level):
-                superclass = None
+                superclass = ":MentalDisorder"
                 if i < nlabels:
                     subclassof = subclassofs[i]
                     if subclassof not in X:
