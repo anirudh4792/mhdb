@@ -193,6 +193,7 @@ column2_headers = ['DisorderCategoryName',
                    'DiagnosticCriterionName', 'DiagnosticCriterionName']
 
 # Loop through Disorders:
+superclassing = dict()
 for iD, disorder in enumerate(Disorder.DisorderName):
     if disorder not in X:
         # ICD 9 and 10 code:
@@ -300,7 +301,20 @@ for iD, disorder in enumerate(Disorder.DisorderName):
                 # subClassOf is direct upper level (disorder is any upper level):
                 superclass = ":MentalDisorder"
                 if i < nlabels:
-                    subclassof = subclassofs[i]
+                    superclass_subset = []
+                    [superclass_subset.append(subclassofs[j]) for j in range(
+                                                              len(subclassofs))
+                                                              if subclassofs[j]
+                                                              not in X]
+                    subclassof = superclass_subset.pop()
+                    subsuper = subclassof
+                    while(len(superclass_subset) > 0):
+                        supersub = superclass_subset.pop()
+                        if subsuper not in superclassing:
+                             superclassing[subsuper] = supersub
+                        subsuper = supersub
+                    if subsuper not in superclassing:
+                         superclassing[subsuper] = supersub
                     if subclassof not in X:
                         superclass = subclassof
                 else:
@@ -353,11 +367,16 @@ for iD, disorder in enumerate(Disorder.DisorderName):
                                                                  hasExclusionCriterion_uri,
                                                                  exclude2_uri))
                         if ICD10_uri:
-                            fid.write("\n{0} :hasICD10Code {1} .\n\n{2}.\n".format(disorder_uri,
+                            fid.write("\n{0} :hasICD10Code {1} .\n\n{2} .\n".format(disorder_uri,
                                                                          ICD10_uri, ICD10_coding_string))
                         if ICD9_uri:
-                            fid.write("\n{0} :hasICD9Code {1} .\n{2}.\n".format(disorder_uri,
+                            fid.write("\n{0} :hasICD9Code {1} .\n\n{2} .\n".format(disorder_uri,
                                                                          ICD9_uri, ICD9_coding_string))
+
+for subsuper in superclassing:
+    if superclassing[subsuper] != subsuper:
+        fid.write("\n{1} rdfs:subClassOf {0} .\n".format(superclassing[subsuper
+                  ], subsuper))
 
 # ----------------------------------------------------------------------------
 # Symptom-related classes and triples
