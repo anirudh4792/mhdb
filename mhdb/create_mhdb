@@ -395,8 +395,11 @@ for iS, symptom in enumerate(Symptom.SymptomName):
 
         # Indices to rows in Symptom-related worksheets:
         isymcat = get_index2(Symptom, 'SymptomCategory_index', iS, SymptomCat)
-        idisorder_symcat = get_index2(SymptomCat, 'Disorder_index', isymcat,
-                                      Disorder)
+        if isymcat not in X:
+            idisorder_symcat = get_index2(SymptomCat, 'Disorder_index',
+                                          isymcat, Disorder)
+        else:
+            idisorder_symcat = None
 
         # Unique labels and URIs:
         symptom, symptom_ok = create_label(symptom)
@@ -423,7 +426,7 @@ for iS, symptom in enumerate(Symptom.SymptomName):
         subclassofs = [symptomcat_uri, None]
         nlabels = len(labels)
         for i in range(nlabels):
-            if indices[i]:
+            if indices[i] not in X:
 
                 # Build rdf string if new and unique label:
                 label_ok = labels_ok[i]
