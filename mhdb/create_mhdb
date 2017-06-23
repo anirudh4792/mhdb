@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-This is a program to convert a mental health spreadsheet to RDF.
+This program converts a mental health spreadsheet to an RDF text document.
 
 Authors:
     - Arno Klein, 2017  (arno@childmind.org)  http://binarybottle.com
@@ -17,9 +17,9 @@ import pandas as pd
 from mhdb.info import __version__ as version
 #from mhdb.info import long_description as comment
 #from mhdb.info import description as label
-from mhdb.owl_boilerplate import convert_string_to_label, create_label, \
-    get_index2, get_cell, build_rdf, print_header, print_subheader, \
-    print_general_axioms
+from mhdb.spreadsheet_io import convert_string_to_label, create_label, \
+    get_index2, get_cell
+from mhdb.write_rdf import build_rdf, print_header, print_subheader #print_general_axioms
 
 def ICD_code(Disorder, ICD, id, X):
     # function to turtle ICD code and coding system

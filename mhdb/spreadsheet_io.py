@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """
-This is a program to construct boilerplate owl rdf document text.
+This program contains generic input/output functions
+to read from a spreadsheet and return desired types/formats.
 
 Authors:
     - Arno Klein, 2017  (arno@childmind.org)  http://binarybottle.com
@@ -26,7 +27,6 @@ def convert_string_to_label(input_string):
         output string
 
     """
-    from mhdb.owl_boilerplate import return_string
 
     if input_string and isinstance(input_string, str):
         input_string = input_string.strip()
@@ -56,7 +56,7 @@ def convert_string_to_label(input_string):
 #         output URI
 #
 #     """
-#     from mhdb.owl_boilerplate import convert_string_to_label
+#     from mhdb.spreadsheet_io import convert_string_to_label
 #
 #     label_safe = convert_string_to_label(label)
 #     output_uri = base_uri + "#" + label_safe
@@ -67,7 +67,7 @@ def convert_string_to_label(input_string):
 # def write_triple(subject_string, predicate_string, object_string,
 #                  third_literal=False):
 #     """
-#     Writes a triple from three URIs.
+#     Write a triple from three URIs.
 #
 #     Parameters
 #     ----------
@@ -168,7 +168,7 @@ def return_float(input_number):
 
 def return_string(input_string, replace=[], replace_with=[]):
     """
-    Returns a stripped string.
+    Return a stripped string.
 
     Parameters
     ----------
@@ -190,16 +190,20 @@ def return_string(input_string, replace=[], replace_with=[]):
         if not isinstance(input_string, str):
             input_string = str(input_string)
         output_string = input_string.strip()
-        for s in replace:
-            output_string = output_string.replace(s, ' ')
-        return output_string
+        if replace:
+            if len(replace) == len(replace_with):
+                for i, s in enumerate(replace):
+                    output_string = output_string.replace(s, replace_with[i])
+                return output_string
+            else:
+                raise Exception("replace and replace_with should be the same length.")
     else:
         return ""
 
 
 def create_label(input_string):
     """
-    This function cleans up a string and creates a corresponding label.
+    Clean up a string and create a corresponding (shortened) label.
 
     Parameters
     ----------
@@ -214,8 +218,8 @@ def create_label(input_string):
         alphanumeric characters of input_string
 
     """
-    from mhdb.owl_boilerplate import return_string
-    from mhdb.owl_boilerplate import convert_string_to_label
+    from mhdb.spreadsheet_io import return_string
+    from mhdb.spreadsheet_io import convert_string_to_label
 
     if input_string:
         if isinstance(input_string, str):
@@ -256,7 +260,7 @@ def get_cell(worksheet, column_label, index, exclude=[], no_nan=True):
         worksheet cell
 
     """
-    from mhdb.owl_boilerplate import return_none_for_nan
+    from mhdb.spreadsheet_io import return_none_for_nan
 
     if column_label in worksheet.columns:
         column = worksheet[column_label]
@@ -303,8 +307,8 @@ def get_index2(worksheet1, column1_label, index1, worksheet2):
     """
     #import pandas as pd
 
-    from mhdb.owl_boilerplate import get_cell
-    from mhdb.owl_boilerplate import return_float
+    from mhdb.spreadsheet_io import get_cell
+    from mhdb.spreadsheet_io import return_float
 
     cell = get_cell(worksheet1, column1_label, index1, exclude=[], no_nan=True)
     if cell:
@@ -328,7 +332,7 @@ def get_index2(worksheet1, column1_label, index1, worksheet2):
 
 def get_cells(worksheet, index, worksheet2=None, exclude=[], no_nan=True):
     """
-    This function looks for the following worksheet column headers:
+    Get cells from a worksheet with the following column headers:
     "equivalentClass"
     "subClassOf"
     "propertyDomain"
@@ -371,8 +375,8 @@ def get_cells(worksheet, index, worksheet2=None, exclude=[], no_nan=True):
         definition source URI
 
     """
-    from mhdb.owl_boilerplate import get_cell
-    from mhdb.owl_boilerplate import get_index2
+    from mhdb.spreadsheet_io import get_cell
+    from mhdb.spreadsheet_io import get_index2
 
     # equivalentClass and subClassOf:
     equivalent_class_uri = get_cell(worksheet, 'equivalentClass', index, exclude, True)
@@ -396,221 +400,3 @@ def get_cells(worksheet, index, worksheet2=None, exclude=[], no_nan=True):
     return equivalent_class_uri, subclassof_uri, \
            property_domain, property_range, \
            definition, definition_ref, definition_ref_uri
-
-
-def build_rdf(uri_stem, rdf_type, label, comment=None,
-              index=None, worksheet=None, worksheet2=None,
-              equivalent_class_uri=None, subclassof_uri=None,
-              property_domain=None, property_range=None,
-              exclude=[], no_nan=True):
-    """
-    Build RDF (with \" to escape for some strings).
-
-    Parameters
-    ----------
-    uri_stem : string
-        class URI stem
-    rdf_type : string
-        rdf:type, such as:
-        ':Disorder',
-        'owl:Class',
-        'owl:ObjectProperty',
-        'owl:DatatypeProperty',
-        'owl:FunctionalProperty'
-    label : string
-        label
-    comment : string
-        comment
-    index : integer
-        index to row of worksheet
-    worksheet : pandas dataframe
-        spreadsheet worksheet containing properties
-    worksheet2 : pandas dataframe
-        second worksheet containing references
-    equivalent_class_uri : string
-        equivalentClass URI (override worksheet)
-    subclassof_uri : string
-        subClassOf URI (override worksheet)
-    property_domain : string
-        property domain (override worksheet)
-    property_range : string
-        property range (override worksheet)
-    exclude : list
-        exclusions
-    no_nan : Boolean
-        return None if NaN?
-
-    Returns
-    -------
-    rdf_string : string
-        RDF triples
-
-    """
-    from mhdb.owl_boilerplate import return_string
-
-    # Get worksheet contents:
-    class_uri, subclass_uri, prop_domain, prop_range, \
-    definition, definition_ref, definition_uri = get_cells(worksheet, index,
-                                                           worksheet2, exclude,
-                                                           True)
-    try:
-        codingSystem = get_cell(worksheet, "health-lifesci:codingSystem", index, exclude=[], no_nan=True)
-    except:
-        codingSystem = None
-    # If arguments not provided, get from worksheet:
-    if comment in exclude:
-        comment = definition
-    if equivalent_class_uri in exclude:
-        equivalent_class_uri = class_uri
-    if subclassof_uri in exclude:
-        subclassof_uri = subclass_uri
-    if property_domain in exclude:
-        property_domain = prop_domain
-    if property_range in exclude:
-        property_range = prop_range
-    if ":" in uri_stem:
-        rdf_string = """
-### {0}
-{1} rdf:type {2} """.format(label, uri_stem, rdf_type)
-    else:
-        rdf_string = """
-### {0}
-:{1} rdf:type {2} """.format(label, uri_stem, rdf_type)
-
-    if label not in exclude:
-        rdf_string += """;
-    rdfs:label "{0}"^^rdfs:Literal """.format(label)
-
-    if comment not in exclude:
-        if definition_ref in exclude:
-            refstring = ""
-        else:
-            refstring = " [from: {0}]".format(return_string(definition_ref,
-                                                            ['"'], ["'"]))
-        rdf_string += """;
-    rdfs:comment "{0}{1}"^^rdfs:Literal """.\
-            format(return_string(comment, ['"'], ["'"]), refstring)
-
-    if definition_uri not in exclude:
-        rdf_string += """;
-    rdfs:isDefinedBy "{0}"^^rdfs:Literal """.format(return_string(definition_uri))
-
-    if equivalent_class_uri not in exclude:
-        if rdf_type=='owl:ObjectProperty':
-            rdf_string += """;
-        owl:equivalentProperty <{0}> """.format(return_string(equivalent_class_uri))
-        else:
-            rdf_string += """;
-        owl:equivalentClass <{0}> """.format(return_string(equivalent_class_uri))
-
-    if subclassof_uri not in exclude:
-        if not subclassof_uri.startswith(':') and "//" in subclassof_uri:
-            subclassof_uri = "<{0}>".format(return_string(subclassof_uri))
-        if rdf_type=='owl:ObjectProperty':
-            rdf_string += """;
-    rdfs:subPropertyOf {0} """.format(return_string(subclassof_uri))
-        else:
-            rdf_string += """;
-    rdfs:subClassOf {0} """.format(return_string(subclassof_uri))
-
-    if property_domain not in exclude:
-        rdf_string += """;
-    rdfs:domain :{0} """.format(return_string(property_domain))
-
-    if property_range not in exclude:
-        rdf_string += """;
-    rdfs:range :{0} """.format(return_string(property_range))
-
-    rdf_string += """.
-"""
-
-    return rdf_string
-
-
-def print_header(base_uri, version, label, comment):
-    """
-    This function prints out the beginning of an owl file.
-
-    Parameters
-    ----------
-    base_uri : string
-        base URI
-    version : string
-        version
-    label : string
-        label
-    comment : string
-        comment
-
-    Returns
-    -------
-    header : string
-        owl header
-
-    """
-
-    header = """
-@prefix : <{0}#> .
-@prefix owl: <http://www.w3.org/2002/07/owl#> .
-@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
-@prefix xml: <http://www.w3.org/XML/1998/namespace> .
-@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
-@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
-@prefix dcterms: <http://dublincore.org/documents/2012/06/14/dcmi-terms/> .
-@prefix health-lifesci: <http://health-lifesci.schema.org/> .
-@prefix ICD10: <http://purl.bioontology.org/ontology/ICD10CM/> .
-@prefix ICD9: <http://purl.bioontology.org/ontology/ICD9CM/> .
-@base <{0}> .
-
-<{0}> rdf:type owl:Ontology ;
-    owl:versionIRI <{0}/{1}> ;
-    owl:versionInfo "{1}"^^rdfs:Literal ;
-    rdfs:label "{2}"^^rdfs:Literal ;
-    rdfs:comment \"\"\"{3}\"\"\"^^rdfs:Literal .
-
-""".format(base_uri, version, label, comment)
-
-    return header
-
-
-def print_subheader(object_type):
-    return """
-#################################################################
-#    {0}
-#################################################################
-""".format(object_type)
-
-
-def print_general_axioms(disjoint_classes_list=[]):
-    """
-
-    Parameters
-    ----------
-    disjoint_classes_list : list of strings
-        list of disjoint classes
-
-    Returns
-    -------
-    general_axioms_string : string
-        owl general axioms
-
-    """
-
-    general_axioms_string = ""
-
-    if disjoint_classes_list:
-        general_axioms_string += """
-[ rdf:type owl:AllDisjointClasses ;
-  owl:members ( :{0} """.format(disjoint_classes_list[0])
-
-        if len(disjoint_classes_list) > 1:
-            for i in range(1, len(disjoint_classes_list)):
-                general_axioms_string += """
-  owl:members ( :{0} """.format(disjoint_classes_list[i])
-
-        general_axioms_string += """
-              )
-] .
-"""
-
-    return general_axioms_string
