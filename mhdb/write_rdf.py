@@ -82,6 +82,7 @@ def build_rdf(uri_stem, rdf_type, label, comment=None,
         property_domain = prop_domain
     if property_range in exclude:
         property_range = prop_range
+
     if ":" in uri_stem:
         rdf_string = """
 ### {0}

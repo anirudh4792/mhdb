@@ -197,6 +197,8 @@ def return_string(input_string, replace=[], replace_with=[]):
                 return output_string
             else:
                 raise Exception("replace and replace_with should be the same length.")
+        else:
+            return output_string
     else:
         return ""
 
