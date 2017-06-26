@@ -196,6 +196,9 @@ column2_headers = ['DisorderCategoryName',
 superclassing = dict()
 for iD, disorder in enumerate(Disorder.DisorderName):
     if disorder not in X:
+        # top level specifier
+        top_level = get_cell(Disorder, 'topLevelDisorder', iD, X, True)
+
         # ICD 9 and 10 code:
         ICD9_uri, ICD9_coding_string = ICD_code(Disorder, 9, id, X)
         ICD10_uri, ICD10_coding_string = ICD_code(Disorder, 10, id, X)
@@ -245,9 +248,6 @@ for iD, disorder in enumerate(Disorder.DisorderName):
         except:
             severity, severity_ok, severity_uri = None, None, None
 
-        disorder, disorder_ok = create_label(disorder)
-        disorder_uri = ":{0}".format(disorder_ok)
-
         try:
             cell = get_cell(sheets2[6], column2_headers[5], ispec, X, True)
             specifier, specifier_ok = create_label(cell)
@@ -279,6 +279,18 @@ for iD, disorder in enumerate(Disorder.DisorderName):
         except:
             exclude2, exclude2_ok, exclude2_uri = None, None, None
 
+        if top_level == 0:
+            disorder, disorder_ok = create_label(disorder)
+            disorder_uri = ":{0}".format(disorder_ok)
+        else:
+            disorder_string = " ".join(str(x) for x in [severity, disorder,
+                              specifier, include1, include2, exclude1, exclude2]
+                              if x)
+            disorder, disorder_ok = create_label(disorder_string)
+            disorder_uri = ":{0}".format(disorder_ok)
+            if top_level == 2:
+                subclassof = create_label(disorder)[1]
+
         # Loop through Disorder-related variables:
         indices = [ilvl0, ilvl1, ilvl2, ilvl3, iD, isevr, ispec,
                    incl1, incl2, ixcl1, ixcl2]
@@ -300,25 +312,28 @@ for iD, disorder in enumerate(Disorder.DisorderName):
 
                 # subClassOf is direct upper level (disorder is any upper level):
                 superclass = ":MentalDisorder"
-                if i < nlabels:
-                    superclass_subset = []
-                    [superclass_subset.append(subclassofs[j]) for j in range(
-                                                              len(subclassofs))
-                                                              if subclassofs[j]
-                                                              not in X]
-                    subclassof = superclass_subset[-1]
-                    while(len(superclass_subset) > 0):
-                        subsuper = superclass_subset.pop()
-                        try:
-                            supersub = superclass_subset[-1]
-                        except:
-                            supersub = ":MentalDisorder"
-                        if subsuper not in superclassing:
-                            superclassing[subsuper] = supersub
-                    if subclassof not in X:
-                        superclass = subclassof
+                if top_level and top_level < 2:
+                    if i < nlabels:
+                        superclass_subset = []
+                        [superclass_subset.append(subclassofs[j]) for j in range(
+                                                                  len(subclassofs))
+                                                                  if subclassofs[j]
+                                                                  not in X]
+                        subclassof = superclass_subset[-1]
+                        while(len(superclass_subset) > 0):
+                            subsuper = superclass_subset.pop()
+                            try:
+                                supersub = superclass_subset[-1]
+                            except:
+                                supersub = ":MentalDisorder"
+                            if subsuper not in superclassing:
+                                superclassing[subsuper] = supersub
+                        if subclassof not in X:
+                            superclass = subclassof
+                    else:
+                        subclassof = superclass
                 else:
-                    subclassof = superclass
+                    labels[i] = disorder_string
 
                 # Build rdf string if new and unique label:
                 label_ok = labels_ok[i]
