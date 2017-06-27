@@ -281,6 +281,8 @@ for iD, disorder in enumerate(Disorder.DisorderName):
             
         parent = ":{0}".format(create_label(disorder)[1]) if top_level in [-1,
                  2] else None
+        parent_label = create_label(disorder)[0] if top_level in [-1, 2] else \
+                       None
                  
         if specifier:
             if ispec in [6, 7, 24, 25, 26]:
@@ -333,6 +335,12 @@ for iD, disorder in enumerate(Disorder.DisorderName):
                              None, None, None, None, None, None]
         subclassofs = [MentalDisorder_uri, level0_uri, level1_uri, level2_uri,
                        level3_uri, None, None, None, None, None, None]
+        label_types = [None, None, None, None, None, 
+                       "http://purl.obolibrary.org/obo/PATO_0000049",
+                       ":DiagnosticSpecifier", ":DiagnosticInclusionCriterion",
+                       ":DiagnosticInclusionCriterion",
+                       ":DiagnosticExclusionCriterion",
+                       ":DiagnosticExclusionCriterion"]
         nlabels = len(labels)
         for i in range(nlabels):
             if indices[i]:
@@ -359,60 +367,84 @@ for iD, disorder in enumerate(Disorder.DisorderName):
                     subclassof = superclass
 
                 # Build rdf string if new and unique label:
-                label_ok = labels_ok[i]
-                if label_ok not in X and label_ok not in label_list:
-                    if "".join([":", label_ok]) in superclassing:
-                        subclassof = None
-                    label_list.append(label_ok)
-                    rdf_string = build_rdf(uri_stem=label_ok,
-                                               rdf_type='owl:Class',
-                                               label=labels[i],
-                                               comment=None,
-                                               index=indices[i],
-                                               worksheet=sheets2[i],
-                                               worksheet2=Reference,
-                                               equivalent_class_uri=
+                if not i == 4:
+                    label_ok = labels_ok[i]
+                    if label_ok not in X and label_ok not in label_list:
+                        if "".join([":", label_ok]) in superclassing:
+                            subclassof = None
+                        label_list.append(label_ok)
+                        rdf_string = build_rdf(uri_stem=label_ok,
+                                                   rdf_type='owl:Class',
+                                                   label=labels[i],
+                                                   comment=None,
+                                                   index=indices[i],
+                                                   worksheet=sheets2[i],
+                                                   worksheet2=Reference,
+                                                   equivalent_class_uri=
                                                           equivalentclasses[i],
-                                               subclassof_uri=subclassof,
-                                               property_domain=None,
-                                               property_range=None,
-                                               exclude=X)
-                    fid.write(rdf_string)
+                                                   subclassof_uri=label_types[i
+                                                                  ],
+                                                   property_domain=None,
+                                                   property_range=None,
+                                                   exclude=X)
+                        fid.write(rdf_string)
 
-                    # --------------------------------------------------------
-                    # Disorder-related triples
-                    # --------------------------------------------------------
-                    if i == 4:
-                        if severity_uri:
-                            fid.write("\n{0} {1} {2} .\n".format(disorder_uri,
-                                                                 hasSeverity_uri,
-                                                                 severity_uri))
-                        if specifier_uri:
-                            fid.write("\n{0} {1} {2} .\n".format(disorder_uri,
-                                                                 hasDiagnosticSpecifier_uri,
-                                                                 specifier_uri))
-                        if include1_uri:
-                            fid.write("\n{0} {1} {2} .\n".format(disorder_uri,
-                                                                 hasInclusionCriterion_uri,
-                                                                 include1_uri))
-                        if include2_uri:
-                            fid.write("\n{0} {1} {2} .\n".format(disorder_uri,
-                                                                 hasInclusionCriterion_uri,
-                                                                 include2_uri))
-                        if exclude1_uri:
-                            fid.write("\n{0} {1} {2} .\n".format(disorder_uri,
-                                                                 hasExclusionCriterion_uri,
-                                                                 exclude1_uri))
-                        if exclude2_uri:
-                            fid.write("\n{0} {1} {2} .\n".format(disorder_uri,
-                                                                 hasExclusionCriterion_uri,
-                                                                 exclude2_uri))
-                        if ICD10_uri:
-                            fid.write("\n{0} :hasICD10Code {1} .\n\n{2} .\n".format(disorder_uri,
-                                                                         ICD10_uri, ICD10_coding_string))
-                        if ICD9_uri:
-                            fid.write("\n{0} :hasICD9Code {1} .\n\n{2} .\n".format(disorder_uri,
-                                                                         ICD9_uri, ICD9_coding_string))
+                # --------------------------------------------------------
+                # Disorder-related triples
+                # --------------------------------------------------------
+                else:
+                    if disorder_ok not in X and disorder_ok not in label_list:
+                        if "".join([":", disorder_ok]) in superclassing:
+                            subclassof = None
+                        spec_sub = subclassof if not parent else parent
+                        label_list.append(disorder_ok)
+                        rdf_string = build_rdf(uri_stem=disorder_ok,
+                                                   rdf_type='owl:Class',
+                                                   label=labels[i],
+                                                   comment=None,
+                                                   index=indices[i],
+                                                   worksheet=sheets2[i],
+                                                   worksheet2=Reference,
+                                                   equivalent_class_uri=
+                                                          equivalentclasses[i],
+                                                   subclassof_uri=spec_sub,
+                                                   property_domain=None,
+                                                   property_range=None,
+                                                   exclude=X)
+                        fid.write(rdf_string)
+                    if severity_uri:
+                        fid.write("\n{0} {1} {2} .\n".format(disorder_uri,
+                                                             hasSeverity_uri,
+                                                             severity_uri))
+                    if specifier_uri:
+                        fid.write("\n{0} {1} {2} .\n".format(disorder_uri,
+                                                             hasDiagnosticSpecifier_uri,
+                                                             specifier_uri))
+                    if include1_uri:
+                        fid.write("\n{0} {1} {2} .\n".format(disorder_uri,
+                                                             hasInclusionCriterion_uri,
+                                                             include1_uri))
+                    if include2_uri:
+                        fid.write("\n{0} {1} {2} .\n".format(disorder_uri,
+                                                             hasInclusionCriterion_uri,
+                                                             include2_uri))
+                    if exclude1_uri:
+                        fid.write("\n{0} {1} {2} .\n".format(disorder_uri,
+                                                             hasExclusionCriterion_uri,
+                                                             exclude1_uri))
+                    if exclude2_uri:
+                        fid.write("\n{0} {1} {2} .\n".format(disorder_uri,
+                                                             hasExclusionCriterion_uri,
+                                                             exclude2_uri))
+                    if ICD10_uri:
+                        fid.write("\n{0} :hasICD10Code {1} .\n\n{2} .\n".format(disorder_uri,
+                                                                     ICD10_uri, ICD10_coding_string))
+                    if ICD9_uri:
+                        fid.write("\n{0} :hasICD9Code {1} .\n\n{2} .\n".format(disorder_uri,
+                                                                     ICD9_uri, ICD9_coding_string))
+                                                                         
+        if parent and parent[1:] not in labels_ok:
+            fid.write("""\n{0} rdfs:label "{1}"^^rdfs:Literal ;\n    rdfs:subClassOf {2} .\n""".format(parent, parent_label, subclassof))
 
 for subsuper in superclassing:
     if superclassing[subsuper] != subsuper:
