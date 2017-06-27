@@ -11,6 +11,7 @@ Copyright 2017, Child Mind Institute (http://childmind.org), Apache v2.0 License
 """
 import os
 import argparse
+import numpy as np
 import pandas as pd
 #import rdflib
 
@@ -69,7 +70,7 @@ else:
 # Import spreadsheet
 # ------------------------------------------------------------------------------
 xls = pd.ExcelFile(FILE)
-X = ['', 'nan', 'None', None]
+X = ['', 'nan', np.nan, 'None', None]
 
 # ------------------------------------------------------------------------------
 # Create output RDF file and print header
@@ -106,8 +107,7 @@ Disorder = xls.parse("Disorder")
 Severity = xls.parse("DisorderSeverity")
 Specifier = xls.parse("DiagnosticSpecifier")
 Criterion = xls.parse("DiagnosticCriterion")
-SymptomCat = xls.parse("SignOrSymptomCategory")
-Symptom = xls.parse("SignOrSymptom")
+Symptom = xls.parse("SignOrSymptomAllInOne")
 Questionnaire = xls.parse("Questionnaire")
 Question = xls.parse("Question")
 QuestionCat = xls.parse("QuestionCategory")
@@ -161,8 +161,6 @@ for index, label in enumerate(Classes.ClassName):
 
 fid.write("\n{0} {1} {2} .\n".format(MentalDisorder_uri, 'rdfs:subClassOf',
                                      Disorder_uri))
-fid.write("\n{0} {1} {2} .\n".format(SignOrSymptom_uri, 'rdfs:subClassOf',
-                                     SignOrSymptomCategory_uri))
 
 # ----------------------------------------------------------------------------
 # Disorder-related classes and triples
@@ -448,38 +446,30 @@ for subsuper in superclassing:
 # Symptom-related classes and triples
 # ----------------------------------------------------------------------------
 fid.write(print_subheader('Symptom classes and triples'))
-#           SymptomCat, Symptom,
+#           Symptom,
 #           Questionnaire, Question, QuestionCat, AnswerType,
 #           Reference, ReferenceType]
 
 # Loop through Symptoms:
-sheets2 = [Symptom, SymptomCat]
-for iS, symptom in enumerate(Symptom.SymptomName):
+for iS, symptom in enumerate(Symptom.SignOrSymptom):
     if symptom not in X:
-
+        idisorder_symcats = []
         # Indices to rows in Symptom-related worksheets:
-        isymcat = get_index2(Symptom, 'SymptomCategory_index', iS, SymptomCat)
-        if isymcat not in X:
-            idisorder_symcat = get_index2(SymptomCat, 'Disorder_index',
-                                          isymcat, Disorder)
-        else:
-            idisorder_symcat = None
+        isymcat = get_index2(Symptom, 'SignOrSymptomAllInOne_index', iS,
+                  Symptom)
+        idisorder_symcats.append(get_index2(Symptom, 'Disorder_index', iS,
+                                Disorder))
 
         # Unique labels and URIs:
         symptom, symptom_ok = create_label(symptom)
         symptom_uri = ":{0}".format(symptom_ok)
         try:
             symptomcat, symptomcat_ok = create_label(
-                get_cell(SymptomCat, 'SymptomCategoryName', isymcat, X, True))
+                get_cell(Symptom, 'SignOrSymptom', isymcat, X, True))
             symptomcat_uri = ":{0}".format(symptomcat_ok)
         except:
-            symptomcat, symptomcat_ok, symptomcat_uri = None, None, None
-        try:
-            disorder_for_symptom, disorder_for_symptom_ok = create_label(
-                get_cell(Disorder.DisorderName[idisorder_symcat], X, True))
-            disorder_for_symptom_uri = ":{0}".format(disorder_for_symptom_ok)
-        except:
-            disorder_for_symptom, disorder_for_symptom_ok, disorder_for_symptom_uri = None, None, None
+            symptomcat, symptomcat_ok, symptomcat_uri = None, None,           \
+                                                        SignOrSymptom_uri
 
         # Loop through Symptom-related classes:
         indices = [iS, isymcat]
@@ -487,7 +477,7 @@ for iS, symptom in enumerate(Symptom.SymptomName):
         labels_ok = [symptom_ok, symptomcat_ok]
         uris = [symptom_uri, symptomcat_uri]
         equivalentclasses = [None, None]
-        subclassofs = [symptomcat_uri, None]
+        subclassofs = [symptomcat_uri, SignOrSymptom_uri]
         nlabels = len(labels)
         for i in range(nlabels):
             if indices[i] not in X:
@@ -501,9 +491,10 @@ for iS, symptom in enumerate(Symptom.SymptomName):
                                            label=labels[i],
                                            comment=None,
                                            index=indices[i],
-                                           worksheet=sheets2[i],
+                                           worksheet=Symptom,
                                            worksheet2=Reference,
-                                           equivalent_class_uri=equivalentclasses[i],
+                                           equivalent_class_uri=
+                                                          equivalentclasses[i],
                                            subclassof_uri=subclassofs[i],
                                            property_domain=None,
                                            property_range=None,
@@ -514,20 +505,112 @@ for iS, symptom in enumerate(Symptom.SymptomName):
                     # Symptom-related triples
                     # --------------------------------------------------------
                     if i == 0:
-                        if disorder_for_symptom_uri:
-                            fid.write("\n{0} {1} {2} .\n".format(disorder_for_symptom_uri,
-                                                                 hasSymptom_uri,
-                                                                 symptom_uri))
-                        fid.write("\n{0} {1} {2} .\n".format(symptom_uri,
-                                                             'rdfs:subClassOf',
-                                                             SignOrSymptom_uri))
-                    elif i == 1 and symptomcat_uri:
-                        fid.write("\n{0} {1} {2} .\n".format(symptom_uri,
-                                                             'rdfs:subClassOf',
-                                                             symptomcat_uri))
-                        fid.write("\n{0} {1} {2} .\n".format(symptomcat_uri,
-                                                             'rdfs:subClassOf',
-                                                             SignOrSymptom_uri))
+                        for idisorder_symcat in idisorder_symcats:
+                            if idisorder_symcat:
+                                dis_ = get_cell(Disorder, 'DisorderName',
+                                       idisorder_symcat, exclude=[],
+                                       no_nan=True)
+                                # iD
+                                isevr = get_index2(sheet1, column1_headers[4],
+                                        idisorder_symcat, sheets2[5])
+                                ispec = get_index2(sheet1, column1_headers[5],
+                                        idisorder_symcat, sheets2[6])
+                                incl1 = get_index2(sheet1, column1_headers[6],
+                                        idisorder_symcat, sheets2[7])
+                                incl2 = get_index2(sheet1, column1_headers[7],
+                                        idisorder_symcat, sheets2[8])
+                                ixcl1 = get_index2(sheet1, column1_headers[8],
+                                        idisorder_symcat, sheets2[9])
+                                ixcl2 = get_index2(sheet1, column1_headers[9],
+                                        idisorder_symcat, sheets2[10])
+                                try:
+                                    cell = get_cell(sheets2[5],
+                                           column2_headers[4], isevr, X, True)
+                                    severity, severity_ok = create_label(cell)
+                                    severity_uri = ":{0}".format(severity_ok)
+                                except:
+                                    severity, severity_ok, severity_uri =     \
+                                                               None, None, None
+
+                                try:
+                                    cell = get_cell(sheets2[6],
+                                    column2_headers[5], ispec, X, True)
+                                    specifier, specifier_ok = create_label(cell
+                                                              )
+                                    specifier_uri = ":{0}".format(specifier_ok)
+                                except:
+                                    specifier, specifier_ok, specifier_uri =  \
+                                                              None,  None, None
+                                try:
+                                    cell = get_cell(sheets2[7],
+                                           column2_headers[6], incl1, X, True)
+                                    include1, include1_ok = create_label(cell)
+                                    include1_uri = ":{0}".format(include1_ok)
+                                except:
+                                    include1, include1_ok, include1_uri =     \
+                                                               None, None, None
+                                try:
+                                    cell = get_cell(sheets2[8],
+                                           column2_headers[7], incl2, X, True)
+                                    include2, include2_ok = create_label(cell)
+                                    include2_uri = ":{0}".format(include2_ok)
+                                except:
+                                    include2, include2_ok, include2_uri =     \
+                                                               None, None, None
+                                try:
+                                    cell = get_cell(sheets2[9],
+                                           column2_headers[8], ixcl1, X, True)
+                                    exclude1, exclude1_ok = create_label(cell)
+                                    exclude1_uri = ":{0}".format(exclude1_ok)
+                                except:
+                                    exclude1, exclude1_ok, exclude1_uri =     \
+                                                               None, None, None
+                                try:
+                                    cell = get_cell(sheets2[10],
+                                    column2_headers[9], ixcl2, X, True)
+                                    exclude2, exclude2_ok = create_label(cell)
+                                    exclude2_uri = ":{0}".format(exclude2_ok)
+                                except:
+                                    exclude2, exclude2_ok, exclude2_uri =     \
+                                                               None, None, None         
+                                if specifier:
+                                    if ispec in [6, 7, 24, 25, 26]:
+                                        dis_ = " ".join([specifier, dis_])
+                                    elif ispec in [27, 28, 56, 78]:
+                                        dis_ = " ".join([dis_, specifier])
+                                    else:
+                                        dis_ = ", ".join([dis_, specifier])
+                                if include1 and include2:
+                                    dis_ = " ".join([dis_, "with", include1,
+                                           "and", include2])
+                                else:
+                                    for include in [include1, include2]:
+                                        if include:
+                                            dis_ = " with ".join([dis_,
+                                                   include])
+                                if exclude1 and exclude2:
+                                    dis_ = " ".join([dis_, "without", exclude1,
+                                           "and without", exclude2])
+                                else:
+                                    for exclude in [exclude1, exclude2]:
+                                        if exclude:
+                                            dis_ = " with ".join([dis_,
+                                                   exclude])
+                                if severity:
+                                    if isevr in [4, 5]:
+                                        dis_ = " ".join([dis_, severity])
+                                    else:
+                                        dis_ = " ".join([severity, dis_])
+                                dis_, dis_ok = create_label(dis_)
+                                dis_uri = ":{0}".format(dis_ok)
+                                                                     
+                                fid.write("\n{0} {1} {2} .\n".format(
+                                          dis_uri, ":hasSignOrSymptom",
+                                          symptom_uri))
+                            else:
+                                print(idisorder_symcats)
+                    fid.write("\n{0} {1} {2} .\n".format(symptom_uri,
+                                  'rdfs:subClassOf', symptomcat_uri))
 
 # ----------------------------------------------------------------------------
 # Questions/questionnaire classes
