@@ -418,30 +418,23 @@ for iD, disorder in enumerate(Disorder.DisorderName):
                                                              severity_uri))
                     if specifier_uri:
                         fid.write("\n{0} {1} {2} .\n".format(disorder_uri,
-                                                             hasDiagnosticSpecifier_uri,
-                                                             specifier_uri))
+                                  hasDiagnosticSpecifier_uri, specifier_uri))
                     if include1_uri:
                         fid.write("\n{0} {1} {2} .\n".format(disorder_uri,
-                                                             hasInclusionCriterion_uri,
-                                                             include1_uri))
+                                  hasInclusionCriterion_uri, include1_uri))
                     if include2_uri:
                         fid.write("\n{0} {1} {2} .\n".format(disorder_uri,
-                                                             hasInclusionCriterion_uri,
-                                                             include2_uri))
+                                  hasInclusionCriterion_uri, include2_uri))
                     if exclude1_uri:
                         fid.write("\n{0} {1} {2} .\n".format(disorder_uri,
-                                                             hasExclusionCriterion_uri,
-                                                             exclude1_uri))
+                                  hasExclusionCriterion_uri, exclude1_uri))
                     if exclude2_uri:
                         fid.write("\n{0} {1} {2} .\n".format(disorder_uri,
-                                                             hasExclusionCriterion_uri,
-                                                             exclude2_uri))
+                                  hasExclusionCriterion_uri, exclude2_uri))
                     if ICD10_uri:
-                        fid.write("\n{0} :hasICD10Code {1} .\n\n{2} .\n".format(disorder_uri,
-                                                                     ICD10_uri, ICD10_coding_string))
+                        fid.write("\n{0} :hasICD10Code {1} .\n\n{2} .\n".format(disorder_uri, ICD10_uri, ICD10_coding_string))
                     if ICD9_uri:
-                        fid.write("\n{0} :hasICD9Code {1} .\n\n{2} .\n".format(disorder_uri,
-                                                                     ICD9_uri, ICD9_coding_string))
+                        fid.write("\n{0} :hasICD9Code {1} .\n\n{2} .\n".format(disorder_uri, ICD9_uri, ICD9_coding_string))
                                                                          
         if parent and parent[1:] not in labels_ok:
             fid.write("""\n{0} rdfs:label "{1}"^^rdfs:Literal ;\n    rdfs:subClassOf {2} .\n""".format(parent, parent_label, subclassof))
