@@ -278,24 +278,23 @@ for iD, disorder in enumerate(Disorder.DisorderName):
             exclude2_uri = ":{0}".format(exclude2_ok)
         except:
             exclude2, exclude2_ok, exclude2_uri = None, None, None
-
-        if top_level == 0:
+        if top_level in [0, 1]:
             disorder, disorder_ok = create_label(disorder)
-            disorder_uri = ":{0}".format(disorder_ok)
-        else:
+        elif top_level in [-1, 2]:
+            subclassof = ":{0}".format(create_label(disorder)[1])
+            subclassof_string = disorder
             disorder_string = " ".join(str(x) for x in [severity, disorder,
-                              specifier, include1, include2, exclude1, exclude2]
+                              specifier, include1, include2, exclude1, 
+                              exclude2]
                               if x)
             disorder, disorder_ok = create_label(disorder_string)
-            disorder_uri = ":{0}".format(disorder_ok)
-            if top_level == 2:
-                subclassof = create_label(disorder)[1]
+        disorder_uri = ":{0}".format(disorder_ok)
 
         # Loop through Disorder-related variables:
         indices = [ilvl0, ilvl1, ilvl2, ilvl3, iD, isevr, ispec,
                    incl1, incl2, ixcl1, ixcl2]
-        labels = [level0, level1, level2, level3, disorder, severity, specifier,
-                  include1, include2, exclude1, exclude2]
+        labels = [level0, level1, level2, level3, disorder, severity,
+                  specifier, include1, include2, exclude1, exclude2]
         labels_ok = [level0_ok, level1_ok, level2_ok, level3_ok, disorder_ok,
                      severity_ok, specifier_ok,
                      include1_ok, include2_ok, exclude1_ok, exclude2_ok]
@@ -309,16 +308,14 @@ for iD, disorder in enumerate(Disorder.DisorderName):
         nlabels = len(labels)
         for i in range(nlabels):
             if indices[i]:
-
-                # subClassOf is direct upper level (disorder is any upper level):
+                # subClassOf is direct upper level (disorder is any upper level
+                # ):
                 superclass = ":MentalDisorder"
-                if top_level and top_level < 2:
+                if top_level in [0, 1]:
                     if i < nlabels:
                         superclass_subset = []
-                        [superclass_subset.append(subclassofs[j]) for j in range(
-                                                                  len(subclassofs))
-                                                                  if subclassofs[j]
-                                                                  not in X]
+                        [superclass_subset.append(subclassofs[j]) for j in
+                         range(len(subclassofs)) if subclassofs[j] not in X]
                         subclassof = superclass_subset[-1]
                         while(len(superclass_subset) > 0):
                             subsuper = superclass_subset.pop()
@@ -332,23 +329,63 @@ for iD, disorder in enumerate(Disorder.DisorderName):
                             superclass = subclassof
                     else:
                         subclassof = superclass
-                else:
-                    labels[i] = disorder_string
+                    disorder_string = labels[i]
+                elif subclassof and top_level == -1:
+                    # Build rdf string if missing label:
+                    label_ok = subclassof[1:]
+                    if label_ok not in X and label_ok not in label_list:
+                        if i < nlabels:
+                            superclass_subset = []
+                            [superclass_subset.append(subclassofs[j]) for j in
+                             range(len(subclassofs)) if subclassofs[j] not in X
+                             ]
+                            subclassof2 = superclass_subset[-1]
+                            while(len(superclass_subset) > 0):
+                                subsuper = superclass_subset.pop()
+                                try:
+                                    supersub = superclass_subset[-1]
+                                except:
+                                    supersub = ":MentalDisorder"
+                                if subsuper not in superclassing:
+                                    superclassing[subsuper] = supersub
+                            if subclassof2 not in X:
+                                superclass = subclassof2
+                        else:
+                            subclassof2 = superclass
+                        if "".join([":", label_ok]) in superclassing:
+                            subclassof2 = None
+                        label_list.append(label_ok)
+                        rdf_string = build_rdf(uri_stem=label_ok,
+                                                   rdf_type='owl:Class',
+                                                   label=subclassof_string,
+                                                   comment=None,
+                                                   index=indices[i],
+                                                   worksheet=sheets2[i],
+                                                   worksheet2=Reference,
+                                                   equivalent_class_uri=      \
+                                                          equivalentclasses[i],
+                                                   subclassof_uri=subclassof2,
+                                                   property_domain=None,
+                                                   property_range=None,
+                                                   exclude=X)
+                        fid.write(rdf_string)
 
                 # Build rdf string if new and unique label:
                 label_ok = labels_ok[i]
-                if label_ok not in X and label_ok not in label_list:
+                if disorder and label_ok not in X and label_ok not in \
+                   label_list:
                     if "".join([":", label_ok]) in superclassing:
                         subclassof = None
                     label_list.append(label_ok)
                     rdf_string = build_rdf(uri_stem=label_ok,
                                                rdf_type='owl:Class',
-                                               label=labels[i],
+                                               label=disorder_string,
                                                comment=None,
                                                index=indices[i],
                                                worksheet=sheets2[i],
                                                worksheet2=Reference,
-                                               equivalent_class_uri=equivalentclasses[i],
+                                               equivalent_class_uri=
+                                                          equivalentclasses[i],
                                                subclassof_uri=subclassof,
                                                property_domain=None,
                                                property_range=None,
@@ -557,7 +594,8 @@ for iQ, question in enumerate(Question.QuestionText):
                                            index=indices[i],
                                            worksheet=sheets2[i],
                                            worksheet2=Reference,
-                                           equivalent_class_uri=equivalentclasses[i],
+                                           equivalent_class_uri=
+                                                          equivalentclasses[i],
                                            subclassof_uri=subclassofs[i],
                                            property_domain=None,
                                            property_range=None,
