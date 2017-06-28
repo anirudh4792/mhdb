@@ -458,20 +458,20 @@ for iS, symptom in enumerate(Symptom.SignOrSymptom):
         # Indices to rows in Symptom-related worksheets:
         isymcat = get_index2(Symptom, 'SignOrSymptomAllInOne_index', iS,
                   Symptom)
-        iid_ss = get_cell(Symptom, "Disorder_index", iS, exclude=[], no_nan=True
-                 )
+        iid_ss = get_cell(Symptom, "Disorder_index", iS, exclude=[], no_nan=
+                 True)
         if ',' in str(iid_ss):
             for iid_s in iid_ss.split(','):
                 try:
                     idisorder_symcats.add(get_index2(Symptom,
-                                             'Disorder_index', float(iid_s),
+                                             'Disorder_index', str(int(iid_s)),
                                              Disorder))
                 except:
                     try:
                         idisorder_symcats.add(get_index2(Symptom,
-                                                 'Disorder_index', float(
-                                                 re.search('\d', iid_s).group())
-                                                 , Disorder))
+                                                 'Disorder_index', str(int(
+                                                 re.search('\d', iid_s).group()
+                                                 )), Disorder))
                     except:
                         pass
         else:
@@ -625,8 +625,8 @@ for iS, symptom in enumerate(Symptom.SignOrSymptom):
                                 fid.write("\n{0} {1} {2} .\n".format(
                                           dis_uri, ":hasSignOrSymptom",
                                           symptom_uri))
-                    fid.write("\n{0} {1} {2} .\n".format(symptom_uri,
-                                  'rdfs:subClassOf', symptomcat_uri))
+                fid.write("\n{0} {1} {2} .\n".format(symptom_uri,
+                          'rdfs:subClassOf', symptomcat_uri))
 
 # ----------------------------------------------------------------------------
 # Questions/questionnaire classes
