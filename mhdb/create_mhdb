@@ -14,6 +14,7 @@ import argparse
 import numpy as np
 import pandas as pd
 #import rdflib
+import re
 
 from mhdb.info import __version__ as version
 #from mhdb.info import long_description as comment
@@ -196,7 +197,7 @@ for iD, disorder in enumerate(Disorder.DisorderName):
     if disorder not in X:
         # top level specifier
         top_level = get_cell(Disorder, 'topLevelDisorder', iD, X, True)
-        
+
         # ICD 9 and 10 code:
         ICD9_uri, ICD9_coding_string = ICD_code(Disorder, 9, id, X)
         ICD10_uri, ICD10_coding_string = ICD_code(Disorder, 10, id, X)
@@ -276,12 +277,12 @@ for iD, disorder in enumerate(Disorder.DisorderName):
             exclude2_uri = ":{0}".format(exclude2_ok)
         except:
             exclude2, exclude2_ok, exclude2_uri = None, None, None
-            
+
         parent = ":{0}".format(create_label(disorder)[1]) if top_level in [-1,
                  2] else None
         parent_label = create_label(disorder)[0] if top_level in [-1, 2] else \
                        None
-                 
+
         if specifier:
             if ispec in [6, 7, 24, 25, 26]:
                 disorder = " ".join([specifier, disorder])
@@ -289,14 +290,14 @@ for iD, disorder in enumerate(Disorder.DisorderName):
                 disorder = " ".join([disorder, specifier])
             else:
                 disorder = ", ".join([disorder, specifier])
-        
+
         if include1 and include2:
             disorder = " ".join([disorder, "with", include1, "and", include2])
         else:
             for include in [include1, include2]:
                 if include:
                     disorder = " with ".join([disorder, include])
-                    
+
         if exclude1 and exclude2:
             disorder = " ".join([disorder, "without", exclude1, "and without",
                        exclude2])
@@ -304,24 +305,24 @@ for iD, disorder in enumerate(Disorder.DisorderName):
             for exclude in [exclude1, exclude2]:
                 if exclude:
                     disorder = " with ".join([disorder, exclude])
-            
+
         if severity:
             if isevr in [4, 5]:
                 disorder = " ".join([disorder, severity])
             else:
                 disorder = " ".join([severity, disorder])
-            
+
         disorder, disorder_ok = create_label(disorder)
         disorder_uri = ":{0}".format(disorder_ok)
-        
+
         if parent:
             fid.write("\n{0} rdfs:subClassOf {1} .\n".format(disorder_uri,
                       parent))
-        
+
         # Loop through Disorder-related variables:
         indices = [ilvl0, ilvl1, ilvl2, ilvl3, iD, isevr, ispec,
                    incl1, incl2, ixcl1, ixcl2]
-        labels = [level0, level1, level2, level3, disorder, severity, 
+        labels = [level0, level1, level2, level3, disorder, severity,
                  specifier, include1, include2, exclude1, exclude2]
         labels_ok = [level0_ok, level1_ok, level2_ok, level3_ok, disorder_ok,
                     severity_ok, specifier_ok, include1_ok, include2_ok,
@@ -333,7 +334,7 @@ for iD, disorder in enumerate(Disorder.DisorderName):
                              None, None, None, None, None, None]
         subclassofs = [MentalDisorder_uri, level0_uri, level1_uri, level2_uri,
                        level3_uri, None, None, None, None, None, None]
-        label_types = [None, None, None, None, None, 
+        label_types = [None, None, None, None, None,
                        "http://purl.obolibrary.org/obo/PATO_0000049",
                        ":DiagnosticSpecifier", ":DiagnosticInclusionCriterion",
                        ":DiagnosticInclusionCriterion",
@@ -342,7 +343,7 @@ for iD, disorder in enumerate(Disorder.DisorderName):
         nlabels = len(labels)
         for i in range(nlabels):
             if indices[i]:
-            
+
                 # subClassOf is direct upper level (disorder is any upper level
                 # ):
                 superclass = ":MentalDisorder"
@@ -433,7 +434,7 @@ for iD, disorder in enumerate(Disorder.DisorderName):
                         fid.write("\n{0} :hasICD10Code {1} .\n\n{2} .\n".format(disorder_uri, ICD10_uri, ICD10_coding_string))
                     if ICD9_uri:
                         fid.write("\n{0} :hasICD9Code {1} .\n\n{2} .\n".format(disorder_uri, ICD9_uri, ICD9_coding_string))
-                                                                         
+
         if parent and parent[1:] not in labels_ok:
             fid.write("""\n{0} rdfs:label "{1}"^^rdfs:Literal ;\n    rdfs:subClassOf {2} .\n""".format(parent, parent_label, subclassof))
 
@@ -453,12 +454,29 @@ fid.write(print_subheader('Symptom classes and triples'))
 # Loop through Symptoms:
 for iS, symptom in enumerate(Symptom.SignOrSymptom):
     if symptom not in X:
-        idisorder_symcats = []
+        idisorder_symcats = set()
         # Indices to rows in Symptom-related worksheets:
         isymcat = get_index2(Symptom, 'SignOrSymptomAllInOne_index', iS,
                   Symptom)
-        idisorder_symcats.append(get_index2(Symptom, 'Disorder_index', iS,
-                                Disorder))
+        iid_ss = get_cell(Symptom, "Disorder_index", iS, exclude=[], no_nan=True
+                 )
+        if ',' in str(iid_ss):
+            for iid_s in iid_ss.split(','):
+                try:
+                    idisorder_symcats.add(get_index2(Symptom,
+                                             'Disorder_index', float(iid_s),
+                                             Disorder))
+                except:
+                    try:
+                        idisorder_symcats.add(get_index2(Symptom,
+                                                 'Disorder_index', float(
+                                                 re.search('\d', iid_s).group())
+                                                 , Disorder))
+                    except:
+                        pass
+        else:
+            idisorder_symcats.add(get_index2(Symptom, 'Disorder_index', iS,
+                                     Disorder))
 
         # Unique labels and URIs:
         symptom, symptom_ok = create_label(symptom)
@@ -572,7 +590,7 @@ for iS, symptom in enumerate(Symptom.SignOrSymptom):
                                     exclude2_uri = ":{0}".format(exclude2_ok)
                                 except:
                                     exclude2, exclude2_ok, exclude2_uri =     \
-                                                               None, None, None         
+                                                               None, None, None
                                 if specifier:
                                     if ispec in [6, 7, 24, 25, 26]:
                                         dis_ = " ".join([specifier, dis_])
@@ -603,12 +621,10 @@ for iS, symptom in enumerate(Symptom.SignOrSymptom):
                                         dis_ = " ".join([severity, dis_])
                                 dis_, dis_ok = create_label(dis_)
                                 dis_uri = ":{0}".format(dis_ok)
-                                                                     
+
                                 fid.write("\n{0} {1} {2} .\n".format(
                                           dis_uri, ":hasSignOrSymptom",
                                           symptom_uri))
-                            else:
-                                print(idisorder_symcats)
                     fid.write("\n{0} {1} {2} .\n".format(symptom_uri,
                                   'rdfs:subClassOf', symptomcat_uri))
 
