@@ -172,9 +172,23 @@ def print_header(base_uri, version, label, comment):
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix dcterms: <http://dublincore.org/documents/2012/06/14/dcmi-terms/> .
+@prefix DOID: <http://purl.obolibrary.org/obo/DOID_> .
+@prefix EFO: <http://www.ebi.ac.uk/efo/EFO_> .
 @prefix health-lifesci: <http://health-lifesci.schema.org/> .
+@prefix HP: <http://purl.obolibrary.org/obo/HP_> .
 @prefix ICD10: <http://purl.bioontology.org/ontology/ICD10CM/> .
 @prefix ICD9: <http://purl.bioontology.org/ontology/ICD9CM/> .
+@prefix MESH: <http://bioportal.bioontology.org/ontologies/MESH?p=classes&conceptid=> .
+@prefix MP: <http://purl.obolibrary.org/obo/MP_> .
+@prefix NBO: <http://purl.obolibrary.org/obo/NBO_> .
+@prefix NIF-Dys: <http://ontology.neuinfo.org/NIF/Dysfunction/NIF-Dysfunction.owl#nlx_dys_>
+@prefix OGMS: <http://bioportal.bioontology.org/ontologies/OGMS?p=classes&conceptid=http%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FOGMS_>
+@prefix PATO: <http://purl.obolibrary.org/obo/PATO_> .
+@prefix schema: <http://schema.org/> .
+@prefix SNOMEDCT: <http://purl.bioontology.org/ontology/SNOMEDCT/> .
+@prefix STY: <http://purl.bioontology.org/ontology/STY/> .
+@prefix SYMP: <http://purl.obolibrary.org/obo/SYMP_> .
+@prefix TMO: <http://bioportal.bioontology.org/ontologies/TMO?p=classes&conceptid=http://www.w3.org/2001/sw/hcls/ns/transmed/TMO_> .
 @base <{0}> .
 
 <{0}> rdf:type owl:Ontology ;

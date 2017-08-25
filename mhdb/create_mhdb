@@ -15,6 +15,7 @@ import numpy as np
 import pandas as pd
 #import rdflib
 import re
+import urllib.request
 
 from mhdb.info import __version__ as version
 #from mhdb.info import long_description as comment
@@ -41,6 +42,10 @@ def ICD_code(Disorder, ICD, id, X):
 debug = True
 if debug:
     FILE = 'data/mentalhealth.xlsx'
+    urllib.request.urlretrieve(
+        'https://docs.google.com/spreadsheets/d/'
+        '13a0w3ouXq5sFCa0fBsg9xhWx67RGJJJqLjD_Oy1c3b0/export?format='
+        'xlsx', FILE)
     if not os.path.exists(FILE):
         FILE = 'mhdb/' + FILE
     if not os.path.exists(FILE):
