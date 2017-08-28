@@ -22,7 +22,8 @@ from mhdb.info import __version__ as version
 #from mhdb.info import description as label
 from mhdb.spreadsheet_io import convert_string_to_label, create_label, \
     get_index2, get_cell
-from mhdb.write_rdf import build_rdf, print_header, print_subheader #print_general_axioms
+from mhdb.write_rdf import build_import, build_prefix, build_rdf, \
+    print_header, print_subheader #print_general_axioms
 
 def ICD_code(Disorder, ICD, id, X):
     # function to turtle ICD code and coding system
@@ -78,6 +79,27 @@ else:
 xls = pd.ExcelFile(FILE)
 X = ['', 'nan', np.nan, 'None', None]
 
+Ontologies = xls.parse("Ontologies")
+
+# ------------------------------------------------------------------------
+# Ontologies and Thesauri
+# ------------------------------------------------------------------------
+prefixes = dict()
+prefix_strings = list()
+import_strings = list()
+for index, prefix in enumerate(Ontologies.Prefix):
+    label_safe = convert_string_to_label(
+                     get_cell(Ontologies, 'OntologyName',
+                     index))
+    prefixes[prefix] = get_cell(Ontologies, 'Conceptualisation', index)
+    prefix_strings.append(build_prefix(
+        prefix,
+        get_cell(Ontologies, 'PrefixURI', index)
+        ))
+    import_strings.append(build_import(
+        get_cell(Ontologies, 'ImportURI', index)
+        ))
+
 # ------------------------------------------------------------------------------
 # Create output RDF file and print header
 # ------------------------------------------------------------------------------
@@ -94,7 +116,8 @@ Current information can be found on the website, http://mentalhealth.tech.
 """
 
 fid = open(outfile, 'w')
-header_string = print_header(base_uri, version, label, comment)
+header_string = print_header(base_uri, version, label, comment, prefix_strings,
+                             import_strings)
 fid.write(header_string)
 
 # ------------------------------------------------------------------------------

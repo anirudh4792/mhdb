@@ -10,7 +10,47 @@ Copyright 2017, Child Mind Institute (http://childmind.org), Apache v2.0 License
 
 """
 
+def build_import(uri):
+    """
+    Build a generic RDF import substring.
 
+    Parameters
+    ----------
+    uri : string
+        import IRI
+
+    Returns
+    -------
+    rdf_string : string
+        RDF triples
+
+    """
+    if len(uri):
+        return "owl:imports <{0}> ".format(uri)
+    else:
+        return ""
+
+
+def build_prefix(prefix, uri):
+    """
+    Build a generic RDF prefix.
+
+    Parameters
+    ----------
+    prefix : string
+        class URI stem
+    uri : string
+        prefix IRI
+
+    Returns
+    -------
+    rdf_string : string
+        RDF triples
+
+    """
+    return "@prefix {0}: <{1}> .".format(prefix, uri)
+    
+    
 def build_rdf(uri_stem, rdf_type, label, comment=None,
               index=None, worksheet=None, worksheet2=None,
               equivalent_class_uri=None, subclassof_uri=None,
@@ -82,6 +122,13 @@ def build_rdf(uri_stem, rdf_type, label, comment=None,
         property_domain = prop_domain
     if property_range in exclude:
         property_range = prop_range
+        
+    for uri_iri in [equivalent_class_uri, subclassof_uri,
+                    property_domain, property_range]:
+        if uri_iri:
+            uri_iri = "<{0}>".format(uri_iri) if (
+                      ":" in uri_iri and "//" not in uri_iri
+                      ) else uri_iri
 
     if ":" in uri_stem:
         rdf_string = """
@@ -111,16 +158,17 @@ def build_rdf(uri_stem, rdf_type, label, comment=None,
     rdfs:isDefinedBy "{0}"^^rdfs:Literal """.format(return_string(definition_uri))
 
     if equivalent_class_uri not in exclude:
-        if rdf_type=='owl:ObjectProperty':
-            rdf_string += """;
-        owl:equivalentProperty <{0}> """.format(return_string(equivalent_class_uri))
-        else:
-            rdf_string += """;
-        owl:equivalentClass <{0}> """.format(return_string(equivalent_class_uri))
+        if ":" in equivalent_class_uri:
+            if rdf_type=='owl:ObjectProperty':
+                rdf_string += """;
+            owl:equivalentProperty {0} """.format(return_string(equivalent_class_uri))
+            else:
+                rdf_string += """;
+            owl:equivalentClass {0} """.format(return_string(equivalent_class_uri))
 
     if subclassof_uri not in exclude:
         if not subclassof_uri.startswith(':') and "//" in subclassof_uri:
-            subclassof_uri = "<{0}>".format(return_string(subclassof_uri))
+            subclassof_uri = "{0}".format(return_string(subclassof_uri))
         if rdf_type=='owl:ObjectProperty':
             rdf_string += """;
     rdfs:subPropertyOf {0} """.format(return_string(subclassof_uri))
@@ -142,7 +190,7 @@ def build_rdf(uri_stem, rdf_type, label, comment=None,
     return rdf_string
 
 
-def print_header(base_uri, version, label, comment):
+def print_header(base_uri, version, label, comment, prefixes, imports):
     """
     Print out the beginning of an RDF text file.
 
@@ -156,7 +204,11 @@ def print_header(base_uri, version, label, comment):
         label
     comment : string
         comment
-
+    prefixes : list
+        list of TTL prefix strings
+    imports : list
+        list of TTL import substrings
+    
     Returns
     -------
     header : string
@@ -164,6 +216,9 @@ def print_header(base_uri, version, label, comment):
 
     """
 
+    prefix = "\n".join(prefixes)
+    owl_import = "".join([";\n", ";\n".join(imports), " "]) if len(
+                 imports) else ""
     header = """
 @prefix : <{0}#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
@@ -172,32 +227,16 @@ def print_header(base_uri, version, label, comment):
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix dcterms: <http://dublincore.org/documents/2012/06/14/dcmi-terms/> .
-@prefix DOID: <http://purl.obolibrary.org/obo/DOID_> .
-@prefix EFO: <http://www.ebi.ac.uk/efo/EFO_> .
-@prefix health-lifesci: <http://health-lifesci.schema.org/> .
-@prefix HP: <http://purl.obolibrary.org/obo/HP_> .
-@prefix ICD10: <http://purl.bioontology.org/ontology/ICD10CM/> .
-@prefix ICD9: <http://purl.bioontology.org/ontology/ICD9CM/> .
-@prefix MESH: <http://bioportal.bioontology.org/ontologies/MESH?p=classes&conceptid=> .
-@prefix MP: <http://purl.obolibrary.org/obo/MP_> .
-@prefix NBO: <http://purl.obolibrary.org/obo/NBO_> .
-@prefix NIF-Dys: <http://ontology.neuinfo.org/NIF/Dysfunction/NIF-Dysfunction.owl#nlx_dys_>
-@prefix OGMS: <http://bioportal.bioontology.org/ontologies/OGMS?p=classes&conceptid=http%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FOGMS_>
-@prefix PATO: <http://purl.obolibrary.org/obo/PATO_> .
-@prefix schema: <http://schema.org/> .
-@prefix SNOMEDCT: <http://purl.bioontology.org/ontology/SNOMEDCT/> .
-@prefix STY: <http://purl.bioontology.org/ontology/STY/> .
-@prefix SYMP: <http://purl.obolibrary.org/obo/SYMP_> .
-@prefix TMO: <http://bioportal.bioontology.org/ontologies/TMO?p=classes&conceptid=http://www.w3.org/2001/sw/hcls/ns/transmed/TMO_> .
+{4}
 @base <{0}> .
 
 <{0}> rdf:type owl:Ontology ;
     owl:versionIRI <{0}/{1}> ;
     owl:versionInfo "{1}"^^rdfs:Literal ;
     rdfs:label "{2}"^^rdfs:Literal ;
-    rdfs:comment \"\"\"{3}\"\"\"^^rdfs:Literal .
+    rdfs:comment \"\"\"{3}\"\"\"^^rdfs:Literal {5}.
 
-""".format(base_uri, version, label, comment)
+""".format(base_uri, version, label, comment, prefix, owl_import)
 
     return header
 
