@@ -23,7 +23,7 @@ from mhdb.info import __version__ as version
 from mhdb.spreadsheet_io import convert_string_to_label, create_label, \
     get_index2, get_cell
 from mhdb.write_rdf import build_import, build_prefix, build_rdf, \
-    print_header, print_subheader #print_general_axioms
+    owl_or_skos, print_header, print_subheader #print_general_axioms
 
 def ICD_code(Disorder, ICD, id, X):
     # function to turtle ICD code and coding system
@@ -151,8 +151,12 @@ fid.write(print_subheader('Properties'))
 
 for index, label in enumerate(Properties.PropertyName):
     label_safe = convert_string_to_label(label)
+    conceptualization = owl_or_skos(label_safe, prefixes)
+    rdf_type = 'owl:ObjectProperty' if (
+        conceptualization == "OWL"
+        ) else 'skos:semanticRelation'
     rdf_string = build_rdf(uri_stem=label_safe,
-                           rdf_type='owl:ObjectProperty',
+                           rdf_type=rdf_type,
                            label=label,
                            comment=None,
                            index=index,
@@ -173,8 +177,12 @@ fid.write(print_subheader('Classes'))
 
 for index, label in enumerate(Classes.ClassName):
     label_safe = convert_string_to_label(label)
+    conceptualization = owl_or_skos(label_safe, prefixes)
+    rdf_type = 'owl:Class' if (
+        conceptualization == "OWL"
+        ) else 'skos:Concept'
     rdf_string = build_rdf(uri_stem=label_safe,
-                           rdf_type='owl:Class',
+                           rdf_type=rdf_type,
                            label=label,
                            comment=None,
                            index=index,
@@ -400,8 +408,12 @@ for iD, disorder in enumerate(Disorder.DisorderName):
                         if "".join([":", label_ok]) in superclassing:
                             subclassof = None
                         label_list.append(label_ok)
+                        conceptualization = owl_or_skos(label_ok, prefixes)
+                        rdf_type = 'owl:Class' if (
+                            conceptualization == "OWL"
+                            ) else 'skos:Concept'
                         rdf_string = build_rdf(uri_stem=label_ok,
-                                                   rdf_type='owl:Class',
+                                                   rdf_type=rdf_type,
                                                    label=labels[i],
                                                    comment=None,
                                                    index=indices[i],
@@ -425,8 +437,12 @@ for iD, disorder in enumerate(Disorder.DisorderName):
                             subclassof = None
                         spec_sub = subclassof if not parent else parent
                         label_list.append(disorder_ok)
+                        conceptualization = owl_or_skos(disorder_ok, prefixes)
+                        rdf_type = 'owl:Class' if (
+                            conceptualization == "OWL"
+                            ) else 'skos:Concept'
                         rdf_string = build_rdf(uri_stem=disorder_ok,
-                                                   rdf_type='owl:Class',
+                                                   rdf_type=rdf_type,
                                                    label=labels[i],
                                                    comment=None,
                                                    index=indices[i],
@@ -532,8 +548,12 @@ for iS, symptom in enumerate(Symptom.SignOrSymptom):
                 label_ok = labels_ok[i]
                 if label_ok not in X and label_ok not in label_list:
                     label_list.append(label_ok)
+                    conceptualization = owl_or_skos(label_ok, prefixes)
+                    rdf_type = 'owl:Class' if (
+                        conceptualization == "OWL"
+                        ) else 'skos:Concept'
                     rdf_string = build_rdf(uri_stem=label_ok,
-                                           rdf_type='owl:Class',
+                                           rdf_type=rdf_type,
                                            label=labels[i],
                                            comment=None,
                                            index=indices[i],
@@ -726,8 +746,12 @@ for iQ, question in enumerate(Question.QuestionText):
                 label_ok = labels_ok[i]
                 if label_ok not in X and label_ok not in label_list:
                     label_list.append(label_ok)
+                    conceptualization = owl_or_skos(label_ok, prefixes)
+                    rdf_type = 'owl:Class' if (
+                        conceptualization == "OWL"
+                        ) else 'skos:Concept'
                     rdf_string = build_rdf(uri_stem=label_ok,
-                                           rdf_type=rdf_types[i],
+                                           rdf_type=rdf_type,
                                            label=labels[i],
                                            comment=None,
                                            index=indices[i],
@@ -838,14 +862,19 @@ for iR, reference in enumerate(Reference.ReferenceName):
             label_ok = labels_ok[i]
             if label_ok not in X and label_ok not in label_list:
                 label_list.append(label_ok)
+                conceptualization = owl_or_skos(label_ok, prefixes)
+                rdf_type = 'owl:Class' if (
+                    conceptualization == "OWL"
+                    ) else 'skos:Concept'
                 rdf_string = build_rdf(uri_stem=label_ok,
-                                       rdf_type=rdf_types[i],
+                                       rdf_type=rdf_type,
                                        label=labels[i],
                                        comment=None,
                                        index=indices[i],
                                        worksheet=sheets2[i],
                                        worksheet2=sheets3[i],
-                                       equivalent_class_uri=equivalentclasses[i],
+                                       equivalent_class_uri=
+                                           equivalentclasses[i],
                                        subclassof_uri=subclassofs[i],
                                        property_domain=None,
                                        property_range=None,

@@ -25,10 +25,10 @@ def build_import(uri):
         RDF triples
 
     """
-    if len(uri):
+    if uri:
         return "owl:imports <{0}> ".format(uri)
     else:
-        return ""
+        return None
 
 
 def build_prefix(prefix, uri):
@@ -182,7 +182,35 @@ def build_rdf(uri_stem, rdf_type, label, comment=None,
     return rdf_string
 
 
-def print_header(base_uri, version, label, comment, prefixes, imports):
+def owl_or_skos(label_safe, prefixes):
+    """
+    Build a generic RDF import substring.
+
+    Parameters
+    ----------
+    label_safe : string
+        URI
+        
+    prefixes : dictionary
+        dictionary {string : string} of prefix keys and
+        conceptualization values
+
+    Returns
+    -------
+    conceptualisation : string
+        "OWL" or "SKOS", default "OWL"
+        
+    """
+    return (prefixes[label_safe.split(":")[0]] if (
+        ":" in label_safe and
+        "//" not in label_safe and
+        not label_safe.startswith(":") and
+        label_safe.split(":")[0] in prefixes
+        ) else "OWL")
+        
+
+def print_header(base_uri, version, label, comment,
+                 prefixes=None, imports=None):
     """
     Print out the beginning of an RDF text file.
 
@@ -208,9 +236,10 @@ def print_header(base_uri, version, label, comment, prefixes, imports):
 
     """
 
-    prefix = "\n".join(prefixes)
-    owl_import = "".join([";\n", ";\n".join(imports), " "]) if len(
-                 imports) else ""
+    prefix = "\n".join(prefixes) if prefixes else ""
+    owl_import = "".join([";\n", ";\n".join(
+                 [owl for owl in imports if owl]
+                 ), " "]) if imports else ""
     header = """
 @prefix : <{0}#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
@@ -218,6 +247,7 @@ def print_header(base_uri, version, label, comment, prefixes, imports):
 @prefix xml: <http://www.w3.org/XML/1998/namespace> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
 @prefix dcterms: <http://dublincore.org/documents/2012/06/14/dcmi-terms/> .
 {4}
 @base <{0}> .
