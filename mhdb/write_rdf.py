@@ -122,13 +122,6 @@ def build_rdf(uri_stem, rdf_type, label, comment=None,
         property_domain = prop_domain
     if property_range in exclude:
         property_range = prop_range
-        
-    for uri_iri in [equivalent_class_uri, subclassof_uri,
-                    property_domain, property_range]:
-        if uri_iri:
-            uri_iri = "<{0}>".format(uri_iri) if (
-                      ":" in uri_iri and "//" not in uri_iri
-                      ) else uri_iri
 
     if ":" in uri_stem:
         rdf_string = """
@@ -158,13 +151,12 @@ def build_rdf(uri_stem, rdf_type, label, comment=None,
     rdfs:isDefinedBy "{0}"^^rdfs:Literal """.format(return_string(definition_uri))
 
     if equivalent_class_uri not in exclude:
-        if ":" in equivalent_class_uri:
-            if rdf_type=='owl:ObjectProperty':
-                rdf_string += """;
-            owl:equivalentProperty {0} """.format(return_string(equivalent_class_uri))
-            else:
-                rdf_string += """;
-            owl:equivalentClass {0} """.format(return_string(equivalent_class_uri))
+        if rdf_type=='owl:ObjectProperty':
+            rdf_string += """;
+        owl:equivalentProperty {0} """.format(return_string(equivalent_class_uri))
+        else:
+            rdf_string += """;
+        owl:equivalentClass {0} """.format(return_string(equivalent_class_uri))
 
     if subclassof_uri not in exclude:
         if not subclassof_uri.startswith(':') and "//" in subclassof_uri:
