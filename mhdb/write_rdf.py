@@ -10,6 +10,21 @@ Copyright 2017, Child Mind Institute (http://childmind.org), Apache v2.0 License
 
 """
 
+global conceptClass
+"""
+Dictionary mapping OWL to OWL and SKOS to SKOS.
+Otherwise, use "owl:AnnotationProperty".
+"""
+conceptClass = {"OWL":
+                    {"equivalence": "owl:equivalentClass",
+                    "subtype": "rdfs:subClassOf"
+                    },
+                "SKOS":
+                    {"equivalence": "skos:exactMatch",
+                    "subtype": "skos:broadMatch"
+                    }
+                }
+                
 def build_import(uri):
     """
     Build a generic RDF import substring.
@@ -55,7 +70,7 @@ def build_rdf(uri_stem, rdf_type, label, comment=None,
               index=None, worksheet=None, worksheet2=None,
               equivalent_class_uri=None, subclassof_uri=None,
               property_domain=None, property_range=None,
-              exclude=[]): #, no_nan=True):
+              exclude=[], conceptualizations={}): #, no_nan=True):
     """
     Build a generic RDF text document (with \" to escape for some strings).
 
@@ -90,6 +105,8 @@ def build_rdf(uri_stem, rdf_type, label, comment=None,
         property range (override worksheet)
     exclude : list
         exclusions
+    conceptualizations : dictionary
+        conceptualizaiton scheme (i.e., OWL or SKOS) for a given prefix
     #no_nan : Boolean
     #    return None if NaN?
 
@@ -122,7 +139,7 @@ def build_rdf(uri_stem, rdf_type, label, comment=None,
         property_domain = prop_domain
     if property_range in exclude:
         property_range = prop_range
-
+    l_con = owl_or_skos(uri_stem, conceptualizations)
     if ":" in uri_stem:
         rdf_string = """
 ### {0}
@@ -151,14 +168,22 @@ def build_rdf(uri_stem, rdf_type, label, comment=None,
     rdfs:isDefinedBy "{0}"^^rdfs:Literal """.format(return_string(definition_uri))
 
     if equivalent_class_uri not in exclude:
+        r_con = owl_or_skos(equivalent_class_uri, conceptualizations)
+        rel = conceptClass[l_con]["equivalence"] if (
+            l_con == r_con
+            ) else "owl:AnnotationProperty"
         if rdf_type=='owl:ObjectProperty':
             rdf_string += """;
         owl:equivalentProperty {0} """.format(return_string(equivalent_class_uri))
         else:
             rdf_string += """;
-        owl:equivalentClass {0} """.format(return_string(equivalent_class_uri))
+        {0} {1} """.format(rel, return_string(equivalent_class_uri))
 
     if subclassof_uri not in exclude:
+        r_con = owl_or_skos(subclassof_uri, conceptualizations)
+        rel = conceptClass[l_con]["subtype"] if (
+            l_con == r_con
+            ) else "owl:AnnotationProperty"
         if not subclassof_uri.startswith(':') and "//" in subclassof_uri:
             subclassof_uri = "{0}".format(return_string(subclassof_uri))
         if rdf_type=='owl:ObjectProperty':
@@ -166,7 +191,7 @@ def build_rdf(uri_stem, rdf_type, label, comment=None,
     rdfs:subPropertyOf {0} """.format(return_string(subclassof_uri))
         else:
             rdf_string += """;
-    rdfs:subClassOf {0} """.format(return_string(subclassof_uri))
+    {0} {1} """.format(rel, return_string(subclassof_uri))
 
     if property_domain not in exclude:
         rdf_string += """;

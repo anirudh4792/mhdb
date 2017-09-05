@@ -166,7 +166,8 @@ for index, label in enumerate(Properties.PropertyName):
                            subclassof_uri=None,
                            property_domain=None,
                            property_range=None,
-                           exclude=X)
+                           exclude=X,
+                           conceptualizations=prefixes)
     fid.write(rdf_string)
     exec("{0}_uri = ':{0}'".format(label_safe))
 
@@ -192,7 +193,8 @@ for index, label in enumerate(Classes.ClassName):
                            subclassof_uri=None,
                            property_domain=None,
                            property_range=None,
-                           exclude=X)
+                           exclude=X,
+conceptualizations=prefixes)
     fid.write(rdf_string)
     exec("{0}_uri = ':{0}'".format(label_safe))
 
@@ -425,7 +427,8 @@ for iD, disorder in enumerate(Disorder.DisorderName):
                                                                   ],
                                                    property_domain=None,
                                                    property_range=None,
-                                                   exclude=X)
+                                                   exclude=X,
+conceptualizations=prefixes)
                         fid.write(rdf_string)
 
                 # --------------------------------------------------------
@@ -453,7 +456,8 @@ for iD, disorder in enumerate(Disorder.DisorderName):
                                                    subclassof_uri=spec_sub,
                                                    property_domain=None,
                                                    property_range=None,
-                                                   exclude=X)
+                                                   exclude=X,
+conceptualizations=prefixes)
                         fid.write(rdf_string)
                     if severity_uri:
                         fid.write("\n{0} {1} {2} .\n".format(disorder_uri,
@@ -564,7 +568,8 @@ for iS, symptom in enumerate(Symptom.SignOrSymptom):
                                            subclassof_uri=subclassofs[i],
                                            property_domain=None,
                                            property_range=None,
-                                           exclude=X)
+                                           exclude=X,
+conceptualizations=prefixes)
                     fid.write(rdf_string)
 
                     # --------------------------------------------------------
@@ -762,7 +767,8 @@ for iQ, question in enumerate(Question.QuestionText):
                                            subclassof_uri=subclassofs[i],
                                            property_domain=None,
                                            property_range=None,
-                                           exclude=X)
+                                           exclude=X,
+conceptualizations=prefixes)
                     fid.write(rdf_string)
 
                     # --------------------------------------------------------
@@ -878,7 +884,8 @@ for iR, reference in enumerate(Reference.ReferenceName):
                                        subclassof_uri=subclassofs[i],
                                        property_domain=None,
                                        property_range=None,
-                                       exclude=X)
+                                       exclude=X,
+conceptualizations=prefixes)
                 fid.write(rdf_string)
 
     # ------------------------------------------------------------------------
