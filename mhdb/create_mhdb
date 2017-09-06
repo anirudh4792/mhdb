@@ -96,9 +96,10 @@ for index, prefix in enumerate(Ontologies.Prefix):
         prefix,
         get_cell(Ontologies, 'PrefixURI', index)
         ))
-    import_strings.append(build_import(
-        get_cell(Ontologies, 'ImportURI', index)
-        ))
+    if False:
+        import_strings.append(build_import(
+            get_cell(Ontologies, 'ImportURI', index)
+            ))
 
 # ------------------------------------------------------------------------------
 # Create output RDF file and print header

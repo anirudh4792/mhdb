@@ -168,22 +168,18 @@ def build_rdf(uri_stem, rdf_type, label, comment=None,
     rdfs:isDefinedBy "{0}"^^rdfs:Literal """.format(return_string(definition_uri))
 
     if equivalent_class_uri not in exclude:
-        r_con = owl_or_skos(equivalent_class_uri, conceptualizations)
-        rel = conceptClass[l_con]["equivalence"] if (
-            l_con == r_con
-            ) else "owl:AnnotationProperty"
+        rel = owl_or_skos_prop(
+              l_con, equivalent_class_uri, conceptualizations, "equivalence")
         if rdf_type=='owl:ObjectProperty':
             rdf_string += """;
         owl:equivalentProperty {0} """.format(return_string(equivalent_class_uri))
         else:
             rdf_string += """;
-        {0} {1} """.format(rel, return_string(equivalent_class_uri))
+    {0} {1} """.format(rel, return_string(equivalent_class_uri))
 
     if subclassof_uri not in exclude:
-        r_con = owl_or_skos(subclassof_uri, conceptualizations)
-        rel = conceptClass[l_con]["subtype"] if (
-            l_con == r_con
-            ) else "owl:AnnotationProperty"
+        rel = owl_or_skos_prop(
+              l_con, subclassof_uri, conceptualizations, "subtype")
         if not subclassof_uri.startswith(':') and "//" in subclassof_uri:
             subclassof_uri = "{0}".format(return_string(subclassof_uri))
         if rdf_type=='owl:ObjectProperty':
@@ -232,6 +228,35 @@ def owl_or_skos(label_safe, prefixes):
         not label_safe.startswith(":") and
         label_safe.split(":")[0] in prefixes
         ) else "OWL")
+        
+
+def owl_or_skos_prop(l_con, r, conceptualizations, gen_rel):
+    """
+    Return a property appropriate for the given conceptualizations.
+    
+    Parameters
+    ----------
+    l_con : string
+        "SKOS" or "OWL"
+        
+    r : string
+        class or concept IRI
+        
+    conceptualizations : dictionary
+        dictionary of prefixes and conceptualizations
+        
+    gen_rel : string
+        "equivalence" or "subtype"
+        
+    Returns
+    -------
+    rel : string
+        relationship between given conceptualizations
+    """
+    rel = conceptClass[l_con][gen_rel] if (
+        l_con == owl_or_skos(r, conceptualizations)
+        ) else "rdfs:label"
+    return rel
         
 
 def print_header(base_uri, version, label, comment,
