@@ -753,7 +753,7 @@ for iQ, question in enumerate(Question.QuestionText):
                 if label_ok not in X and label_ok not in label_list:
                     label_list.append(label_ok)
                     conceptualization = owl_or_skos(label_ok, prefixes)
-                    rdf_type = 'owl:Class' if (
+                    rdf_type = rdf_types[i] if (
                         conceptualization == "OWL"
                         ) else 'skos:Concept'
                     rdf_string = build_rdf(uri_stem=label_ok,
@@ -870,7 +870,7 @@ for iR, reference in enumerate(Reference.ReferenceName):
             if label_ok not in X and label_ok not in label_list:
                 label_list.append(label_ok)
                 conceptualization = owl_or_skos(label_ok, prefixes)
-                rdf_type = 'owl:Class' if (
+                rdf_type = rdf_types[i] if (
                     conceptualization == "OWL"
                     ) else 'skos:Concept'
                 rdf_string = build_rdf(uri_stem=label_ok,
