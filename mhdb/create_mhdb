@@ -195,12 +195,15 @@ for index, label in enumerate(Classes.ClassName):
                            property_domain=None,
                            property_range=None,
                            exclude=X,
-conceptualizations=prefixes)
+                           conceptualizations=prefixes)
     fid.write(rdf_string)
     exec("{0}_uri = ':{0}'".format(label_safe))
 
 fid.write("\n{0} {1} {2} .\n".format(MentalDisorder_uri, 'rdfs:subClassOf',
                                      Disorder_uri))
+                                     
+fid.write("\n{0} {1} {2} .\n".format(":DisorderName", 'rdfs:subClassOf',
+                                     'skos:Concept'))
 
 # ----------------------------------------------------------------------------
 # Disorder-related classes and triples
@@ -429,7 +432,7 @@ for iD, disorder in enumerate(Disorder.DisorderName):
                                                    property_domain=None,
                                                    property_range=None,
                                                    exclude=X,
-conceptualizations=prefixes)
+                                                   conceptualizations=prefixes)
                         fid.write(rdf_string)
 
                 # --------------------------------------------------------
@@ -458,7 +461,7 @@ conceptualizations=prefixes)
                                                    property_domain=None,
                                                    property_range=None,
                                                    exclude=X,
-conceptualizations=prefixes)
+                                                   conceptualizations=prefixes)
                         fid.write(rdf_string)
                     if severity_uri:
                         fid.write("\n{0} {1} {2} .\n".format(disorder_uri,
@@ -769,7 +772,7 @@ for iQ, question in enumerate(Question.QuestionText):
                                            property_domain=None,
                                            property_range=None,
                                            exclude=X,
-conceptualizations=prefixes)
+                                           conceptualizations=prefixes)
                     fid.write(rdf_string)
 
                     # --------------------------------------------------------
