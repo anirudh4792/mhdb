@@ -1,0 +1,12 @@
+<!doctype html>
+<title>Mental Health Database</title>
+<h1>Mental Health Database quick browser</h1>
+<select name="top_level_disorders" width="300px">
+{% for key, value in option_list.iterrows() %}
+    <option value="{{ value['iri'] }}" SELECTED>{{ value['label'] }}</option>
+{% endfor %}
+</select>
+</td>
+<td>
+    <input class="button1" type="submit" value="Select">
+</td>
