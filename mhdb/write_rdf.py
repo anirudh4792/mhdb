@@ -300,6 +300,7 @@ def print_header(base_uri, version, label, comment,
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
 @prefix dcterms: <http://dublincore.org/documents/2012/06/14/dcmi-terms/> .
 {4}
+@prefix void: <http://rdfs.org/ns/void#> .
 @base <{0}> .
 
 <{0}> rdf:type owl:Ontology ;
