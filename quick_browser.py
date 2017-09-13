@@ -5,7 +5,31 @@ import rdflib
 
 app = Flask(__name__)
 
-def run_query(q):
+
+def get_graph():
+    """
+    function to get the data to query
+    
+    Parameters
+    ----------
+    None
+    
+    Returns
+    -------
+    g : rdflib graph
+        rdflib graph
+    """
+    g = rdflib.Graph()
+    g.parse("mhdb.ttl", format='ttl')
+    g.parse(location=
+            ("http://data.bioontology.org/ontologies/MESH/download?"
+             "apikey=cf2fc1a7-fd1f-48bd-aa9e-e56335ba7235&"
+             "format=xml"
+            ), format='ttl'
+           )
+    return(g)
+
+def run_query(q, g=get_graph()):
     """
     function to run a pre-defined query from a file saved in the "queries"
     subdirectory
@@ -14,14 +38,15 @@ def run_query(q):
     ---------
     q : string
         filename of the SPARQL query to run
+        
+    g : rdflib graph, optional
+        rdflib graph, default=get_graph()
     
     Returns
     -------
     options : SPARQLResult
         rdflib SPARQL result from running said query
     """
-    g = rdflib.Graph()
-    result = g.parse("mhdb.ttl", format='n3')
     with open(os.path.join("queries", q), "r") as op_f:
         op_q = op_f.read()
     return(g.query(op_q))
@@ -38,7 +63,8 @@ def labeled_options(sparql_result, column_names):
         rdflib SPARQL result
         
     column_names : list
-        list of strings for naming columns in output DataFrame
+        list of strings for naming columns in output DataFrame, optionally as
+        2-tuples of ('name', datatype)
     
     Returns
     -------
@@ -47,16 +73,20 @@ def labeled_options(sparql_result, column_names):
     """
     options = []
     for row in sparql_result:
-        options.append([row[0], row[1]])
-    return(pd.DataFrame(options, columns=column_names))
+        options.append([str(r) if hasattr(column_names[i],
+                       '__iter__') else r for i, r in enumerate(row)])
+    cnames = [c[0] if hasattr(c, '__iter__') else c for c in column_names]
+    return(pd.DataFrame(options, columns=cnames))
 
 
 @app.route('/')
-def main():    
+def main():
+    g = get_graph()
     options = labeled_options(
-              run_query("top_level_disorder.rq"), ['label', 'iri']
+               run_query("top_level_disorder.rq", g), [('label', str), 'iri']
               )
     return(
-        render_template('quick_browser.html',
-                        option_list=options)
-        )
+           render_template('quick_browser.html',
+                           option_list=options
+                          )
+          )
