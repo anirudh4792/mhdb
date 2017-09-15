@@ -181,8 +181,8 @@ def print_header(base_uri, version, label, comment):
 @prefix MESH: <http://bioportal.bioontology.org/ontologies/MESH?p=classes&conceptid=> .
 @prefix MP: <http://purl.obolibrary.org/obo/MP_> .
 @prefix NBO: <http://purl.obolibrary.org/obo/NBO_> .
-@prefix NIF-Dys: <http://ontology.neuinfo.org/NIF/Dysfunction/NIF-Dysfunction.owl#nlx_dys_>
-@prefix OGMS: <http://bioportal.bioontology.org/ontologies/OGMS?p=classes&conceptid=http%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FOGMS_>
+@prefix NIF-Dys: <http://ontology.neuinfo.org/NIF/Dysfunction/NIF-Dysfunction.owl#nlx_dys_> .
+@prefix OGMS: <http://bioportal.bioontology.org/ontologies/OGMS?p=classes&conceptid=http%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FOGMS_> .
 @prefix PATO: <http://purl.obolibrary.org/obo/PATO_> .
 @prefix schema: <http://schema.org/> .
 @prefix SNOMEDCT: <http://purl.bioontology.org/ontology/SNOMEDCT/> .
