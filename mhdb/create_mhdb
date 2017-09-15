@@ -42,6 +42,8 @@ def ICD_code(Disorder, ICD, id, X):
 debug = True
 if debug:
     FILE = 'data/mentalhealth.xlsx'
+    if not os.path.exists(os.path.abspath(os.path.dirname(FILE))):
+        os.makedirs(os.path.abspath(os.path.dirname(FILE)))
     urllib.request.urlretrieve(
         'https://docs.google.com/spreadsheets/d/'
         '13a0w3ouXq5sFCa0fBsg9xhWx67RGJJJqLjD_Oy1c3b0/export?format='
