@@ -22,8 +22,7 @@ from mhdb.info import __version__ as version
 #from mhdb.info import description as label
 from mhdb.spreadsheet_io import convert_string_to_label, create_label, \
     get_index2, get_cell
-from mhdb.write_rdf import build_import, build_prefix, build_rdf, \
-    owl_or_skos, print_header, print_subheader #print_general_axioms
+from mhdb.write_rdf import build_rdf, print_header, print_subheader #print_general_axioms
 
 def ICD_code(Disorder, ICD, id, X):
     # function to turtle ICD code and coding system
@@ -43,6 +42,8 @@ def ICD_code(Disorder, ICD, id, X):
 debug = True
 if debug:
     FILE = 'data/mentalhealth.xlsx'
+    if not os.path.exists(os.path.abspath(os.path.dirname(FILE))):
+        os.makedirs(os.path.abspath(os.path.dirname(FILE)))
     urllib.request.urlretrieve(
         'https://docs.google.com/spreadsheets/d/'
         '13a0w3ouXq5sFCa0fBsg9xhWx67RGJJJqLjD_Oy1c3b0/export?format='
@@ -79,28 +80,6 @@ else:
 xls = pd.ExcelFile(FILE)
 X = ['', 'nan', np.nan, 'None', None]
 
-Ontologies = xls.parse("Ontologies")
-
-# ------------------------------------------------------------------------
-# Ontologies and Thesauri
-# ------------------------------------------------------------------------
-prefixes = dict()
-prefix_strings = list()
-import_strings = list()
-for index, prefix in enumerate(Ontologies.Prefix):
-    label_safe = convert_string_to_label(
-                     get_cell(Ontologies, 'OntologyName',
-                     index))
-    prefixes[prefix] = get_cell(Ontologies, 'Conceptualisation', index)
-    prefix_strings.append(build_prefix(
-        prefix,
-        get_cell(Ontologies, 'PrefixURI', index)
-        ))
-    if False:
-        import_strings.append(build_import(
-            get_cell(Ontologies, 'ImportURI', index)
-            ))
-
 # ------------------------------------------------------------------------------
 # Create output RDF file and print header
 # ------------------------------------------------------------------------------
@@ -117,8 +96,7 @@ Current information can be found on the website, http://mentalhealth.tech.
 """
 
 fid = open(outfile, 'w')
-header_string = print_header(base_uri, version, label, comment, prefix_strings,
-                             import_strings)
+header_string = print_header(base_uri, version, label, comment)
 fid.write(header_string)
 
 # ------------------------------------------------------------------------------
@@ -152,12 +130,8 @@ fid.write(print_subheader('Properties'))
 
 for index, label in enumerate(Properties.PropertyName):
     label_safe = convert_string_to_label(label)
-    conceptualization = owl_or_skos(label_safe, prefixes)
-    rdf_type = 'owl:ObjectProperty' if (
-        conceptualization == "OWL"
-        ) else 'skos:semanticRelation'
     rdf_string = build_rdf(uri_stem=label_safe,
-                           rdf_type=rdf_type,
+                           rdf_type='owl:ObjectProperty',
                            label=label,
                            comment=None,
                            index=index,
@@ -167,8 +141,7 @@ for index, label in enumerate(Properties.PropertyName):
                            subclassof_uri=None,
                            property_domain=None,
                            property_range=None,
-                           exclude=X,
-                           conceptualizations=prefixes)
+                           exclude=X)
     fid.write(rdf_string)
     exec("{0}_uri = ':{0}'".format(label_safe))
 
@@ -179,12 +152,8 @@ fid.write(print_subheader('Classes'))
 
 for index, label in enumerate(Classes.ClassName):
     label_safe = convert_string_to_label(label)
-    conceptualization = owl_or_skos(label_safe, prefixes)
-    rdf_type = 'owl:Class' if (
-        conceptualization == "OWL"
-        ) else 'skos:Concept'
     rdf_string = build_rdf(uri_stem=label_safe,
-                           rdf_type=rdf_type,
+                           rdf_type='owl:Class',
                            label=label,
                            comment=None,
                            index=index,
@@ -194,16 +163,12 @@ for index, label in enumerate(Classes.ClassName):
                            subclassof_uri=None,
                            property_domain=None,
                            property_range=None,
-                           exclude=X,
-                           conceptualizations=prefixes)
+                           exclude=X)
     fid.write(rdf_string)
     exec("{0}_uri = ':{0}'".format(label_safe))
 
 fid.write("\n{0} {1} {2} .\n".format(MentalDisorder_uri, 'rdfs:subClassOf',
                                      Disorder_uri))
-                                     
-fid.write("\n{0} {1} {2} .\n".format(":DisorderName", 'rdfs:subClassOf',
-                                     'skos:Concept'))
 
 # ----------------------------------------------------------------------------
 # Disorder-related classes and triples
@@ -414,12 +379,8 @@ for iD, disorder in enumerate(Disorder.DisorderName):
                         if "".join([":", label_ok]) in superclassing:
                             subclassof = None
                         label_list.append(label_ok)
-                        conceptualization = owl_or_skos(label_ok, prefixes)
-                        rdf_type = 'owl:Class' if (
-                            conceptualization == "OWL"
-                            ) else 'skos:Concept'
                         rdf_string = build_rdf(uri_stem=label_ok,
-                                                   rdf_type=rdf_type,
+                                                   rdf_type='owl:Class',
                                                    label=labels[i],
                                                    comment=None,
                                                    index=indices[i],
@@ -431,8 +392,7 @@ for iD, disorder in enumerate(Disorder.DisorderName):
                                                                   ],
                                                    property_domain=None,
                                                    property_range=None,
-                                                   exclude=X,
-                                                   conceptualizations=prefixes)
+                                                   exclude=X)
                         fid.write(rdf_string)
 
                 # --------------------------------------------------------
@@ -444,12 +404,8 @@ for iD, disorder in enumerate(Disorder.DisorderName):
                             subclassof = None
                         spec_sub = subclassof if not parent else parent
                         label_list.append(disorder_ok)
-                        conceptualization = owl_or_skos(disorder_ok, prefixes)
-                        rdf_type = 'owl:Class' if (
-                            conceptualization == "OWL"
-                            ) else 'skos:Concept'
                         rdf_string = build_rdf(uri_stem=disorder_ok,
-                                                   rdf_type=rdf_type,
+                                                   rdf_type='owl:Class',
                                                    label=labels[i],
                                                    comment=None,
                                                    index=indices[i],
@@ -460,8 +416,7 @@ for iD, disorder in enumerate(Disorder.DisorderName):
                                                    subclassof_uri=spec_sub,
                                                    property_domain=None,
                                                    property_range=None,
-                                                   exclude=X,
-                                                   conceptualizations=prefixes)
+                                                   exclude=X)
                         fid.write(rdf_string)
                     if severity_uri:
                         fid.write("\n{0} {1} {2} .\n".format(disorder_uri,
@@ -556,12 +511,8 @@ for iS, symptom in enumerate(Symptom.SignOrSymptom):
                 label_ok = labels_ok[i]
                 if label_ok not in X and label_ok not in label_list:
                     label_list.append(label_ok)
-                    conceptualization = owl_or_skos(label_ok, prefixes)
-                    rdf_type = 'owl:Class' if (
-                        conceptualization == "OWL"
-                        ) else 'skos:Concept'
                     rdf_string = build_rdf(uri_stem=label_ok,
-                                           rdf_type=rdf_type,
+                                           rdf_type='owl:Class',
                                            label=labels[i],
                                            comment=None,
                                            index=indices[i],
@@ -572,8 +523,7 @@ for iS, symptom in enumerate(Symptom.SignOrSymptom):
                                            subclassof_uri=subclassofs[i],
                                            property_domain=None,
                                            property_range=None,
-                                           exclude=X,
-conceptualizations=prefixes)
+                                           exclude=X)
                     fid.write(rdf_string)
 
                     # --------------------------------------------------------
@@ -755,12 +705,8 @@ for iQ, question in enumerate(Question.QuestionText):
                 label_ok = labels_ok[i]
                 if label_ok not in X and label_ok not in label_list:
                     label_list.append(label_ok)
-                    conceptualization = owl_or_skos(label_ok, prefixes)
-                    rdf_type = rdf_types[i] if (
-                        conceptualization == "OWL"
-                        ) else 'skos:Concept'
                     rdf_string = build_rdf(uri_stem=label_ok,
-                                           rdf_type=rdf_type,
+                                           rdf_type=rdf_types[i],
                                            label=labels[i],
                                            comment=None,
                                            index=indices[i],
@@ -771,8 +717,7 @@ for iQ, question in enumerate(Question.QuestionText):
                                            subclassof_uri=subclassofs[i],
                                            property_domain=None,
                                            property_range=None,
-                                           exclude=X,
-                                           conceptualizations=prefixes)
+                                           exclude=X)
                     fid.write(rdf_string)
 
                     # --------------------------------------------------------
@@ -872,24 +817,18 @@ for iR, reference in enumerate(Reference.ReferenceName):
             label_ok = labels_ok[i]
             if label_ok not in X and label_ok not in label_list:
                 label_list.append(label_ok)
-                conceptualization = owl_or_skos(label_ok, prefixes)
-                rdf_type = rdf_types[i] if (
-                    conceptualization == "OWL"
-                    ) else 'skos:Concept'
                 rdf_string = build_rdf(uri_stem=label_ok,
-                                       rdf_type=rdf_type,
+                                       rdf_type=rdf_types[i],
                                        label=labels[i],
                                        comment=None,
                                        index=indices[i],
                                        worksheet=sheets2[i],
                                        worksheet2=sheets3[i],
-                                       equivalent_class_uri=
-                                           equivalentclasses[i],
+                                       equivalent_class_uri=equivalentclasses[i],
                                        subclassof_uri=subclassofs[i],
                                        property_domain=None,
                                        property_range=None,
-                                       exclude=X,
-conceptualizations=prefixes)
+                                       exclude=X)
                 fid.write(rdf_string)
 
     # ------------------------------------------------------------------------
