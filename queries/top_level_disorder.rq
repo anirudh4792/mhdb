@@ -14,10 +14,10 @@ WHERE {
         ?subclass rdfs:label ?label .
         OPTIONAL { ?label skos:prefLabel ?pl }
       }
-    GROUP BY ?label ?subclass
+    GROUP BY ?label ?subclass ?pl
     HAVING(count(?intermediate) = 2)
     }
     BIND ( IF ( !bound(?label), ?subclass, IF ( bound(?label), IF ( !bound(?pl), ?label, ?pl), '' ) ) AS ?option )
 }
-GROUP BY ?subclass
+GROUP BY ?subclass ?option
 ORDER BY ?option
