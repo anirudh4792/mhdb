@@ -1,0 +1,239 @@
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+  <title>Mental Health Database</title>
+  <link href="https://brainhack101.github.io/neurolinks/lib/bootstrap-3.3.7-dist/css/bootstrap.css" type="text/css" rel="stylesheet"/>
+  <link href="https://brainhack101.github.io/neurolinks/lib/bootstrap-3.3.7-dist/css/bootstrap-theme.css" type="text/css" rel="stylesheet"/>
+  <script
+  src="https://code.jquery.com/jquery-3.2.1.min.js"
+  integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+  crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/vue"></script>
+  <script type='text/javascript' src="./rdfstore-js/dist/rdfstore.js">
+  </script>
+
+  <script type="text/x-template" id="grid-template">
+	<div>
+  <table class="table table-hover">
+    <thead>
+      <tr>
+        <th v-for="key in columns">
+          {{ key }}
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr v-for="entry in data">
+        <td v-for="key in columns" v-html="entry[key]">
+          {{ entry[key] }}
+        </td>
+      </tr>
+    </tbody>
+  </table>
+	</div>
+</script>
+</head>
+
+<body>
+<nav class="navbar navbar-inverse navbar-fixed-top">
+      <div class="container">
+        <div class="navbar-header">
+          <a class="navbar-brand" href="">Mental Health Database</a>
+        </div>
+      </div>
+    </nav>
+	<div class="container theme-showcase" style="padding-top:5em" role="main">
+		<div class="row jumbotron">
+			<h1 style="display:inline">Mental Health Database</h1><br/><h3 style="display:inline"></h3>
+		</div>
+		<div class="row">
+  		<div id="gridC">
+    		<div class="col-md-2"><h3>Resource:</h3>
+   			<div class="form-group">
+					<select v-model="selected" class="form-control">
+      			<option disabled value="">Please select one</option>
+      			<option v-for="option in options" v-bind:value="option.value">
+        			{{option.text}}
+      			</option>
+    			</select>
+				</div>
+				</div>
+    		<div class="col-md-10" style="height:1em">
+    		<demo-grid
+      		:data="gridData"
+      		:columns="gridColumns">
+    		</demo-grid>
+			</div>
+  	</div>
+
+  <script>
+  let prefixes = {}
+  let prefixArray = []
+  let query = "PREFIX : <http://www.purl.org/mentalhealth#> \
+  PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> \
+  PREFIX owl: <http://www.w3.org/2002/07/owl#> \
+  PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> \
+  PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> \
+  PREFIX skos: <http://www.w3.org/2004/02/skos/core#> \
+  SELECT ?label ?pl ?subclass \
+      WHERE { \
+        ?subclass rdfs:subClassOf* ?intermediate . \
+        ?intermediate rdfs:subClassOf* :MentalDisorder . \
+        ?subclass rdfs:label ?label . \
+        OPTIONAL { ?label skos:prefLabel ?pl } \
+      } \
+    GROUP BY ?label ?subclass ?pl"
+  // register the grid component
+  Vue.component('demo-grid', {
+    template: '#grid-template',
+    props: {
+      data: Array,
+      columns: Array
+    },
+    data: function () {
+      var sortOrders = {}
+      this.columns.forEach(function (key) {
+        sortOrders[key] = 1
+      })
+      return {
+        sortKey: '',
+        sortOrders: sortOrders
+      }
+    }
+  })
+  var gridC = new Vue({
+    el: '#gridC',
+    data: {
+      selected:'mhdb/mdhb.ttl',
+      options:[
+        {text:'Disorders', value:'mhdb/mdhb.ttl'},
+      ],
+      gridColumns: [],
+      gridData: [],
+      prefixColumns: [],
+      prefixData:[]
+    },
+    computed: {
+      showDefaultOwl:{
+        get: function(){
+        },
+        // setter
+        set: function (gurl) {
+          $.ajax({
+            type: "GET",
+            url: gurl,
+            success: function(data1){
+              successCallBack(data1,gridC)
+            }
+          })//ajax call
+        }
+      }
+    },
+    watch: {
+      'selected': function() {
+        console.log("gridC.selected", gridC.selected)
+        $.ajax({
+          type: "GET",
+          url: gridC.selected,
+          success: function(data){
+            successCallBack(data,gridC)
+          }
+        })//ajax call
+      }
+    }//end of watch
+  })
+  gridC.showDefaultOwl = 'mhdb/mhdb.ttl'
+  function successCallBack(data,gridComponent){
+    let lines = data.split("\n")
+    for(let i=0;i<lines.length; i++){
+      let line = lines[i].split(" ")
+      if(line[0] == "@prefix"){
+        substrPrefix = line[2].substring(1,line[2].length-2)
+        if(line[1] == ":"){
+          console.log("TODO")
+          prefixes[substrPrefix] = "turtle"
+        }else{
+          prefixes[substrPrefix] = line[1].substring(0,line[1].length-1)
+        }
+      }else if(line[0] == "@base"){
+        prefixes[substrPrefix] = "owl"
+      }else{
+        break;
+      }
+    }
+    console.log("split data:  --\n", prefixes)
+    new rdfstore.Store(function(err, store) {
+      store.load("text/turtle",data,function(err, results){
+        if(err){
+          console.log(err)
+        }
+          store.load('text/turtle', "http://data.bioontology.org/ontologies/MESH/download?apikey=cf2fc1a7-fd1f-48bd-aa9e-e56335ba7235&format=xml", function(err, results) {
+            store.execute(query,function(success,results) {
+                        console.log(results)
+              let items = results
+              let triples = []
+              let triple = {}
+              let prefixItems = []
+              let prefixItem = {}
+                        let title = []
+                        let url = []
+                        for(let i=0; i < gridC.options.length; i++) {
+                        if(gridC.options[i].value == gridC.selected){
+                        title = gridC.options[i].text
+                        break
+                        }
+                        }
+              for(let i = 0 ; i<items.length; i++){
+                            console.log(items[i])
+                triple['Disorder IRI'] = items[i]['subclass'].value
+                triple['Label'] = items[i]['label'].value
+                if(items[i]['pl']){
+                    triple['Prefered Label'] = items[i]['pl'].value
+                } else {
+                    triple['Prefered Label'] = ""
+                }
+                if(!isExist(triple, triples,'Disorder IRI')){
+                  triples.push(triple)
+                }
+                triple = {}
+                prefixItem = {}
+              }
+              console.log("demo.selected", gridComponent.selected)
+              gridComponent.gridColumns = ['Disorder IRI', 'Label', 'Prefered Label'] //, 'Organization']
+              gridComponent.gridData = triples
+            })//end of store execute
+         })//end of 2nd load
+      })//end of load
+    })//rdf store
+  } //end of successCallBack
+  function isExist(obj, arr,prop){
+    for(index=0;index < arr.length; index++){
+      let x = arr[index]
+      if(x[prop] === obj[prop])
+        return true
+    }
+    return false
+  }
+  function getPrefixItem(uri){
+    let prefixItem = {}
+    let pfname = uri.split("#")
+    let iri = uri.split("/")
+    for(item in prefixes){
+      if(uri.indexOf(item)!=-1){
+        prefixItem['Prefix'] = prefixes[item]
+        prefixItem['URI'] = item
+        if(pfname.length>1){
+          let parr = iri[iri.length-1].split("#")
+          prefixItem['termWithPrefix'] = prefixes[item]+ ":" + parr[1]
+        }else{
+          prefixItem['termWithPrefix'] = prefixes[item]+ ":" + iri[iri.length-1]
+        }
+      }
+    }
+    return prefixItem
+  }
+</script>
+	</div>
+<script src="https://brainhack101.github.io/neurolinks/lib/bootstrap-3.3.7-dist/js/bootstrap.min.js"></script>
+</body>
+</html>
