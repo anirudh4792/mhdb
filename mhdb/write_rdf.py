@@ -9,7 +9,6 @@ Authors:
 Copyright 2017, Child Mind Institute (http://childmind.org), Apache v2.0 License
 
 """
-
 global conceptClass
 """
 Dictionary mapping OWL to OWL and SKOS to SKOS.
@@ -285,7 +284,6 @@ def print_header(base_uri, version, label, comment,
         owl header
 
     """
-
     prefix = "\n".join(prefixes) if prefixes else ""
     owl_import = "".join([";\n", ";\n".join(
                  [owl for owl in imports if owl]
