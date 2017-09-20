@@ -20,7 +20,7 @@ def get_graph():
         rdflib graph
     """
     g = rdflib.Graph()
-    g.parse("mhdb.ttl", format='ttl')
+    g.parse("mhdb/mhdb.ttl", format='ttl')
     g.parse(location=
             ("http://data.bioontology.org/ontologies/MESH/download?"
              "apikey=cf2fc1a7-fd1f-48bd-aa9e-e56335ba7235&"
