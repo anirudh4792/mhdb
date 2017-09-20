@@ -9,13 +9,67 @@ Authors:
 Copyright 2017, Child Mind Institute (http://childmind.org), Apache v2.0 License
 
 """
+global conceptClass
+"""
+Dictionary mapping OWL to OWL and SKOS to SKOS.
+Otherwise, use "owl:AnnotationProperty".
+"""
+conceptClass = {"OWL":
+                    {"equivalence": "owl:equivalentClass",
+                    "subtype": "rdfs:subClassOf"
+                    },
+                "SKOS":
+                    {"equivalence": "skos:exactMatch",
+                    "subtype": "skos:broadMatch"
+                    }
+                }
+                
+def build_import(uri):
+    """
+    Build a generic RDF import substring.
+
+    Parameters
+    ----------
+    uri : string
+        import IRI
+
+    Returns
+    -------
+    rdf_string : string
+        RDF triples
+
+    """
+    if uri:
+        return "owl:imports <{0}> ".format(uri)
+    else:
+        return None
 
 
+def build_prefix(prefix, uri):
+    """
+    Build a generic RDF prefix.
+
+    Parameters
+    ----------
+    prefix : string
+        class URI stem
+    uri : string
+        prefix IRI
+
+    Returns
+    -------
+    rdf_string : string
+        RDF triples
+
+    """
+    return "@prefix {0}: <{1}> .".format(prefix, uri)
+    
+    
 def build_rdf(uri_stem, rdf_type, label, comment=None,
               index=None, worksheet=None, worksheet2=None,
               equivalent_class_uri=None, subclassof_uri=None,
               property_domain=None, property_range=None,
-              exclude=[]): #, no_nan=True):
+              exclude=[], conceptualizations={}): #, no_nan=True):
     """
     Build a generic RDF text document (with \" to escape for some strings).
 
@@ -50,6 +104,8 @@ def build_rdf(uri_stem, rdf_type, label, comment=None,
         property range (override worksheet)
     exclude : list
         exclusions
+    conceptualizations : dictionary
+        conceptualizaiton scheme (i.e., OWL or SKOS) for a given prefix
     #no_nan : Boolean
     #    return None if NaN?
 
@@ -82,7 +138,7 @@ def build_rdf(uri_stem, rdf_type, label, comment=None,
         property_domain = prop_domain
     if property_range in exclude:
         property_range = prop_range
-
+    l_con = owl_or_skos(uri_stem, conceptualizations)
     if ":" in uri_stem:
         rdf_string = """
 ### {0}
@@ -111,22 +167,26 @@ def build_rdf(uri_stem, rdf_type, label, comment=None,
     rdfs:isDefinedBy "{0}"^^rdfs:Literal """.format(return_string(definition_uri))
 
     if equivalent_class_uri not in exclude:
+        rel = owl_or_skos_prop(
+              l_con, equivalent_class_uri, conceptualizations, "equivalence")
         if rdf_type=='owl:ObjectProperty':
             rdf_string += """;
-        owl:equivalentProperty <{0}> """.format(return_string(equivalent_class_uri))
+        owl:equivalentProperty {0} """.format(return_string(equivalent_class_uri))
         else:
             rdf_string += """;
-        owl:equivalentClass <{0}> """.format(return_string(equivalent_class_uri))
+    {0} {1} """.format(rel, return_string(equivalent_class_uri))
 
     if subclassof_uri not in exclude:
+        rel = owl_or_skos_prop(
+              l_con, subclassof_uri, conceptualizations, "subtype")
         if not subclassof_uri.startswith(':') and "//" in subclassof_uri:
-            subclassof_uri = "<{0}>".format(return_string(subclassof_uri))
+            subclassof_uri = "{0}".format(return_string(subclassof_uri))
         if rdf_type=='owl:ObjectProperty':
             rdf_string += """;
     rdfs:subPropertyOf {0} """.format(return_string(subclassof_uri))
         else:
             rdf_string += """;
-    rdfs:subClassOf {0} """.format(return_string(subclassof_uri))
+    {0} {1} """.format(rel, return_string(subclassof_uri))
 
     if property_domain not in exclude:
         rdf_string += """;
@@ -142,7 +202,64 @@ def build_rdf(uri_stem, rdf_type, label, comment=None,
     return rdf_string
 
 
-def print_header(base_uri, version, label, comment):
+def owl_or_skos(label_safe, prefixes):
+    """
+    Build a generic RDF import substring.
+
+    Parameters
+    ----------
+    label_safe : string
+        URI
+        
+    prefixes : dictionary
+        dictionary {string : string} of prefix keys and
+        conceptualization values
+
+    Returns
+    -------
+    conceptualisation : string
+        "OWL" or "SKOS", default "OWL"
+        
+    """
+    return (prefixes[label_safe.split(":")[0]] if (
+        ":" in label_safe and
+        "//" not in label_safe and
+        not label_safe.startswith(":") and
+        label_safe.split(":")[0] in prefixes
+        ) else "OWL")
+        
+
+def owl_or_skos_prop(l_con, r, conceptualizations, gen_rel):
+    """
+    Return a property appropriate for the given conceptualizations.
+    
+    Parameters
+    ----------
+    l_con : string
+        "SKOS" or "OWL"
+        
+    r : string
+        class or concept IRI
+        
+    conceptualizations : dictionary
+        dictionary of prefixes and conceptualizations
+        
+    gen_rel : string
+        "equivalence" or "subtype"
+        
+    Returns
+    -------
+    rel : string
+        relationship between given conceptualizations
+    """
+    rel = conceptClass[l_con][gen_rel] if (
+        l_con == owl_or_skos(r, conceptualizations)
+        ) else "rdfs:label"
+    return rel
+        
+
+def print_header(base_uri, version, label, comment,
+                 prefixes=None, imports=None):
     """
     Print out the beginning of an RDF text file.
 
@@ -156,14 +273,21 @@ def print_header(base_uri, version, label, comment):
         label
     comment : string
         comment
-
+    prefixes : list
+        list of TTL prefix strings
+    imports : list
+        list of TTL import substrings
+    
     Returns
     -------
     header : string
         owl header
 
     """
-
+    prefix = "\n".join(prefixes) if prefixes else ""
+    owl_import = "".join([";\n", ";\n".join(
+                 [owl for owl in imports if owl]
+                 ), " "]) if imports else ""
     header = """
 @prefix : <{0}#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
@@ -171,33 +295,19 @@ def print_header(base_uri, version, label, comment):
 @prefix xml: <http://www.w3.org/XML/1998/namespace> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
 @prefix dcterms: <http://dublincore.org/documents/2012/06/14/dcmi-terms/> .
-@prefix DOID: <http://purl.obolibrary.org/obo/DOID_> .
-@prefix EFO: <http://www.ebi.ac.uk/efo/EFO_> .
-@prefix health-lifesci: <http://health-lifesci.schema.org/> .
-@prefix HP: <http://purl.obolibrary.org/obo/HP_> .
-@prefix ICD10: <http://purl.bioontology.org/ontology/ICD10CM/> .
-@prefix ICD9: <http://purl.bioontology.org/ontology/ICD9CM/> .
-@prefix MESH: <http://bioportal.bioontology.org/ontologies/MESH?p=classes&conceptid=> .
-@prefix MP: <http://purl.obolibrary.org/obo/MP_> .
-@prefix NBO: <http://purl.obolibrary.org/obo/NBO_> .
-@prefix NIF-Dys: <http://ontology.neuinfo.org/NIF/Dysfunction/NIF-Dysfunction.owl#nlx_dys_> .
-@prefix OGMS: <http://bioportal.bioontology.org/ontologies/OGMS?p=classes&conceptid=http%3A%2F%2Fpurl.obolibrary.org%2Fobo%2FOGMS_> .
-@prefix PATO: <http://purl.obolibrary.org/obo/PATO_> .
-@prefix schema: <http://schema.org/> .
-@prefix SNOMEDCT: <http://purl.bioontology.org/ontology/SNOMEDCT/> .
-@prefix STY: <http://purl.bioontology.org/ontology/STY/> .
-@prefix SYMP: <http://purl.obolibrary.org/obo/SYMP_> .
-@prefix TMO: <http://bioportal.bioontology.org/ontologies/TMO?p=classes&conceptid=http://www.w3.org/2001/sw/hcls/ns/transmed/TMO_> .
+{4}
+@prefix void: <http://rdfs.org/ns/void#> .
 @base <{0}> .
 
 <{0}> rdf:type owl:Ontology ;
     owl:versionIRI <{0}/{1}> ;
     owl:versionInfo "{1}"^^rdfs:Literal ;
     rdfs:label "{2}"^^rdfs:Literal ;
-    rdfs:comment \"\"\"{3}\"\"\"^^rdfs:Literal .
+    rdfs:comment \"\"\"{3}\"\"\"^^rdfs:Literal {5}.
 
-""".format(base_uri, version, label, comment)
+""".format(base_uri, version, label, comment, prefix, owl_import)
 
     return header
 

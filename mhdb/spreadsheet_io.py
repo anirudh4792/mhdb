@@ -187,6 +187,12 @@ def return_string(input_string, replace=[], replace_with=[]):
     """
 
     if input_string:
+        input_string = "<{0}>".format(
+            input_string
+            ) if (
+            "://" in input_string and
+            not input_string.startswith("<")
+            ) else input_string
         if not isinstance(input_string, str):
             input_string = str(input_string)
         output_string = input_string.strip()
