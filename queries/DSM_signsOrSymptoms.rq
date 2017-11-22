@@ -1,0 +1,20 @@
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX health-lifesci: <http://schema.org/>
+PREFIX : <http://www.purl.org/mentalhealth#>
+
+SELECT ?x ?p ?o WHERE { {
+  SELECT ?x ?p ?o WHERE {
+      ?x rdfs:subClassOf* ?s .
+      ?s owl:equivalentClass health-lifesci:MedicalSignOrSymptom .
+      ?x ?p ?o .
+}
+            }
+                       UNION {
+                         ?o rdfs:subClassOf* ?s .
+                         ?s owl:equivalentClass health-lifesci:MedicalSignOrSymptom .
+                         ?x ?p ?o .
+                       } } 
+GROUP BY ?x ?p ?o
+ORDER BY ?x ?p ?o
