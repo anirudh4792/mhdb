@@ -18,8 +18,9 @@ from mhdb.info import __version__ as version
 #from mhdb.info import long_description as comment
 #from mhdb.info import description as label
 from mhdb.spreadsheet_io import convert_string_to_label, create_label, \
-    get_index2, get_cell
+    get_index2, get_cell, download_google_sheet
 from mhdb.write_rdf import build_rdf, print_header, print_subheader #print_general_axioms
+
 
 def ICD_code(Disorder, ICD, id, X):
     # function to turtle ICD code and coding system
@@ -39,12 +40,19 @@ def ICD_code(Disorder, ICD, id, X):
 debug = True
 if debug:
     FILE = 'data/mentalhealth.xlsx'
+    download_google_sheet(FILE, "13a0w3ouXq5sFCa0fBsg9xhWx67RGJJJqLjD_Oy1c3b0")
     if not os.path.exists(FILE):
         FILE = 'mhdb/' + FILE
     if not os.path.exists(FILE):
         FILE = '/data/mentalhealth.xlsx'
     base_uri = "http://www.purl.org/mentalhealth"
     outfile = os.path.join(os.getcwd(), 'mhdb.ttl')
+    STATEFILE = "data/neutralstates.xlsx"
+    download_google_sheet(
+        STATEFILE,
+        "1REHmDXldCZ_L403Zq0N0LdhwNNEAXEIJHcNHzOIjnSQ"
+    )
+    stateoutfile = os.path.join(os.getcwd(), 'mhdb_states.ttl')
 else:
     parser = argparse.ArgumentParser(description="""
                 This program converts a mental health spreadsheet to RDF.""",
