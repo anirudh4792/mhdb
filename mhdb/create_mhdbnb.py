@@ -25,11 +25,17 @@ def main():
         "1REHmDXldCZ_L403Zq0N0LdhwNNEAXEIJHcNHzOIjnSQ"
     )
     stateoutfile = os.path.join(os.getcwd(), 'mhdb_states.ttl')
+    FILE = 'data/mentalhealth.xlsx'
+    download_google_sheet(
+        FILE,
+        "13a0w3ouXq5sFCa0fBsg9xhWx67RGJJJqLjD_Oy1c3b0"
+    )
     base_uri = "http://www.purl.org/mentalhealth/neutralstates"
     # --------------------------------------------------------------------------
     # Import spreadsheet
     # --------------------------------------------------------------------------
     xls = pd.ExcelFile(STATEFILE)
+    xls_mhdb = pd.ExcelFile(FILE)
     X = ['', 'nan', 'None', None]
 
     # --------------------------------------------------------------------------
@@ -53,6 +59,10 @@ def main():
         label,
         comment,
         prefixes= [
+            (
+                "dcterms",
+                "http://dublincore.org/documents/2012/06/14/dcmi-terms/"
+            ),
             ("health-lifesci", "http://health-lifesci.schema.org/"),
             ("mhdb", "http://www.purl.org/mentalhealth#"),
             ("mhdbnb", "{0}#".format(base_uri)),
@@ -66,6 +76,7 @@ def main():
     NBP = xls.parse("neutral behaviour prefix")
     DimP = xls.parse("dimensional prefix")
     NBS = xls.parse("neutral behaviour suffix")
+    References = xls_mhdb.parse("Reference")
 
     rdf_string = ""
 
@@ -76,26 +87,53 @@ def main():
             pass #TODO: handle Rs
         else:
             try:
-                rdf_string = "{0}{1}".format(
-                    rdf_string,
-                    build_rdf(
-                        uri_stem="mhdbnb:{0}".format(
-                            convert_string_to_label(label)
-                        ),
-                        rdf_type='owl:Class',
-                        label=label.replace("\n", " "),
-                        comment=None,
-                        index=index,
-                        worksheet=Neutral_Behaviors,
-                        worksheet2=Neutral_Behaviors,
-                        equivalent_class_uri=None,
-                        subclassof_uri="health-lifesci:MedicalSignOrSymptom",
-                        property_domain=None,
-                        property_range=None,
-                        exclude=X
+                refindex = Neutral_Behaviors["{0}{1}{2}".format(
+                    "reference_index ",
+                    "(refer to reference in our master spreadsheet. ",
+                    "8=dsm, 84=us)")][index + 1]
+                try:
+                    reference = References.loc[
+                        References["index"] == refindex
+                    ]["ReferenceLink"].values[0]
+                    reference = "<{0}>".format(reference) if type(
+                        reference
+                    ) == str else "mhdb:{0}".format(
+                        convert_string_to_label(
+                            References.loc[
+                                References["index"] == refindex
+                            ]["ReferenceName"].values[0]
+                        )
                     )
+                except:
+                    reference = None
+
+                rdf_string = "".join([
+                    rdf_string,
+                    "mhdbnb:{0} ".format(
+                            convert_string_to_label(label)
+                    ),
+                    "rdfs:subClassOf health-lifesci:MedicalSignOrSymptom",
+                    " ;\n\t rdfs:label \"\"\"",
+                    label.replace("\n", " ").replace("\"", "\\\""),
+                    "\"\"\"",
+                    " .\n\n",
+                    "mhdb:{0} ".format(
+                        convert_string_to_label(
+                            Neutral_Behaviors.loc[
+                                Neutral_Behaviors["index"] == index + 1
+                            ]["symptom"].values[0]
+                        )
+                    ),
+                    "rdfs:subClassOf ",
+                    "mhdbnb:{0}".format(
+                            convert_string_to_label(label)
+                    ),
+                    " ;\n\tdcterms:source {0}".format(reference) if type(
+                        reference
+                    ) == str else "",
+                    " .\n\n"
                     #TODO: subclasses, neutrals 2+
-                )
+                ])
             except:
                 print(index, label)
 
