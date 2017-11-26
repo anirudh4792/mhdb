@@ -74,29 +74,30 @@ def main():
     ):
         if label in ["R", "R\n"]:
             pass #TODO: handle Rs
-        try:
-            rdf_string = "{0}{1}{2}".format(
-                rdf_string,
-                build_rdf(
-                    uri_stem="mhdbnb:{0}".format(
-                        convert_string_to_label(label)
-                    ),
-                    rdf_type='owl:Class',
-                    label=label.replace("\n", " "),
-                    comment=None,
-                    index=index,
-                    worksheet=Neutral_Behaviors,
-                    worksheet2=Neutral_Behaviors,
-                    equivalent_class_uri=None,
-                    subclassof_uri="health-lifesci:MedicalSignOrSymptom",
-                    property_domain=None,
-                    property_range=None,
-                    exclude=X
+        else:
+            try:
+                rdf_string = "{0}{1}".format(
+                    rdf_string,
+                    build_rdf(
+                        uri_stem="mhdbnb:{0}".format(
+                            convert_string_to_label(label)
+                        ),
+                        rdf_type='owl:Class',
+                        label=label.replace("\n", " "),
+                        comment=None,
+                        index=index,
+                        worksheet=Neutral_Behaviors,
+                        worksheet2=Neutral_Behaviors,
+                        equivalent_class_uri=None,
+                        subclassof_uri="health-lifesci:MedicalSignOrSymptom",
+                        property_domain=None,
+                        property_range=None,
+                        exclude=X
+                    )
+                    #TODO: subclasses, neutrals 2+
                 )
-                #TODO: subclasses, neutrals 2+
-            )
-        except:
-            print(index, label)
+            except:
+                print(index, label)
 
     with open(stateoutfile, 'w') as fid:
         fid.write(header_string)

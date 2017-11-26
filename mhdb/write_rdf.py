@@ -11,39 +11,6 @@ Copyright 2017, Child Mind Institute (http://childmind.org), Apache v2.0 License
 """
 
 
-def build_header_prefixes(prefixes):
-    """
-    Write turtle-formatted header prefix string for given list of (prefix,
-    iri) tuples.
-
-    Parameter
-    ---------
-    prefixes: list of 2-tuples
-        each tuple is a prefix string and an iri string
-
-    Returns
-    -------
-    header_prefix: string
-    """
-    header_prefix = ""
-    for prefix in prefixes:
-        header_prefix = """
-{0}
-@{1} :
-""".format(header_prefix, prefix[0], prefix[1])
-@prefix : <{0}#> .
-@prefix owl: <http://www.w3.org/2002/07/owl#> .
-@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
-@prefix xml: <http://www.w3.org/XML/1998/namespace> .
-@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
-@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
-@prefix dcterms: <http://dublincore.org/documents/2012/06/14/dcmi-terms/> .
-@prefix health-lifesci: <http://health-lifesci.schema.org/> .
-@prefix ICD10: <http://purl.bioontology.org/ontology/ICD10CM/> .
-@prefix ICD9: <http://purl.bioontology.org/ontology/ICD9CM/> .
-@base <{0}> .
-
-
 def build_rdf(uri_stem, rdf_type, label, comment=None,
               index=None, worksheet=None, worksheet2=None,
               equivalent_class_uri=None, subclassof_uri=None,
@@ -175,7 +142,7 @@ def build_rdf(uri_stem, rdf_type, label, comment=None,
     return rdf_string
 
 
-def print_header(base_uri, version, label, comment, prefixes=None):
+def print_header(base_uri, version, label, comment):
     """
     Print out the beginning of an RDF text file.
 
@@ -209,11 +176,6 @@ def print_header(base_uri, version, label, comment, prefixes=None):
 @prefix ICD10: <http://purl.bioontology.org/ontology/ICD10CM/> .
 @prefix ICD9: <http://purl.bioontology.org/ontology/ICD9CM/> .
 @base <{0}> .
-""" if not prefixes else header = build_header_prefixes(
-        [("", "{0}#".format(base_uri)), *prefixes]
-    )
-
-    header = """{4}
 
 <{0}> rdf:type owl:Ontology ;
     owl:versionIRI <{0}/{1}> ;
@@ -221,7 +183,7 @@ def print_header(base_uri, version, label, comment, prefixes=None):
     rdfs:label "{2}"^^rdfs:Literal ;
     rdfs:comment \"\"\"{3}\"\"\"^^rdfs:Literal .
 
-""".format(base_uri, version, label, comment, header)
+""".format(base_uri, version, label, comment)
 
     return header
 
