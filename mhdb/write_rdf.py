@@ -206,6 +206,9 @@ def print_header(base_uri, version, label, comment, prefixes=None):
 @prefix health-lifesci: <http://health-lifesci.schema.org/> .
 @prefix ICD10: <http://purl.bioontology.org/ontology/ICD10CM/> .
 @prefix ICD9: <http://purl.bioontology.org/ontology/ICD9CM/> .
+@prefix PATO: <http://www.ontobee.org/ontology/PATO?iri=http://purl.obolibrary.org/obo/PATO_> .
+@prefix schema: <http://schema.org/> .
+@prefix DOID: <http://bioportal.bioontology.org/ontologies/DOID?p=classes&conceptid=http://purl.obolibrary.org/obo/DOID> .
 @base <{0}> .
 """.format(base_uri) if not prefixes else build_header_prefixes(
         [("", "{0}#".format(base_uri)), *prefixes]

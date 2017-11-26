@@ -19,6 +19,21 @@ from mhdb.spreadsheet_io import convert_string_to_label, create_label, \
 from mhdb.write_rdf import build_rdf, print_header, print_subheader
 
 
+def nb_rdf(label):
+    """
+    Create neutral behaviour rdf string
+    """
+    return("".join([
+        "mhdbnb:{0} ".format(
+            convert_string_to_label(label)
+        ),
+        "rdfs:subClassOf health-lifesci:MedicalSignOrSymptom",
+        " ;\n\t rdfs:label \"\"\"",
+        label.replace("\n", " ").replace("\"", "\\\""),
+        "\"\"\"",
+        " .\n\n"
+    ]))
+
 def main():
     STATEFILE = download_google_sheet(
         "data/neutralstates.xlsx",
@@ -80,62 +95,66 @@ def main():
 
     rdf_string = ""
 
-    for index, label in enumerate(
-        Neutral_Behaviors["neutral behaviour 1"].dropna()
-    ):
+    for index in Neutral_Behaviors["index"].dropna():
+        label = Neutral_Behaviors.loc[
+            Neutral_Behaviors["index"] == index
+        ]["neutral behaviour 1"].values[0]
+        labels = [label]
+        for l in ["neutral behaviour 2", "neutral behaviour 3"]:
+            nbl = Neutral_Behaviors.loc[
+                Neutral_Behaviors["index"] == index
+            ][l].values[0]
+            if type(nbl) == str and nbl not in ["R", "R\n"]:
+                labels.append(nbl)
         if label in ["R", "R\n"]:
             pass #TODO: handle Rs
         else:
+            refindex = Neutral_Behaviors.loc[
+                Neutral_Behaviors["index"]==index
+            ]["{0}{1}{2}".format(
+                "reference_index ",
+                "(refer to reference in our master spreadsheet. ",
+                "8=dsm, 84=us)"
+            )].values[0]
             try:
-                refindex = Neutral_Behaviors["{0}{1}{2}".format(
-                    "reference_index ",
-                    "(refer to reference in our master spreadsheet. ",
-                    "8=dsm, 84=us)")][index + 1]
-                try:
-                    reference = References.loc[
-                        References["index"] == refindex
-                    ]["ReferenceLink"].values[0]
-                    reference = "<{0}>".format(reference) if type(
-                        reference
-                    ) == str else "mhdb:{0}".format(
-                        convert_string_to_label(
-                            References.loc[
-                                References["index"] == refindex
-                            ]["ReferenceName"].values[0]
-                        )
+                reference = References.loc[
+                    References["index"] == refindex
+                ]["ReferenceLink"].values[0]
+                reference = "<{0}>".format(reference) if type(
+                    reference
+                ) == str else "mhdb:{0}".format(
+                    convert_string_to_label(
+                        References.loc[
+                            References["index"] == refindex
+                        ]["ReferenceName"].values[0]
                     )
-                except:
-                    reference = None
-
-                rdf_string = "".join([
-                    rdf_string,
-                    "mhdbnb:{0} ".format(
-                            convert_string_to_label(label)
-                    ),
-                    "rdfs:subClassOf health-lifesci:MedicalSignOrSymptom",
-                    " ;\n\t rdfs:label \"\"\"",
-                    label.replace("\n", " ").replace("\"", "\\\""),
-                    "\"\"\"",
-                    " .\n\n",
-                    "mhdb:{0} ".format(
-                        convert_string_to_label(
-                            Neutral_Behaviors.loc[
-                                Neutral_Behaviors["index"] == index + 1
-                            ]["symptom"].values[0]
-                        )
-                    ),
-                    "rdfs:subClassOf ",
-                    "mhdbnb:{0}".format(
-                            convert_string_to_label(label)
-                    ),
-                    " ;\n\tdcterms:source {0}".format(reference) if type(
-                        reference
-                    ) == str else "",
-                    " .\n\n"
-                    #TODO: subclasses, neutrals 2+
-                ])
+                )
             except:
-                print(index, label)
+                reference = None
+
+            nb_labels = "".join([nb_rdf(lab) for lab in labels])
+
+            rdf_string = "".join([
+                rdf_string,
+                nb_labels,
+                "mhdb:{0} ".format(
+                    convert_string_to_label(
+                        Neutral_Behaviors.loc[
+                            Neutral_Behaviors["index"] == index
+                        ]["symptom"].values[0]
+                    )
+                ),
+                " ;\n".join([
+                    "rdfs:subClassOf mhdbnb:{0}".format(
+                            convert_string_to_label(lab)
+                    )
+                 for lab in labels]),
+                " ;\n\tdcterms:source {0}".format(reference) if type(
+                    reference
+                ) == str else "",
+                " .\n\n"
+                #TODO: subclasses, neutrals 2+
+            ])
 
     with open(stateoutfile, 'w') as fid:
         fid.write(header_string)

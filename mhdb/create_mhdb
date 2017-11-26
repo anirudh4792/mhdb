@@ -74,7 +74,7 @@ xls = pd.ExcelFile(FILE)
 X = ['', 'nan', 'None', None]
 
 # ------------------------------------------------------------------------------
-# Create output RDF file and print header
+# Create output RDF file
 # ------------------------------------------------------------------------------
 label = "mental health database"
 comment="""
@@ -87,10 +87,6 @@ diagnoses, symptoms, assessement questionnaires, etc., and is licensed
 under the terms of the Creative Commons BY license.
 Current information can be found on the website, http://mentalhealth.tech.
 """
-
-fid = open(outfile, 'w')
-header_string = print_header(base_uri, version, label, comment)
-fid.write(header_string)
 
 # ------------------------------------------------------------------------------
 # Extract worksheets as pandas dataframes
@@ -116,6 +112,18 @@ QuestionCat = xls.parse("QuestionCategory")
 AnswerType = xls.parse("AnswerType")
 Reference = xls.parse("Reference")
 ReferenceType = xls.parse("ReferenceType")
+Ontologies = xls.parse("Ontologies")
+
+# ------------------------------------------------------------------------------
+# Write header
+# ------------------------------------------------------------------------------
+
+fid = open(outfile, 'w')
+header_string = print_header(base_uri, version, label, comment, prefixes=
+    [
+        (row[1]["Prefix"], row[1]["PrefixURI"]) for row in Ontologies.iterrows()
+    ])
+fid.write(header_string)
 
 # ------------------------------------------------------------------------
 # Properties and triples
