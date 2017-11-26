@@ -24,7 +24,7 @@ def main():
         "data/neutralstates.xlsx",
         "1REHmDXldCZ_L403Zq0N0LdhwNNEAXEIJHcNHzOIjnSQ"
     )
-    stateoutfile = os.path.join(os.getcwd(), 'mhdb/mhdb_states.ttl')
+    stateoutfile = os.path.join(os.getcwd(), 'mhdb_states.ttl')
     base_uri = "http://www.purl.org/mentalhealth/neutralstates"
     # --------------------------------------------------------------------------
     # Import spreadsheet

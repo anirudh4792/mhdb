@@ -11,6 +11,36 @@ Copyright 2017, Child Mind Institute (http://childmind.org), Apache v2.0 License
 """
 
 
+def build_header_prefixes(prefixes):
+    """
+    Write turtle-formatted header prefix string for given list of (prefix,
+    iri) tuples.
+
+    Parameter
+    ---------
+    prefixes: list of 2-tuples
+        each tuple is a prefix string and an iri string
+
+    Returns
+    -------
+    header_prefix: string
+    """
+    header_prefix = ""
+    for prefix in prefixes:
+        header_prefix = """{0}@prefix {1}: <{2}> .
+""".format(
+            header_prefix,
+            prefix[0],
+            prefix[1]
+        )
+    header_prefix = """{0}@base <{1}> .
+""".format(
+        header_prefix,
+        prefixes[0][1][:-1]
+    )
+    return(header_prefix)
+
+
 def build_rdf(uri_stem, rdf_type, label, comment=None,
               index=None, worksheet=None, worksheet2=None,
               equivalent_class_uri=None, subclassof_uri=None,
@@ -94,7 +124,9 @@ def build_rdf(uri_stem, rdf_type, label, comment=None,
 
     if label not in exclude:
         rdf_string += """;
-    rdfs:label "{0}"^^rdfs:Literal """.format(label)
+    rdfs:label \"\"\"{0}\"\"\"^^rdfs:Literal """.format(
+        label if not label[-1] == "\"" else "".join([label[:-1], "\\\""])
+    )
 
     if comment not in exclude:
         if definition_ref in exclude:
@@ -103,7 +135,7 @@ def build_rdf(uri_stem, rdf_type, label, comment=None,
             refstring = " [from: {0}]".format(return_string(definition_ref,
                                                             ['"'], ["'"]))
         rdf_string += """;
-    rdfs:comment "{0}{1}"^^rdfs:Literal """.\
+    rdfs:comment \"\"\"{0}{1}\"\"\"^^rdfs:Literal """.\
             format(return_string(comment, ['"'], ["'"]), refstring)
 
     if definition_uri not in exclude:
@@ -142,7 +174,7 @@ def build_rdf(uri_stem, rdf_type, label, comment=None,
     return rdf_string
 
 
-def print_header(base_uri, version, label, comment):
+def print_header(base_uri, version, label, comment, prefixes=None):
     """
     Print out the beginning of an RDF text file.
 
@@ -164,8 +196,7 @@ def print_header(base_uri, version, label, comment):
 
     """
 
-    header = """
-@prefix : <{0}#> .
+    header = """@prefix : <{0}#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix xml: <http://www.w3.org/XML/1998/namespace> .
@@ -176,14 +207,17 @@ def print_header(base_uri, version, label, comment):
 @prefix ICD10: <http://purl.bioontology.org/ontology/ICD10CM/> .
 @prefix ICD9: <http://purl.bioontology.org/ontology/ICD9CM/> .
 @base <{0}> .
+""".format(base_uri) if not prefixes else build_header_prefixes(
+        [("", "{0}#".format(base_uri)), *prefixes]
+    )
 
-<{0}> rdf:type owl:Ontology ;
+    header = """{4}<{0}> rdf:type owl:Ontology ;
     owl:versionIRI <{0}/{1}> ;
     owl:versionInfo "{1}"^^rdfs:Literal ;
     rdfs:label "{2}"^^rdfs:Literal ;
     rdfs:comment \"\"\"{3}\"\"\"^^rdfs:Literal .
 
-""".format(base_uri, version, label, comment)
+""".format(base_uri, version, label, comment, header)
 
     return header
 
