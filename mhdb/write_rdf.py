@@ -27,18 +27,21 @@ def build_header_prefixes(prefixes):
     """
     header_prefix = ""
     for prefix in prefixes:
-        header_prefix = """{0}@prefix {1}: <{2}> .
-""".format(
-            header_prefix,
-            prefix[0],
-            prefix[1]
-        )
-    header_prefix = """{0}@base <{1}> .
-""".format(
-        header_prefix,
-        prefixes[0][1][:-1]
-    )
-    return(header_prefix)
+        header_prefix = """
+{0}
+@{1} :
+""".format(header_prefix, prefix[0], prefix[1])
+@prefix : <{0}#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xml: <http://www.w3.org/XML/1998/namespace> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix dcterms: <http://dublincore.org/documents/2012/06/14/dcmi-terms/> .
+@prefix health-lifesci: <http://health-lifesci.schema.org/> .
+@prefix ICD10: <http://purl.bioontology.org/ontology/ICD10CM/> .
+@prefix ICD9: <http://purl.bioontology.org/ontology/ICD9CM/> .
+@base <{0}> .
 
 
 def build_rdf(uri_stem, rdf_type, label, comment=None,
@@ -194,7 +197,8 @@ def print_header(base_uri, version, label, comment, prefixes=None):
 
     """
 
-    header = """@prefix : <{0}#> .
+    header = """
+@prefix : <{0}#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix xml: <http://www.w3.org/XML/1998/namespace> .
@@ -205,11 +209,13 @@ def print_header(base_uri, version, label, comment, prefixes=None):
 @prefix ICD10: <http://purl.bioontology.org/ontology/ICD10CM/> .
 @prefix ICD9: <http://purl.bioontology.org/ontology/ICD9CM/> .
 @base <{0}> .
-""" if not prefixes else build_header_prefixes(
+""" if not prefixes else header = build_header_prefixes(
         [("", "{0}#".format(base_uri)), *prefixes]
     )
 
-    header = """{4}<{0}> rdf:type owl:Ontology ;
+    header = """{4}
+
+<{0}> rdf:type owl:Ontology ;
     owl:versionIRI <{0}/{1}> ;
     owl:versionInfo "{1}"^^rdfs:Literal ;
     rdfs:label "{2}"^^rdfs:Literal ;

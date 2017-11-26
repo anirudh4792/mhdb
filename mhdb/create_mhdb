@@ -47,12 +47,6 @@ if debug:
         FILE = '/data/mentalhealth.xlsx'
     base_uri = "http://www.purl.org/mentalhealth"
     outfile = os.path.join(os.getcwd(), 'mhdb.ttl')
-    STATEFILE = "data/neutralstates.xlsx"
-    download_google_sheet(
-        STATEFILE,
-        "1REHmDXldCZ_L403Zq0N0LdhwNNEAXEIJHcNHzOIjnSQ"
-    )
-    stateoutfile = os.path.join(os.getcwd(), 'mhdb_states.ttl')
 else:
     parser = argparse.ArgumentParser(description="""
                 This program converts a mental health spreadsheet to RDF.""",
@@ -169,8 +163,8 @@ for index, label in enumerate(Classes.ClassName):
 
 fid.write("\n{0} {1} {2} .\n".format(MentalDisorder_uri, 'rdfs:subClassOf',
                                      Disorder_uri))
-fid.write("\n{0} {1} {2} .\n".format(SignOrSymptom_uri, 'rdfs:subClassOf',
-                                     SignOrSymptomCategory_uri))
+#fid.write("\n{0} {1} {2} .\n".format(SignOrSymptom_uri, 'rdfs:subClassOf',
+#                                     SignOrSymptomCategory_uri))
 
 # ----------------------------------------------------------------------------
 # Disorder-related classes and triples

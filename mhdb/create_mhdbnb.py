@@ -72,6 +72,8 @@ def main():
     for index, label in enumerate(
         Neutral_Behaviors["neutral behaviour 1"].dropna()
     ):
+        if label in ["R", "R\n"]:
+            pass #TODO: handle Rs
         try:
             rdf_string = "{0}{1}{2}".format(
                 rdf_string,
@@ -86,29 +88,12 @@ def main():
                     worksheet=Neutral_Behaviors,
                     worksheet2=Neutral_Behaviors,
                     equivalent_class_uri=None,
-                    subclassof_uri=None,
-                    property_domain=None,
-                    property_range=None,
-                    exclude=X
-                ),
-                build_rdf(
-                    uri_stem="mhdb:{0}".format(
-                        convert_string_to_label(
-                            Neutral_Behaviors.symptom[index].strip("\n")
-                        )
-                    ),
-                    rdf_type=None,
-                    label=None,
-                    comment=None,
-                    index=index,
-                    worksheet=Neutral_Behaviors,
-                    worksheet2=Neutral_Behaviors,
-                    equivalent_class_uri=None,
-                    subclassof_uri=None,
+                    subclassof_uri="health-lifesci:MedicalSignOrSymptom",
                     property_domain=None,
                     property_range=None,
                     exclude=X
                 )
+                #TODO: subclasses, neutrals 2+
             )
         except:
             print(index, label)
