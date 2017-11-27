@@ -19,18 +19,93 @@ from mhdb.spreadsheet_io import convert_string_to_label, create_label, \
 from mhdb.write_rdf import build_rdf, print_header, print_subheader
 
 
-def nb_rdf(label):
+def gen_questions(nb, p1=None, s1=None, dim_p1=None):
+    """
+    Generate the questions we can from the given prefixes and suffixes
+
+    Parameters
+    ----------
+    nb: string
+        "neutral behaviour"
+
+    p1: string, optional
+        prefix string
+
+    dim_p1: string, optional
+        prefix string
+
+    s1: string, optional
+        prefix string
+
+    Returns
+    -------
+    qs: list of strings
+        list of questions
+    """
+    qs = []
+    nb = nb.strip()
+    p1 = p1.strip() if p1 else None
+    s1 = s1.strip().strip("?") if s1 else None
+    dim_p1 = dim_p1.strip() if dim_p1 else None
+    if p1:
+        qs.append("{0} {1}?".format(p1, nb))
+        if s1:
+            qs.append("{0} {1} {2}?".format(p1, nb, s1))
+            if dim_p1:
+                qs.append("{3} {0} {1} {2}?".format(p1, nb, s1, dim_p1))
+        elif dim_p1:
+            qs.append("{2} {0} {1}?".format(p1, nb, dim_p1))
+    elif s1:
+        qs.append("{0} {1}?".format(nb, s1))
+        if dim_p1:
+            qs.append("{2} {0} {1}?".format(nb, s1, dim_p1))
+    return(qs)
+
+def nb_rdf(label, p1=None, s1=None, dim_p1=None):
     """
     Create neutral behaviour rdf string
+
+    Parameters
+    ----------
+    label: string
+        "neutral behaviour"
+
+    p1: string, optional
+        prefix string
+
+    dim_p1: string, optional
+        prefix string
+
+    s1: string, optional
+        prefix string
+
+    Returns
+    -------
+    rdf: string
+        rdf string
     """
+    qs = gen_questions(label, p1, s1, dim_p1)
+    each_q = [
+        """mhdbnb:{0} rdf:type schema:Question ;
+\trdfs:label \"\"\"{1}\"\"\"^^rdfs:Literal .\n\n""".format(
+            convert_string_to_label(q),
+            q
+        ) for q in qs
+    ]
+    qstring = "".join([" ;\n\tschema:subjectOf mhdbnb:{0}".format(
+        convert_string_to_label(q)) for q in qs
+    ]) if len(qs) else ""
     return("".join([
+        *each_q,
         "mhdbnb:{0} ".format(
             convert_string_to_label(label)
         ),
         "rdfs:subClassOf health-lifesci:MedicalSignOrSymptom",
-        " ;\n\t rdfs:label \"\"\"",
+        " ;\n\trdfs:label \"\"\"",
         label.replace("\n", " ").replace("\"", "\\\""),
-        "\"\"\"",
+        "\"\"\"^^rdfs:Literal",
+        qstring,
+        " ;\n\trdfs:comment \"\\\"neutral behaviour\\\"\"^^rdfs:Literal"
         " .\n\n"
     ]))
 
@@ -132,7 +207,88 @@ def main():
             except:
                 reference = None
 
-            nb_labels = "".join([nb_rdf(lab) for lab in labels])
+            try:
+                p1 = NBP.loc[NBP["index"] == int(Neutral_Behaviors.loc[
+                    Neutral_Behaviors["index"] == index
+                ]["prefix 1"].values[0])]["neutral behaviour prefix"].values[0]
+            except:
+                p1 = None
+
+            try:
+                s1 = NBS.loc[NBS["index"] == int(Neutral_Behaviors.loc[
+                    Neutral_Behaviors["index"] == index
+                ]["suffix 1"].values[0])]["neutral behaviour suffix"].values[0]
+            except:
+                s1 = None
+
+            try:
+                dim_p1 = DimP.loc[DimP["index"] == int(Neutral_Behaviors.loc[
+                    Neutral_Behaviors["index"] == index
+                ]["dimensional prefix 1"].values[0])][
+                    "dimensional prefix"
+                ].values[0]
+            except:
+                dim_p1 = None
+
+            nb_labels = nb_rdf(label, p1, s1, dim_p1)
+
+            if len(labels) > 1:
+                try:
+                    p2 = NBP.loc[NBP["index"] == int(Neutral_Behaviors.loc[
+                        Neutral_Behaviors["index"] == index
+                    ]["prefix 2"].values[0])]["neutral behaviour prefix"].values[0]
+                except:
+                    p2 = None
+
+                try:
+                    s2 = NBS.loc[NBS["index"] == int(Neutral_Behaviors.loc[
+                        Neutral_Behaviors["index"] == index
+                    ]["suffix 2"].values[0])]["neutral behaviour suffix"].values[0]
+                except:
+                    s2 = None
+
+                try:
+                    dim_p2 = DimP.loc[DimP["index"] == int(Neutral_Behaviors.loc[
+                        Neutral_Behaviors["index"] == index
+                    ]["dimensional prefix 2"].values[0])][
+                        "dimensional prefix"
+                    ].values[0]
+                except:
+                    dim_p2 = None
+
+                nb_labels = "".join([
+                    nb_labels,
+                    nb_rdf(labels[1], p2, s2, dim_p2)
+                ])
+
+                if len(labels) > 3:
+                    try:
+                        p3 = NBP.loc[NBP["index"] == int(Neutral_Behaviors.loc[
+                            Neutral_Behaviors["index"] == index
+                        ]["prefix 3"].values[0])]["neutral behaviour prefix"].values[0]
+                    except:
+                        p3 = None
+
+                    try:
+                        s3 = NBS.loc[NBS["index"] == int(Neutral_Behaviors.loc[
+                            Neutral_Behaviors["index"] == index
+                        ]["suffix 3"].values[0])]["neutral behaviour suffix"].values[0]
+                    except:
+                        s3 = None
+
+                    try:
+                        dim_p3 = DimP.loc[DimP["index"] == int(Neutral_Behaviors.loc[
+                            Neutral_Behaviors["index"] == index
+                        ]["dimensional prefix 3"].values[0])][
+                            "dimensional prefix"
+                        ].values[0]
+                    except:
+                        dim_p3 = None
+
+                    nb_labels = "".join([
+                        nb_labels,
+                        nb_rdf(labels[2], p3, s3, dim_p3)
+                    ])
 
             rdf_string = "".join([
                 rdf_string,
