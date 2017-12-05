@@ -19,6 +19,50 @@ from mhdb.spreadsheet_io import convert_string_to_label, create_label, \
 from mhdb.write_rdf import build_rdf, print_header, print_subheader
 
 
+def gather_Rs(rb, Neutral_Behaviors):
+    """
+    Recursive function to gather "repetition" indicies.
+    
+    Parameters
+    ----------
+    rb: float or int or string
+        "repetition_index" from xlsx
+       
+    Neutral_Behaviors: DataFrame
+        from xlsx
+        
+    Returns
+    -------
+    all_r_indicies : list of ints
+        all "repitition_index"es for the
+        given "repetition_index" cell
+    """
+    all_r_indicies = []
+    if type(rb) != float:
+        rep_indicies = [
+            rb
+        ] if type(
+            rb
+        ) == int else list(eval(rb))
+        all_r_indicies = {r for r in rep_indicies}
+        for r in rep_indicies:
+            nb = Neutral_Behaviors.loc[
+                Neutral_Behaviors["index"] == r
+            ]["neutral behaviour 1"].values[0]
+            if nb in Rs:
+                rb2 = Neutral_Behaviors.loc[
+                    Neutral_Behaviors["index"] == r
+                ]["repetition_index"].values[0]
+                all_r_indicies = all_r_indicies | {
+                    r2 for r2 in gather_Rs(
+                        rb2,
+                        Neutral_Behaviors
+                    )
+                }
+        all_r_indicies = list(all_r_indicies)
+    return(all_r_indicies)
+
+
 def gen_questions(nb, p1=None, s1=None, dim_p1=None):
     """
     Generate the questions we can from the given prefixes and suffixes
@@ -60,6 +104,7 @@ def gen_questions(nb, p1=None, s1=None, dim_p1=None):
         if dim_p1:
             qs.append("{2} {0} {1}?".format(nb, s1, dim_p1))
     return(qs)
+
 
 def nb_rdf(label, p1=None, s1=None, dim_p1=None):
     """
@@ -109,6 +154,216 @@ def nb_rdf(label, p1=None, s1=None, dim_p1=None):
         " .\n\n"
     ]))
 
+
+def rdf_nb(
+    index,
+    Neutral_Behaviors,
+    mhdb,
+    NBP,
+    DimP,
+    NBS,
+    References,
+    symptom_index=None
+):
+    """
+    Create turtle for row in Neutral_Behaviors worksheet
+    
+    Parameters
+    ----------
+    index : int
+        row number
+        
+    Neutral_Behaviors,
+    mhdb,
+    NBP,
+    DimP,
+    NBS,
+    References: DataFrames
+        from xlsx
+        
+    symptom_index: int
+        index for symptom as indexed in
+        Neutral_Behaviors worksheet
+        
+    Returns
+    -------
+    rdf_string : string
+        turtle entries
+    """
+    rdf_string = ""
+    symptom_index = index if not symptom_index else symptom_index
+    label = Neutral_Behaviors.loc[
+            Neutral_Behaviors["index"] == index
+        ]["neutral behaviour 1"].values[0]
+    labels = [label]
+    for l in ["neutral behaviour 2", "neutral behaviour 3"]:
+        nbl = Neutral_Behaviors.loc[
+            Neutral_Behaviors["index"] == index
+        ][l].values[0]
+        if type(nbl) == str and nbl not in Rs:
+            labels.append(nbl)
+    rb = Neutral_Behaviors.loc[
+        Neutral_Behaviors["index"] == index
+    ]["repetition_index"].values[0]
+    for rep_i in gather_Rs(rb, Neutral_Behaviors):
+        rdf_string = "".join(
+            rdf_string,
+            rdf_nb(
+                rep_i,
+                Neutral_Behaviors,
+                xls_mhdb,
+                NBP,
+                DimP,
+                NBS,
+                References,
+                symptom_index=index
+            )
+        )
+
+    if label not in Rs:
+        refindex = Neutral_Behaviors.loc[
+            Neutral_Behaviors["index"]==index
+        ]["{0}{1}{2}".format(
+            "reference_index ",
+            "(refer to reference in our master spreadsheet. ",
+            "8=dsm, 84=us)"
+        )].values[0]
+        try:
+            reference = References.loc[
+                References["index"] == refindex
+            ]["ReferenceLink"].values[0]
+            reference = "<{0}>".format(reference) if type(
+                reference
+            ) == str else "mhdb:{0}".format(
+                convert_string_to_label(
+                    References.loc[
+                        References["index"] == refindex
+                    ]["ReferenceName"].values[0]
+                )
+            )
+        except:
+            reference = None
+
+        try:
+            p1 = NBP.loc[NBP["index"] == int(Neutral_Behaviors.loc[
+                Neutral_Behaviors["index"] == index
+            ]["prefix 1"].values[0])]["neutral behaviour prefix"].values[0]
+        except:
+            p1 = None
+
+        try:
+            s1 = NBS.loc[NBS["index"] == int(Neutral_Behaviors.loc[
+                Neutral_Behaviors["index"] == index
+            ]["suffix 1"].values[0])]["neutral behaviour suffix"].values[0]
+        except:
+            s1 = None
+
+        try:
+            dim_p1 = DimP.loc[DimP["index"] == int(Neutral_Behaviors.loc[
+                Neutral_Behaviors["index"] == index
+            ]["dimensional prefix 1"].values[0])][
+                "dimensional prefix"
+            ].values[0]
+        except:
+            dim_p1 = None
+
+        nb_labels = nb_rdf(label, p1, s1, dim_p1)
+
+        if len(labels) > 1:
+            try:
+                p2 = NBP.loc[NBP["index"] == int(Neutral_Behaviors.loc[
+                    Neutral_Behaviors["index"] == index
+                ]["prefix 2"].values[0])][
+                    "neutral behaviour prefix"
+                ].values[0]
+            except:
+                p2 = None
+
+            try:
+                s2 = NBS.loc[NBS["index"] == int(Neutral_Behaviors.loc[
+                    Neutral_Behaviors["index"] == index
+                ]["suffix 2"].values[0])][
+                    "neutral behaviour suffix"
+                ].values[0]
+            except:
+                s2 = None
+
+            try:
+                dim_p2 = DimP.loc[DimP["index"] == int(
+                    Neutral_Behaviors.loc[
+                        Neutral_Behaviors["index"] == index
+                    ]["dimensional prefix 2"].values[0]
+                )][
+                    "dimensional prefix"
+                ].values[0]
+            except:
+                dim_p2 = None
+
+            nb_labels = "".join([
+                nb_labels,
+                nb_rdf(labels[1], p2, s2, dim_p2)
+            ])
+
+            if len(labels) > 3:
+                try:
+                    p3 = NBP.loc[NBP["index"] == int(Neutral_Behaviors.loc[
+                        Neutral_Behaviors["index"] == index
+                    ]["prefix 3"].values[0])][
+                        "neutral behaviour prefix"
+                    ].values[0]
+                except:
+                    p3 = None
+
+                try:
+                    s3 = NBS.loc[NBS["index"] == int(Neutral_Behaviors.loc[
+                        Neutral_Behaviors["index"] == index
+                    ]["suffix 3"].values[0])][
+                        "neutral behaviour suffix"
+                    ].values[0]
+                except:
+                    s3 = None
+
+                try:
+                    dim_p3 = DimP.loc[DimP["index"] == int(
+                        Neutral_Behaviors.loc[
+                            Neutral_Behaviors["index"] == index
+                        ]["dimensional prefix 3"].values[0]
+                    )][
+                        "dimensional prefix"
+                    ].values[0]
+                except:
+                    dim_p3 = None
+
+                nb_labels = "".join([
+                    nb_labels,
+                    nb_rdf(labels[2], p3, s3, dim_p3)
+                ])
+
+        rdf_string = "".join([
+            rdf_string,
+            nb_labels,
+            "mhdb:{0} ".format(
+                convert_string_to_label(
+                    Neutral_Behaviors.loc[
+                        Neutral_Behaviors["index"] == symptom_index
+                    ]["symptom"].values[0]
+                )
+            ),
+            " ;\n".join([
+                "rdfs:subClassOf mhdbnb:{0}".format(
+                        convert_string_to_label(lab)
+                )
+             for lab in labels]),
+            " ;\n\tdcterms:source {0}".format(reference) if type(
+                reference
+            ) == str else "",
+            " .\n\n"
+            #TODO: subclasses, neutrals 2+
+        ])
+        
+    return(rdf_string)
+
+
 def main():
     STATEFILE = download_google_sheet(
         "data/neutralstates.xlsx",
@@ -127,6 +382,7 @@ def main():
     xls = pd.ExcelFile(STATEFILE)
     xls_mhdb = pd.ExcelFile(FILE)
     X = ['', 'nan', 'None', None]
+    Rs = ["R", "R\n", "", "\n"]
 
     # --------------------------------------------------------------------------
     # Create output RDF file and print header
@@ -171,146 +427,17 @@ def main():
     rdf_string = ""
 
     for index in Neutral_Behaviors["index"].dropna():
-        label = Neutral_Behaviors.loc[
-            Neutral_Behaviors["index"] == index
-        ]["neutral behaviour 1"].values[0]
-        labels = [label]
-        for l in ["neutral behaviour 2", "neutral behaviour 3"]:
-            nbl = Neutral_Behaviors.loc[
-                Neutral_Behaviors["index"] == index
-            ][l].values[0]
-            if type(nbl) == str and nbl not in ["R", "R\n"]:
-                labels.append(nbl)
-        if label in ["R", "R\n"]:
-            pass #TODO: handle Rs
-        else:
-            refindex = Neutral_Behaviors.loc[
-                Neutral_Behaviors["index"]==index
-            ]["{0}{1}{2}".format(
-                "reference_index ",
-                "(refer to reference in our master spreadsheet. ",
-                "8=dsm, 84=us)"
-            )].values[0]
-            try:
-                reference = References.loc[
-                    References["index"] == refindex
-                ]["ReferenceLink"].values[0]
-                reference = "<{0}>".format(reference) if type(
-                    reference
-                ) == str else "mhdb:{0}".format(
-                    convert_string_to_label(
-                        References.loc[
-                            References["index"] == refindex
-                        ]["ReferenceName"].values[0]
-                    )
-                )
-            except:
-                reference = None
-
-            try:
-                p1 = NBP.loc[NBP["index"] == int(Neutral_Behaviors.loc[
-                    Neutral_Behaviors["index"] == index
-                ]["prefix 1"].values[0])]["neutral behaviour prefix"].values[0]
-            except:
-                p1 = None
-
-            try:
-                s1 = NBS.loc[NBS["index"] == int(Neutral_Behaviors.loc[
-                    Neutral_Behaviors["index"] == index
-                ]["suffix 1"].values[0])]["neutral behaviour suffix"].values[0]
-            except:
-                s1 = None
-
-            try:
-                dim_p1 = DimP.loc[DimP["index"] == int(Neutral_Behaviors.loc[
-                    Neutral_Behaviors["index"] == index
-                ]["dimensional prefix 1"].values[0])][
-                    "dimensional prefix"
-                ].values[0]
-            except:
-                dim_p1 = None
-
-            nb_labels = nb_rdf(label, p1, s1, dim_p1)
-
-            if len(labels) > 1:
-                try:
-                    p2 = NBP.loc[NBP["index"] == int(Neutral_Behaviors.loc[
-                        Neutral_Behaviors["index"] == index
-                    ]["prefix 2"].values[0])]["neutral behaviour prefix"].values[0]
-                except:
-                    p2 = None
-
-                try:
-                    s2 = NBS.loc[NBS["index"] == int(Neutral_Behaviors.loc[
-                        Neutral_Behaviors["index"] == index
-                    ]["suffix 2"].values[0])]["neutral behaviour suffix"].values[0]
-                except:
-                    s2 = None
-
-                try:
-                    dim_p2 = DimP.loc[DimP["index"] == int(Neutral_Behaviors.loc[
-                        Neutral_Behaviors["index"] == index
-                    ]["dimensional prefix 2"].values[0])][
-                        "dimensional prefix"
-                    ].values[0]
-                except:
-                    dim_p2 = None
-
-                nb_labels = "".join([
-                    nb_labels,
-                    nb_rdf(labels[1], p2, s2, dim_p2)
-                ])
-
-                if len(labels) > 3:
-                    try:
-                        p3 = NBP.loc[NBP["index"] == int(Neutral_Behaviors.loc[
-                            Neutral_Behaviors["index"] == index
-                        ]["prefix 3"].values[0])]["neutral behaviour prefix"].values[0]
-                    except:
-                        p3 = None
-
-                    try:
-                        s3 = NBS.loc[NBS["index"] == int(Neutral_Behaviors.loc[
-                            Neutral_Behaviors["index"] == index
-                        ]["suffix 3"].values[0])]["neutral behaviour suffix"].values[0]
-                    except:
-                        s3 = None
-
-                    try:
-                        dim_p3 = DimP.loc[DimP["index"] == int(Neutral_Behaviors.loc[
-                            Neutral_Behaviors["index"] == index
-                        ]["dimensional prefix 3"].values[0])][
-                            "dimensional prefix"
-                        ].values[0]
-                    except:
-                        dim_p3 = None
-
-                    nb_labels = "".join([
-                        nb_labels,
-                        nb_rdf(labels[2], p3, s3, dim_p3)
-                    ])
-
-            rdf_string = "".join([
-                rdf_string,
-                nb_labels,
-                "mhdb:{0} ".format(
-                    convert_string_to_label(
-                        Neutral_Behaviors.loc[
-                            Neutral_Behaviors["index"] == index
-                        ]["symptom"].values[0]
-                    )
-                ),
-                " ;\n".join([
-                    "rdfs:subClassOf mhdbnb:{0}".format(
-                            convert_string_to_label(lab)
-                    )
-                 for lab in labels]),
-                " ;\n\tdcterms:source {0}".format(reference) if type(
-                    reference
-                ) == str else "",
-                " .\n\n"
-                #TODO: subclasses, neutrals 2+
-            ])
+        rdf_string = "".join(rdf_string,
+            rdf_nb(
+                index,
+                Neutral_Behaviors,
+                mhdb,
+                NBP,
+                DimP,
+                NBS,
+                References
+            )
+        )
 
     with open(stateoutfile, 'w') as fid:
         fid.write(header_string)
