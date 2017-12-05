@@ -206,7 +206,7 @@ def rdf_nb(
         Neutral_Behaviors["index"] == index
     ]["repetition_index"].values[0]
     for rep_i in gather_Rs(rb, Neutral_Behaviors):
-        rdf_string = "".join(
+        rdf_string = "".join([
             rdf_string,
             rdf_nb(
                 rep_i,
@@ -218,7 +218,7 @@ def rdf_nb(
                 References,
                 symptom_index=index
             )
-        )
+        ])
 
     if label not in Rs:
         refindex = Neutral_Behaviors.loc[
@@ -427,7 +427,7 @@ def main():
     rdf_string = ""
 
     for index in Neutral_Behaviors["index"].dropna():
-        rdf_string = "".join(rdf_string,
+        rdf_string = "".join([rdf_string,
             rdf_nb(
                 index,
                 Neutral_Behaviors,
@@ -437,7 +437,7 @@ def main():
                 NBS,
                 References
             )
-        )
+        ])
 
     with open(stateoutfile, 'w') as fid:
         fid.write(header_string)
