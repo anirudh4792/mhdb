@@ -19,7 +19,7 @@ from mhdb.spreadsheet_io import convert_string_to_label, create_label, \
 from mhdb.write_rdf import build_rdf, print_header, print_subheader
 
 
-def gather_Rs(rb, Neutral_Behaviors):
+def gather_Rs(rb, Neutral_Behaviors, Rs = ["R", "R\n", "", "\n"]):
     """
     Recursive function to gather "repetition" indicies.
     
@@ -30,6 +30,9 @@ def gather_Rs(rb, Neutral_Behaviors):
        
     Neutral_Behaviors: DataFrame
         from xlsx
+        
+    Rs: list
+        repetition flags
         
     Returns
     -------
@@ -163,7 +166,8 @@ def rdf_nb(
     DimP,
     NBS,
     References,
-    symptom_index=None
+    symptom_index=None,
+    Rs = ["R", "R\n", "", "\n"]
 ):
     """
     Create turtle for row in Neutral_Behaviors worksheet
@@ -184,6 +188,9 @@ def rdf_nb(
     symptom_index: int
         index for symptom as indexed in
         Neutral_Behaviors worksheet
+        
+    Rs: list
+        repetition flags
         
     Returns
     -------
@@ -216,7 +223,7 @@ def rdf_nb(
                 DimP,
                 NBS,
                 References,
-                symptom_index=index
+                index
             )
         ])
 
@@ -267,9 +274,9 @@ def rdf_nb(
         except:
             dim_p1 = None
 
-        nb_labels = nb_rdf(label, p1, s1, dim_p1)
+        nb_labels = "" 
 
-        if len(labels) > 1:
+        if len(labels) >= 1:
             try:
                 p2 = NBP.loc[NBP["index"] == int(Neutral_Behaviors.loc[
                     Neutral_Behaviors["index"] == index
@@ -298,45 +305,13 @@ def rdf_nb(
                 ].values[0]
             except:
                 dim_p2 = None
-
-            nb_labels = "".join([
-                nb_labels,
-                nb_rdf(labels[1], p2, s2, dim_p2)
-            ])
-
-            if len(labels) > 3:
-                try:
-                    p3 = NBP.loc[NBP["index"] == int(Neutral_Behaviors.loc[
-                        Neutral_Behaviors["index"] == index
-                    ]["prefix 3"].values[0])][
-                        "neutral behaviour prefix"
-                    ].values[0]
-                except:
-                    p3 = None
-
-                try:
-                    s3 = NBS.loc[NBS["index"] == int(Neutral_Behaviors.loc[
-                        Neutral_Behaviors["index"] == index
-                    ]["suffix 3"].values[0])][
-                        "neutral behaviour suffix"
-                    ].values[0]
-                except:
-                    s3 = None
-
-                try:
-                    dim_p3 = DimP.loc[DimP["index"] == int(
-                        Neutral_Behaviors.loc[
-                            Neutral_Behaviors["index"] == index
-                        ]["dimensional prefix 3"].values[0]
-                    )][
-                        "dimensional prefix"
-                    ].values[0]
-                except:
-                    dim_p3 = None
+                
+            
+            for nb_label in labels:
 
                 nb_labels = "".join([
                     nb_labels,
-                    nb_rdf(labels[2], p3, s3, dim_p3)
+                    nb_rdf(nb_label, p2, s2, dim_p2)
                 ])
 
         rdf_string = "".join([
@@ -358,7 +333,6 @@ def rdf_nb(
                 reference
             ) == str else "",
             " .\n\n"
-            #TODO: subclasses, neutrals 2+
         ])
         
     return(rdf_string)
@@ -431,7 +405,7 @@ def main():
             rdf_nb(
                 index,
                 Neutral_Behaviors,
-                mhdb,
+                xls_mhdb,
                 NBP,
                 DimP,
                 NBS,
