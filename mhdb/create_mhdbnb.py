@@ -218,7 +218,7 @@ def rdf_nb(
             rdf_nb(
                 rep_i,
                 Neutral_Behaviors,
-                xls_mhdb,
+                mhdb,
                 NBP,
                 DimP,
                 NBS,
@@ -345,10 +345,7 @@ def main():
     )
     stateoutfile = os.path.join(os.getcwd(), 'mhdb_states.ttl')
     FILE = 'data/mentalhealth.xlsx'
-    download_google_sheet(
-        FILE,
-        "13a0w3ouXq5sFCa0fBsg9xhWx67RGJJJqLjD_Oy1c3b0"
-    )
+
     base_uri = "http://www.purl.org/mentalhealth/neutralstates"
     # --------------------------------------------------------------------------
     # Import spreadsheet
