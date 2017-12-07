@@ -313,27 +313,47 @@ def rdf_nb(
                     nb_labels,
                     nb_rdf(nb_label, p2, s2, dim_p2)
                 ])
-
-        rdf_string = "".join([
-            rdf_string,
-            nb_labels,
-            "mhdb:{0} ".format(
+                
+        rdf_subject = "mhdb:{0} ".format(
                 convert_string_to_label(
                     Neutral_Behaviors.loc[
                         Neutral_Behaviors["index"] == symptom_index
                     ]["symptom"].values[0]
                 )
-            ),
-            " ;\n".join([
-                "rdfs:subClassOf mhdbnb:{0}".format(
-                        convert_string_to_label(lab)
-                )
-             for lab in labels]),
-            " ;\n\tdcterms:source {0}".format(reference) if type(
-                reference
-            ) == str else "",
+            )
+        rdf_objects = ["mhdbnb:{0}".format(
+            convert_string_to_label(lab)
+        ) for lab in labels]
+        rdf_string = "".join([
+            rdf_string,
+            nb_labels,
+            rdf_subject,
+            " rdfs:subClassOf {0}".format(
+                " ;\n rdfs:subClassOf ".join(rdf_objects)
+            ) if len(rdf_objects) else "",
             " .\n\n"
         ])
+        if isinstance(reference, str):
+            for rdf_object in rdf_objects:
+                ref_strings = "\n\n".join([
+                    ("_:{0} rdf:type rdf:Statement ;\n"
+                    "\trdf:subject {1} ;\n"
+                    "\trdf:predicate rdfs:subClassOf ;\n"
+                    "\trdf:object {2} ;\n"
+                    "\tdcterms:source {3} .\n\n").format(
+                        "_".join([
+                            rdf_subject[5:].strip(),
+                            rdf_object[7:].strip()
+                        ]),
+                        rdf_subject,
+                        rdf_object,
+                        reference
+                    )
+                ])
+                rdf_string = "".join([
+                    rdf_string,
+                    ref_strings
+                ])
         
     return(rdf_string)
 
@@ -345,7 +365,10 @@ def main():
     )
     stateoutfile = os.path.join(os.getcwd(), 'mhdb_states.ttl')
     FILE = 'data/mentalhealth.xlsx'
-
+    download_google_sheet(
+        FILE,
+        "13a0w3ouXq5sFCa0fBsg9xhWx67RGJJJqLjD_Oy1c3b0"
+    )
     base_uri = "http://www.purl.org/mentalhealth/neutralstates"
     # --------------------------------------------------------------------------
     # Import spreadsheet

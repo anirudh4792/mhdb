@@ -104,8 +104,9 @@ Disorder = xls.parse("Disorder")
 Severity = xls.parse("DisorderSeverity")
 Specifier = xls.parse("DiagnosticSpecifier")
 Criterion = xls.parse("DiagnosticCriterion")
-SymptomCat = xls.parse("SignOrSymptomCategory")
-Symptom = xls.parse("SignOrSymptom")
+SignOrSymptom = xls.parse("SignOrSymptom")
+SymptomCat = xls.parse("SignOrSymptom_Main_Category")
+Symptom = xls.parse("SignOrSymptom_Sub_Category")
 Questionnaire = xls.parse("Questionnaire")
 Question = xls.parse("Question")
 QuestionCat = xls.parse("QuestionCategory")
@@ -172,7 +173,7 @@ for index, label in enumerate(Classes.ClassName):
 fid.write("\n{0} {1} {2} .\n".format(MentalDisorder_uri, 'rdfs:subClassOf',
                                      Disorder_uri))
 #fid.write("\n{0} {1} {2} .\n".format(SignOrSymptom_uri, 'rdfs:subClassOf',
-#                                     SignOrSymptomCategory_uri))
+#                                     SignOrSymptom_Main_Category_uri))
 
 # ----------------------------------------------------------------------------
 # Disorder-related classes and triples
@@ -400,11 +401,16 @@ fid.write(print_subheader('Symptom classes and triples'))
 
 # Loop through Symptoms:
 sheets2 = [Symptom, SymptomCat]
-for iS, symptom in enumerate(Symptom.SymptomName):
+for iS, symptom in enumerate(Symptom.SignOrSymptomSubCategoryName):
     if symptom not in X:
 
         # Indices to rows in Symptom-related worksheets:
-        isymcat = get_index2(Symptom, 'SymptomCategory_index', iS, SymptomCat)
+        isymcat = get_index2(
+            Symptom,
+            'SignOrSymptomMainCategory_index',
+            iS,
+            SymptomCat
+        )
         if isymcat not in X:
             idisorder_symcat = get_index2(SymptomCat, 'Disorder_index',
                                           isymcat, Disorder)
@@ -416,7 +422,14 @@ for iS, symptom in enumerate(Symptom.SymptomName):
         symptom_uri = ":{0}".format(symptom_ok)
         try:
             symptomcat, symptomcat_ok = create_label(
-                get_cell(SymptomCat, 'SymptomCategoryName', isymcat, X, True))
+                get_cell(
+                    SymptomCat,
+                    'SymptomMainCategoryName',
+                    isymcat,
+                    X,
+                    True
+                )
+            )
             symptomcat_uri = ":{0}".format(symptomcat_ok)
         except:
             symptomcat, symptomcat_ok, symptomcat_uri = None, None, None
@@ -448,6 +461,111 @@ for iS, symptom in enumerate(Symptom.SymptomName):
                                            comment=None,
                                            index=indices[i],
                                            worksheet=sheets2[i],
+                                           worksheet2=Reference,
+                                           equivalent_class_uri=equivalentclasses[i],
+                                           subclassof_uri=subclassofs[i],
+                                           property_domain=None,
+                                           property_range=None,
+                                           exclude=X)
+                    fid.write(rdf_string)
+
+                    # --------------------------------------------------------
+                    # Symptom-related triples
+                    # --------------------------------------------------------
+                    if i == 0:
+                        if disorder_for_symptom_uri:
+                            fid.write("\n{0} {1} {2} .\n".format(disorder_for_symptom_uri,
+                                                                 hasSymptom_uri,
+                                                                 symptom_uri))
+                        fid.write("\n{0} {1} {2} .\n".format(symptom_uri,
+                                                             'rdfs:subClassOf',
+                                                             SignOrSymptom_uri))
+                    elif i == 1 and symptomcat_uri:
+                        fid.write("\n{0} {1} {2} .\n".format(symptom_uri,
+                                                             'rdfs:subClassOf',
+                                                             symptomcat_uri))
+                        fid.write("\n{0} {1} {2} .\n".format(symptomcat_uri,
+                                                             'rdfs:subClassOf',
+                                                             SignOrSymptom_uri))
+                                                             
+                                                             
+for iS, symptom in enumerate(SignOrSymptom.index):
+    symptom = "unnamed_SignOrSymptom_{0}".format(
+        str(iS)
+    ) if not isinstance(SignOrSymptom.SignOrSymptom[
+        iS
+    ], str) else SignOrSymptom.SignOrSymptom[iS]
+    if symptom not in X:
+
+        # Indices to rows in Symptom-related worksheets:
+        isymcat = get_index2(
+            SignOrSymptom,
+            'SignOrSymptom_index',
+            iS,
+            SignOrSymptom
+        )
+        if isinstance(isymcat, int):
+            isymcat = "unnamed_SignOrSymptom_{0}".format(
+                str(SignOrSymptom.SignOrSymptom_index[iS])
+            ) if not isinstance(SignOrSymptom.SignOrSymptom[
+                SignOrSymptom.SignOrSymptom_index[iS]
+            ], str) else SignOrSymptom.SignOrSymptom[
+                SignOrSymptom.SignOrSymptom_index[iS]
+            ]
+            if isymcat not in X:
+                idisorder_symcat = get_index2(
+                    SignOrSymptom,
+                    'Disorder_index',
+                    isymcat,
+                    Disorder
+                )
+        else:
+            idisorder_symcat = None
+
+        # Unique labels and URIs:
+        symptom, symptom_ok = create_label(symptom)
+        symptom_uri = ":{0}".format(symptom_ok)
+        try:
+            symptomcat, symptomcat_ok = create_label(
+                get_cell(
+                    SignOrSymptom,
+                    'SignOrSymptom',
+                    isymcat,
+                    X,
+                    True
+                )
+            )
+            symptomcat_uri = ":{0}".format(symptomcat_ok)
+        except:
+            symptomcat, symptomcat_ok, symptomcat_uri = None, None, None
+        try:
+            disorder_for_symptom, disorder_for_symptom_ok = create_label(
+                get_cell(Disorder.DisorderName[idisorder_symcat], X, True))
+            disorder_for_symptom_uri = ":{0}".format(disorder_for_symptom_ok)
+        except:
+            disorder_for_symptom, disorder_for_symptom_ok, disorder_for_symptom_uri = None, None, None
+
+        # Loop through Symptom-related classes:
+        indices = [iS, isymcat]
+        labels = [symptom, symptomcat]
+        labels_ok = [symptom_ok, symptomcat_ok]
+        uris = [symptom_uri, symptomcat_uri]
+        equivalentclasses = [None, None]
+        subclassofs = [symptomcat_uri, None]
+        nlabels = len(labels)
+        for i in range(nlabels):
+            if indices[i] not in X:
+
+                # Build rdf string if new and unique label:
+                label_ok = labels_ok[i]
+                if label_ok not in X and label_ok not in label_list:
+                    label_list.append(label_ok)
+                    rdf_string = build_rdf(uri_stem=label_ok,
+                                           rdf_type='owl:Class',
+                                           label=labels[i],
+                                           comment=None,
+                                           index=indices[i],
+                                           worksheet=SignOrSymptom,
                                            worksheet2=Reference,
                                            equivalent_class_uri=equivalentclasses[i],
                                            subclassof_uri=subclassofs[i],
@@ -634,7 +752,13 @@ for iR, reference in enumerate(Reference.ReferenceName):
 
     # Unique labels and URIs:
     reference, reference_ok = create_label(reference)
-    reference_uri = ":{0}".format(reference_ok)
+    reference_link = Reference.ReferenceLink[iR]
+    reference_uri = "<{0}>".format(
+        reference_link
+    ) if isinstance(
+        reference_link,
+        str
+    ) else ":{0}".format(reference_ok)
     try:
         referencetype, referencetype_ok = create_label(
             get_cell(ReferenceType, 'ReferenceTypeName', ireftype, X, True))
@@ -645,7 +769,7 @@ for iR, reference in enumerate(Reference.ReferenceName):
     # Loop through Reference-related classes:
     indices = [iR, ireftype]
     labels = [reference, referencetype]
-    labels_ok = [reference_ok, referencetype_ok]
+    labels_ok = [reference_uri, referencetype_ok]
     equivalentclasses = [None, None]
     subclassofs = [None, ReferenceType_uri]
     nlabels = len(labels)
@@ -663,7 +787,9 @@ for iR, reference in enumerate(Reference.ReferenceName):
                                        index=indices[i],
                                        worksheet=sheets2[i],
                                        worksheet2=sheets3[i],
-                                       equivalent_class_uri=equivalentclasses[i],
+                                       equivalent_class_uri=equivalentclasses[
+                                           i
+                                       ],
                                        subclassof_uri=subclassofs[i],
                                        property_domain=None,
                                        property_range=None,
