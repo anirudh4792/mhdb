@@ -347,7 +347,13 @@ def rdf_nb(
                         ]),
                         rdf_subject,
                         rdf_object,
-                        reference
+                        "mhdb:{0}".format(
+                            convert_string_to_label(
+                                References.loc[
+                                    References["index"]==84
+                                ]["ReferenceName"].values[0]
+                            )
+                        )
                     )
                 ])
                 rdf_string = "".join([
@@ -401,7 +407,7 @@ def main():
         prefixes= [
             (
                 "dcterms",
-                "http://dublincore.org/documents/2012/06/14/dcmi-terms/"
+                "http://purl.org/dc/terms/"
             ),
             ("health-lifesci", "http://health-lifesci.schema.org/"),
             ("mhdb", "http://www.purl.org/mentalhealth#"),
