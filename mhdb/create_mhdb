@@ -147,6 +147,7 @@ for index, label in enumerate(Properties.PropertyName):
                            exclude=X)
     fid.write(rdf_string)
     exec("{0}_uri = ':{0}'".format(label_safe))
+hasSymptom_uri = "health-lifesci:signOrSymptom"
 
 # ------------------------------------------------------------------------
 # Classes and triples
@@ -394,6 +395,7 @@ for subsuper in superclassing:
 # ----------------------------------------------------------------------------
 # Symptom-related classes and triples
 # ----------------------------------------------------------------------------
+
 fid.write(print_subheader('Symptom classes and triples'))
 #           SymptomCat, Symptom,
 #           Questionnaire, Question, QuestionCat, AnswerType,
@@ -435,8 +437,17 @@ for iS, symptom in enumerate(Symptom.SignOrSymptomSubCategoryName):
             symptomcat, symptomcat_ok, symptomcat_uri = None, None, None
         try:
             disorder_for_symptom, disorder_for_symptom_ok = create_label(
-                get_cell(Disorder.DisorderName[idisorder_symcat], X, True))
-            disorder_for_symptom_uri = "mhdb:{0}".format(disorder_for_symptom_ok)
+                get_cell(
+                    Disorder,
+                    "DisorderName",
+                    idisorder_symcat,
+                    X,
+                    True
+                )
+            )
+            disorder_for_symptom_uri = "mhdb:{0}".format(
+                disorder_for_symptom_ok
+            )
         except:
             disorder_for_symptom, disorder_for_symptom_ok, disorder_for_symptom_uri = None, None, None
 
@@ -474,9 +485,11 @@ for iS, symptom in enumerate(Symptom.SignOrSymptomSubCategoryName):
                     # --------------------------------------------------------
                     if i == 0:
                         if disorder_for_symptom_uri:
-                            fid.write("\n{0} {1} {2} .\n".format(disorder_for_symptom_uri,
-                                                                 hasSymptom_uri,
-                                                                 symptom_uri))
+                            fid.write("\n{0} {1} {2} .\n".format(
+                                disorder_for_symptom_uri,
+                                hasSymptom_uri,
+                                symptom_uri
+                            ))
                         fid.write("\n{0} {1} {2} .\n".format(symptom_uri,
                                                              'rdfs:subClassOf',
                                                              SignOrSymptom_uri))
@@ -569,8 +582,17 @@ for iS, symptom in enumerate(SignOrSymptom.index):
             symptomcat, symptomcat_ok, symptomcat_uri = None, None, None
         try:
             disorder_for_symptom, disorder_for_symptom_ok = create_label(
-                get_cell(Disorder.DisorderName[idisorder_symcat], X, True))
-            disorder_for_symptom_uri = "mhdb:{0}".format(disorder_for_symptom_ok)
+                get_cell(
+                    Disorder,
+                    'DisorderName',
+                    idisorder_symcat,
+                    X,
+                    True
+                )
+            )
+            disorder_for_symptom_uri = "mhdb:{0}".format(
+                disorder_for_symptom_ok
+            )
         except:
             disorder_for_symptom, disorder_for_symptom_ok, disorder_for_symptom_uri = None, None, None
 
@@ -608,9 +630,11 @@ for iS, symptom in enumerate(SignOrSymptom.index):
                     # --------------------------------------------------------
                     if i == 0:
                         if disorder_for_symptom_uri:
-                            fid.write("\n{0} {1} {2} .\n".format(disorder_for_symptom_uri,
-                                                                 hasSymptom_uri,
-                                                                 symptom_uri))
+                            fid.write("\n{0} {1} {2} .\n".format(
+                                disorder_for_symptom_uri,
+                                hasSymptom_uri,
+                                symptom_uri
+                            ))
                         fid.write("\n{0} {1} {2} .\n".format(symptom_uri,
                                                              'rdfs:subClassOf',
                                                              SignOrSymptom_uri))
