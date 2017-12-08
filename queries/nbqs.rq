@@ -1,7 +1,7 @@
 PREFIX owl: <http://www.w3.org/2002/07/owl#>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-PREFIX health-lifesci: <http://schema.org/>
+PREFIX health-lifesci: <http://health-lifesci.schema.org/>
 PREFIX mhdb: <http://www.purl.org/mentalhealth#>
 PREFIX mhdbnb: <http://www.purl.org/mentalhealth/neutralstates#>
 PREFIX dcterms: <http://dublincore.org/documents/2012/06/14/dcmi-terms/>

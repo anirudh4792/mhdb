@@ -1,12 +1,14 @@
 PREFIX owl: <http://www.w3.org/2002/07/owl#>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-PREFIX health-lifesci: <http://schema.org/>
+PREFIX health-lifesci: <http://health-lifesci.schema.org/>
+PREFIX mhdb: <http://www.purl.org/mentalhealth#>
+PREFIX mhdbnb: <http://www.purl.org/mentalhealth/neutralstates#>
 PREFIX : <http://www.purl.org/mentalhealth#>
 
 SELECT (STR(?lab) AS ?label) (IF(STRSTARTS(STR(?x), "http://www.purl.org/mentalhealth#"), REPLACE(STR(?x), "http://www.purl.org/mentalhealth#", ":"), ?x) AS ?iri) WHERE {
 	?x rdfs:subClassOf* ?s .
-    ?s owl:equivalentClass health-lifesci:MedicalSignOrSymptom .
+    ?s owl:equivalentClass* health-lifesci:MedicalSignOrSymptom .
 	OPTIONAL {?x rdfs:label ?lab.}
 }
-ORDER BY ?label
+ORDER BY ?label ?iri
