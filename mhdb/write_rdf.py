@@ -33,38 +33,36 @@ def build_import(uri):
     uri : string
         import IRI
 
-    Returns
-    -------
-    rdf_string : string
-        RDF triples
-
+def build_header_prefixes(prefixes):
     """
-    if uri:
-        return "owl:imports <{0}> ".format(uri)
-    else:
-        return None
+    Write turtle-formatted header prefix string for given list of (prefix,
+    iri) tuples.
 
-
-def build_prefix(prefix, uri):
-    """
-    Build a generic RDF prefix.
-
-    Parameters
-    ----------
-    prefix : string
-        class URI stem
-    uri : string
-        prefix IRI
+    Parameter
+    ---------
+    prefixes: list of 2-tuples
+        each tuple is a prefix string and an iri string
 
     Returns
     -------
-    rdf_string : string
-        RDF triples
-
+    header_prefix: string
     """
-    return "@prefix {0}: <{1}> .".format(prefix, uri)
-    
-    
+    header_prefix = ""
+    for prefix in prefixes:
+        header_prefix = """{0}@prefix {1}: <{2}> .
+""".format(
+            header_prefix,
+            prefix[0],
+            prefix[1]
+        )
+    header_prefix = """{0}@base <{1}> .
+""".format(
+        header_prefix,
+        prefixes[0][1][:-1]
+    )
+    return(header_prefix)
+
+
 def build_rdf(uri_stem, rdf_type, label, comment=None,
               index=None, worksheet=None, worksheet2=None,
               equivalent_class_uri=None, subclassof_uri=None,
@@ -150,7 +148,9 @@ def build_rdf(uri_stem, rdf_type, label, comment=None,
 
     if label not in exclude:
         rdf_string += """;
-    rdfs:label "{0}"^^rdfs:Literal """.format(label)
+    rdfs:label \"\"\"{0}\"\"\"^^rdfs:Literal """.format(
+        label if not label[-1] == "\"" else "".join([label[:-1], "\\\""])
+    )
 
     if comment not in exclude:
         if definition_ref in exclude:
@@ -159,7 +159,7 @@ def build_rdf(uri_stem, rdf_type, label, comment=None,
             refstring = " [from: {0}]".format(return_string(definition_ref,
                                                             ['"'], ["'"]))
         rdf_string += """;
-    rdfs:comment "{0}{1}"^^rdfs:Literal """.\
+    rdfs:comment \"\"\"{0}{1}\"\"\"^^rdfs:Literal """.\
             format(return_string(comment, ['"'], ["'"]), refstring)
 
     if definition_uri not in exclude:
@@ -258,8 +258,7 @@ def owl_or_skos_prop(l_con, r, conceptualizations, gen_rel):
     return rel
         
 
-def print_header(base_uri, version, label, comment,
-                 prefixes=None, imports=None):
+def print_header(base_uri, version, label, comment, prefixes=None):
     """
     Print out the beginning of an RDF text file.
 
@@ -284,12 +283,8 @@ def print_header(base_uri, version, label, comment,
         owl header
 
     """
-    prefix = "\n".join(prefixes) if prefixes else ""
-    owl_import = "".join([";\n", ";\n".join(
-                 [owl for owl in imports if owl]
-                 ), " "]) if imports else ""
-    header = """
-@prefix : <{0}#> .
+
+    header = """@prefix : <{0}#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix xml: <http://www.w3.org/XML/1998/namespace> .
@@ -297,17 +292,24 @@ def print_header(base_uri, version, label, comment,
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
 @prefix dcterms: <http://dublincore.org/documents/2012/06/14/dcmi-terms/> .
-{4}
-@prefix void: <http://rdfs.org/ns/void#> .
+@prefix health-lifesci: <http://health-lifesci.schema.org/> .
+@prefix ICD10: <http://purl.bioontology.org/ontology/ICD10CM/> .
+@prefix ICD9: <http://purl.bioontology.org/ontology/ICD9CM/> .
+@prefix PATO: <http://www.ontobee.org/ontology/PATO?iri=http://purl.obolibrary.org/obo/PATO_> .
+@prefix schema: <http://schema.org/> .
+@prefix DOID: <http://bioportal.bioontology.org/ontologies/DOID?p=classes&conceptid=http://purl.obolibrary.org/obo/DOID> .
 @base <{0}> .
+""".format(base_uri) if not prefixes else build_header_prefixes(
+        [("", "{0}#".format(base_uri)), *prefixes]
+    )
 
-<{0}> rdf:type owl:Ontology ;
+    header = """{4}<{0}> rdf:type owl:Ontology ;
     owl:versionIRI <{0}/{1}> ;
     owl:versionInfo "{1}"^^rdfs:Literal ;
     rdfs:label "{2}"^^rdfs:Literal ;
-    rdfs:comment \"\"\"{3}\"\"\"^^rdfs:Literal {5}.
+    rdfs:comment \"\"\"{3}\"\"\"^^rdfs:Literal .
 
-""".format(base_uri, version, label, comment, prefix, owl_import)
+""".format(base_uri, version, label, comment, header)
 
     return header
 

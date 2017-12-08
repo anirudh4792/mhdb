@@ -10,7 +10,8 @@ Authors:
 Copyright 2017, Child Mind Institute (http://childmind.org), Apache v2.0 License
 
 """
-
+import os
+import urllib
 
 def convert_string_to_label(input_string):
     """
@@ -98,6 +99,29 @@ def convert_string_to_label(input_string):
 #
 #     return output_triple
 
+
+def download_google_sheet(filepath, docid):
+    """
+    Download latest version of a Google Sheet
+
+    Parameters
+    ----------
+    filepath : string
+
+    docid : string
+
+    Returns
+    -------
+    filepath : sting
+    """
+    if not os.path.exists(os.path.abspath(os.path.dirname(filepath))):
+        os.makedirs(os.path.abspath(os.path.dirname(filepath)))
+    urllib.request.urlretrieve("{1}{0}{2}".format(
+        docid,
+        'https://docs.google.com/spreadsheets/d/',
+        '/export?format=xlsx'
+        ), filepath)
+    return(filepath)
 
 def return_none_for_nan(input_value):
     """
