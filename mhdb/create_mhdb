@@ -13,943 +13,143 @@ import os
 import argparse
 import numpy as np
 import pandas as pd
-#import rdflib
 import re
 import urllib.request
 
 from mhdb.info import __version__ as version
-#from mhdb.info import long_description as comment
-#from mhdb.info import description as label
 from mhdb.spreadsheet_io import convert_string_to_label, create_label, \
     get_index2, get_cell, download_google_sheet
-from mhdb.write_rdf import build_rdf, print_header, print_subheader #print_general_axioms
+from mhdb.write_ttl import write_header, write_ttl 
 
 
 def ICD_code(Disorder, ICD, id, X):
     # function to turtle ICD code and coding system
     ICD = str(ICD)
-    ICD_uri_code = get_cell(Disorder, ('ICD' + ICD + 'code'), iD, X, True)
+    ICD_uri_code = get_cell(
+        Disorder,
+        'ICD{0}code'.format(ICD),
+        iD,
+        X,
+        True
+    )
     if ICD_uri_code:
-        ICD_uri = "ICD" + ICD + ":" + str(ICD_uri_code)
-        ICD_coding_string = ICD_uri + """ health-lifesci:codingSystem \"ICD""" \
-                            + ICD + """CM\"^^rdfs:Literal """
+        ICD_uri = "ICD{0}:{1}".format(
+            ICD,
+            str(ICD_uri_code)
+        )
+        ICD_coding_string = (
+            "{0} health-lifesci:codingSystem \"ICD{1}CM\"^^rdfs:Literal "
+        ).format(
+            ICD_uri,
+            ICD
+        )
     else:
         ICD_uri, ICD_coding_string = None, None
     return(ICD_uri, ICD_coding_string)
 
-# ------------------------------------------------------------------------------
-# Command-line arguments
-# ------------------------------------------------------------------------------
-debug = True
-if debug:
-    FILE = 'data/mentalhealth.xlsx'
-    download_google_sheet(FILE, "13a0w3ouXq5sFCa0fBsg9xhWx67RGJJJqLjD_Oy1c3b0")
-    if not os.path.exists(FILE):
-        FILE = 'mhdb/' + FILE
-    if not os.path.exists(FILE):
-        FILE = '/data/mentalhealth.xlsx'
+    
+def main():
+    mentalhealthFILE = download_google_sheet(
+        'data/mentalhealth.xlsx',
+        "13a0w3ouXq5sFCa0fBsg9xhWx67RGJJJqLjD_Oy1c3b0"
+    )
+    mentalhealthtechnology3FILE = download_google_sheet(
+        'data/mentalhealthtechnology3.xlsx',
+        "1SK-kT7EH34omb4FJnFW2uJbsXbklawlPXFx2X7hLnc8"
+    )
+    revised_structureFILE = download_google_sheet(
+        'data/revised_structure.xlsx',
+        "1REHmDXldCZ_L403Zq0N0LdhwNNEAXEIJHcNHzOIjnSQ"
+    )
+    
     base_uri = "http://www.purl.org/mentalhealth"
     outfile = os.path.join(os.getcwd(), 'mhdb.ttl')
-else:
-    parser = argparse.ArgumentParser(description="""
-                This program converts a mental health spreadsheet to RDF.""",
-                                     formatter_class = lambda prog:
-                                     argparse.HelpFormatter(prog,
-                                     max_help_position=40))
-    rec_args = parser.add_argument_group('recommended arguments')
 
-    # "positional arguments":
-    parser.add_argument("FILE", help=("spreadsheet file path"))
-    # "optional arguments":
-    parser.add_argument("-b", "--base_uri", help="name of base URL",
-                        default='http://purl.com/mentalhealth', metavar='STR')
-    parser.add_argument("-o", "--outfile", help="name of output file",
-                        default=os.path.join(os.getcwd(), 'mhdb.ttl'),
-                        metavar='STR')
-    args = parser.parse_args()
-    FILE = args.FILE
-    base_uri = args.base_uri
-
-# ------------------------------------------------------------------------------
-# Import spreadsheet
-# ------------------------------------------------------------------------------
-xls = pd.ExcelFile(FILE)
-X = ['', 'nan', np.nan, 'None', None]
-
-# ------------------------------------------------------------------------------
-# Create output RDF file
-# ------------------------------------------------------------------------------
-label = "mental health database"
-comment="""
-======================
-Mental Health Database
-======================
-
-This mental health database inter-relates information about mental health
-diagnoses, symptoms, assessement questionnaires, etc., and is licensed
-under the terms of the Creative Commons BY license.
-Current information can be found on the website, http://mentalhealth.tech.
-"""
-
-# ------------------------------------------------------------------------------
-# Extract worksheets as pandas dataframes
-# ------------------------------------------------------------------------------
-#sheet_names = xls.sheet_names
-#for sheet_name in sheet_names:
-#    exec("{0} = xls.parse('{0}')".format(sheet_name))
-Classes = xls.parse("Classes")
-Properties = xls.parse("Properties")
-Level0 = xls.parse("DisorderCategory")
-Level1 = xls.parse("DisorderSubcategory")
-Level2 = xls.parse("DisorderSubsubcategory")
-Level3 = xls.parse("DisorderSubsubsubcategory")
-Disorder = xls.parse("Disorder")
-Severity = xls.parse("DisorderSeverity")
-Specifier = xls.parse("DiagnosticSpecifier")
-Criterion = xls.parse("DiagnosticCriterion")
-SignOrSymptom = xls.parse("SignOrSymptom")
-SymptomCat = xls.parse("SignOrSymptom_Main_Category")
-Symptom = xls.parse("SignOrSymptom_Sub_Category")
-Questionnaire = xls.parse("Questionnaire")
-Question = xls.parse("Question")
-QuestionCat = xls.parse("QuestionCategory")
-AnswerType = xls.parse("AnswerType")
-Reference = xls.parse("Reference")
-ReferenceType = xls.parse("ReferenceType")
-Ontologies = xls.parse("Ontologies")
-
-# ------------------------------------------------------------------------------
-# Write header
-# ------------------------------------------------------------------------------
-
-fid = open(outfile, 'w')
-header_string = print_header(base_uri, version, label, comment, prefixes=
-    [
-        (row[1]["Prefix"], row[1]["PrefixURI"]) for row in Ontologies.iterrows()
-    ])
-fid.write(header_string)
-
-# ------------------------------------------------------------------------
-# Properties and triples
-# ------------------------------------------------------------------------
-fid.write(print_subheader('Properties'))
-
-for index, label in enumerate(Properties.PropertyName):
-    label_safe = convert_string_to_label(label)
-    rdf_string = build_rdf(uri_stem=label_safe,
-                           rdf_type='owl:ObjectProperty',
-                           label=label,
-                           comment=None,
-                           index=index,
-                           worksheet=Properties,
-                           worksheet2=Reference,
-                           equivalent_class_uri=None,
-                           subclassof_uri=None,
-                           property_domain=None,
-                           property_range=None,
-                           exclude=X)
-    fid.write(rdf_string)
-    exec("{0}_uri = ':{0}'".format(label_safe))
-hasSymptom_uri = "health-lifesci:signOrSymptom"
-
-# ------------------------------------------------------------------------
-# Classes and triples
-# ------------------------------------------------------------------------
-fid.write(print_subheader('Classes'))
-
-for index, label in enumerate(Classes.ClassName):
-    label_safe = convert_string_to_label(label)
-    rdf_string = build_rdf(uri_stem=label_safe,
-                           rdf_type='owl:Class',
-                           label=label,
-                           comment=None,
-                           index=index,
-                           worksheet=Classes,
-                           worksheet2=Reference,
-                           equivalent_class_uri=None,
-                           subclassof_uri=None,
-                           property_domain=None,
-                           property_range=None,
-                           exclude=X)
-    fid.write(rdf_string)
-    exec("{0}_uri = ':{0}'".format(label_safe))
-
-fid.write("\n{0} {1} {2} .\n".format(MentalDisorder_uri, 'rdfs:subClassOf',
-                                     Disorder_uri))
-#fid.write("\n{0} {1} {2} .\n".format(SignOrSymptom_uri, 'rdfs:subClassOf',
-#                                     SignOrSymptom_Main_Category_uri))
-
-# ----------------------------------------------------------------------------
-# Disorder-related classes and triples
-# ----------------------------------------------------------------------------
-fid.write(print_subheader('Disorder classes and triples'))
-
-label_list = []
-sheet1 = Disorder
-sheets2 = [Level0, Level1, Level2, Level3, Disorder, Severity, Specifier,
-           Criterion, Criterion, Criterion, Criterion]
-column1_headers = ['DisorderCategory_index',
-                   'DisorderSubcategory_index',
-                   'DisorderSubsubcategory_index',
-                   'DisorderSubsubsubcategory_index',
-                   'DisorderSeverity_index',
-                   'DiagnosticSpecifier_index',
-                   'DiagnosticInclusionCriterion_index',
-                   'DiagnosticInclusionCriterion2_index',
-                   'DiagnosticExclusionCriterion_index',
-                   'DiagnosticExclusionCriterion2_index']
-column2_headers = ['DisorderCategoryName',
-                   'DisorderSubcategoryName',
-                   'DisorderSubsubcategoryName',
-                   'DisorderSubsubsubcategoryName',
-                   'DisorderSeverityName',
-                   'DiagnosticSpecifierName',
-                   'DiagnosticCriterionName', 'DiagnosticCriterionName',
-                   'DiagnosticCriterionName', 'DiagnosticCriterionName']
-
-# Loop through Disorders:
-superclassing = dict()
-for iD, disorder in enumerate(Disorder.DisorderName):
-    if disorder not in X:
-        # top level specifier
-        top_level = get_cell(Disorder, 'topLevelDisorder', iD, X, True)
-
-        # ICD 9 and 10 code:
-        ICD9_uri, ICD9_coding_string = ICD_code(Disorder, 9, id, X)
-        ICD10_uri, ICD10_coding_string = ICD_code(Disorder, 10, id, X)
-
-        # Indices to rows in Disorder-related worksheets:
-        ilvl0 = get_index2(sheet1, column1_headers[0], iD, sheets2[0])
-        ilvl1 = get_index2(sheet1, column1_headers[1], iD, sheets2[1])
-        ilvl2 = get_index2(sheet1, column1_headers[2], iD, sheets2[2])
-        ilvl3 = get_index2(sheet1, column1_headers[3], iD, sheets2[3])
-        # iD
-        isevr = get_index2(sheet1, column1_headers[4], iD, sheets2[5])
-        ispec = get_index2(sheet1, column1_headers[5], iD, sheets2[6])
-        incl1 = get_index2(sheet1, column1_headers[6], iD, sheets2[7])
-        incl2 = get_index2(sheet1, column1_headers[7], iD, sheets2[8])
-        ixcl1 = get_index2(sheet1, column1_headers[8], iD, sheets2[9])
-        ixcl2 = get_index2(sheet1, column1_headers[9], iD, sheets2[10])
-
-        # Unique labels and URIs:
-        try:
-            cell = get_cell(sheets2[0], column2_headers[0], ilvl0, X, True)
-            level0, level0_ok = create_label(cell)
-            level0_uri = "mhdb:{0}".format(level0_ok)
-        except:
-            level0, level0_ok, level0_uri = None, None, None
-        try:
-            cell = get_cell(sheets2[1], column2_headers[1], ilvl1, X, True)
-            level1, level1_ok = create_label(cell)
-            level1_uri = "mhdb:{0}".format(level1_ok)
-        except:
-            level1, level1_ok, level1_uri = None, None, None
-        try:
-            cell = get_cell(sheets2[2], column2_headers[2], ilvl2, X, True)
-            level2, level2_ok = create_label(cell)
-            level2_uri = "mhdb:{0}".format(level2_ok)
-        except:
-            level2, level2_ok, level2_uri = None, None, None
-        try:
-            cell = get_cell(sheets2[3], column2_headers[3], ilvl3, X, True)
-            level3, level3_ok = create_label(cell)
-            level3_uri = "mhdb:{0}".format(level3_ok)
-        except:
-            level3, level3_ok, level3_uri = None, None, None
-        try:
-            cell = get_cell(sheets2[5], column2_headers[4], isevr, X, True)
-            severity, severity_ok = create_label(cell)
-            severity_uri = "mhdb:{0}".format(severity_ok)
-        except:
-            severity, severity_ok, severity_uri = None, None, None
-
-        disorder, disorder_ok = create_label(disorder)
-        disorder_uri = "mhdb:{0}".format(disorder_ok)
-
-        try:
-            cell = get_cell(sheets2[6], column2_headers[5], ispec, X, True)
-            specifier, specifier_ok = create_label(cell)
-            specifier_uri = "mhdb:{0}".format(specifier_ok)
-        except:
-            specifier, specifier_ok, specifier_uri = None, None, None
-        try:
-            cell = get_cell(sheets2[7], column2_headers[6], incl1, X, True)
-            include1, include1_ok = create_label(cell)
-            include1_uri = "mhdb:{0}".format(include1_ok)
-        except:
-            include1, include1_ok, include1_uri = None, None, None
-        try:
-            cell = get_cell(sheets2[8], column2_headers[7], incl2, X, True)
-            include2, include2_ok = create_label(cell)
-            include2_uri = "mhdb:{0}".format(include2_ok)
-        except:
-            include2, include2_ok, include2_uri = None, None, None
-        try:
-            cell = get_cell(sheets2[9], column2_headers[8], ixcl1, X, True)
-            exclude1, exclude1_ok = create_label(cell)
-            exclude1_uri = "mhdb:{0}".format(exclude1_ok)
-        except:
-            exclude1, exclude1_ok, exclude1_uri = None, None, None
-        try:
-            cell = get_cell(sheets2[10], column2_headers[9], ixcl2, X, True)
-            exclude2, exclude2_ok = create_label(cell)
-            exclude2_uri = "mhdb:{0}".format(exclude2_ok)
-        except:
-            exclude2, exclude2_ok, exclude2_uri = None, None, None
-
-        parent = ":{0}".format(create_label(disorder)[1]) if top_level in [-1,
-                 2] else None
-        parent_label = create_label(disorder)[0] if top_level in [-1, 2] else \
-                       None
-
-        if specifier:
-            if ispec in [6, 7, 24, 25, 26]:
-                disorder = " ".join([specifier, disorder])
-            elif ispec in [27, 28, 56, 78]:
-                disorder = " ".join([disorder, specifier])
-            else:
-                disorder = ", ".join([disorder, specifier])
-
-        if include1 and include2:
-            disorder = " ".join([disorder, "with", include1, "and", include2])
-        else:
-            for include in [include1, include2]:
-                if include:
-                    disorder = " with ".join([disorder, include])
-
-        if exclude1 and exclude2:
-            disorder = " ".join([disorder, "without", exclude1, "and without",
-                       exclude2])
-        else:
-            for exclude in [exclude1, exclude2]:
-                if exclude:
-                    disorder = " with ".join([disorder, exclude])
-
-        if severity:
-            if isevr in [4, 5]:
-                disorder = " ".join([disorder, severity])
-            else:
-                disorder = " ".join([severity, disorder])
-
-        disorder, disorder_ok = create_label(disorder)
-        disorder_uri = ":{0}".format(disorder_ok)
-
-        if parent:
-            fid.write("\n{0} rdfs:subClassOf {1} .\n".format(disorder_uri,
-                      parent))
-
-        # Loop through Disorder-related variables:
-        indices = [ilvl0, ilvl1, ilvl2, ilvl3, iD, isevr, ispec,
-                   incl1, incl2, ixcl1, ixcl2]
-        labels = [level0, level1, level2, level3, disorder, severity,
-                 specifier, include1, include2, exclude1, exclude2]
-        labels_ok = [level0_ok, level1_ok, level2_ok, level3_ok, disorder_ok,
-                    severity_ok, specifier_ok, include1_ok, include2_ok,
-                    exclude1_ok, exclude2_ok]
-        uris = [level0_uri, level1_uri, level2_uri, level3_uri, disorder_uri,
-                severity_uri, specifier_uri, include1_uri, include2_uri,
-                exclude1_uri, exclude2_uri]
-        equivalentclasses = [None, None, None, None, None,
-                             None, None, None, None, None, None]
-        subclassofs = [MentalDisorder_uri, level0_uri, level1_uri, level2_uri,
-                       level3_uri, None, None, None, None, None, None]
-        label_types = [None, None, None, None, None,
-                       "http://purl.obolibrary.org/obo/PATO_0000049",
-                       ":DiagnosticSpecifier", ":DiagnosticInclusionCriterion",
-                       ":DiagnosticInclusionCriterion",
-                       ":DiagnosticExclusionCriterion",
-                       ":DiagnosticExclusionCriterion"]
-        nlabels = len(labels)
-        for i in range(nlabels):
-            if indices[i]:
-
-                # subClassOf is direct upper level (disorder is any upper level
-                # ):
-                superclass = ":MentalDisorder"
-                if i < nlabels:
-                    superclass_subset = []
-                    [superclass_subset.append(subclassofs[j]) for j in range(
-                     len(subclassofs)) if subclassofs[j] not in X]
-                    subclassof = superclass_subset[-1]
-                    while(len(superclass_subset) > 0):
-                        subsuper = superclass_subset.pop()
-                        try:
-                            supersub = superclass_subset[-1]
-                        except:
-                            supersub = ":MentalDisorder"
-                        if subsuper not in superclassing:
-                            superclassing[subsuper] = supersub
-                    if subclassof not in X:
-                        superclass = subclassof
-                else:
-                    subclassof = superclass
-
-                # Build rdf string if new and unique label:
-                label_ok = labels_ok[i]
-                if label_ok not in X and label_ok not in label_list:
-                    if "".join([":", label_ok]) in superclassing:
-                        subclassof = None
-                    label_list.append(label_ok)
-                    rdf_string = build_rdf(uri_stem=label_ok,
-                                               rdf_type='owl:Class',
-                                               label=labels[i],
-                                               comment=None,
-                                               index=indices[i],
-                                               worksheet=sheets2[i],
-                                               worksheet2=Reference,
-                                               equivalent_class_uri=equivalentclasses[i],
-                                               subclassof_uri=subclassof,
-                                               property_domain=None,
-                                               property_range=None,
-                                               exclude=X)
-                    fid.write(rdf_string)
-
-                    # --------------------------------------------------------
-                    # Disorder-related triples
-                    # --------------------------------------------------------
-                    if i == 4:
-                        if severity_uri:
-                            fid.write("\n{0} {1} {2} .\n".format(disorder_uri,
-                                                                 hasSeverity_uri,
-                                                                 severity_uri))
-                        if specifier_uri:
-                            fid.write("\n{0} {1} {2} .\n".format(disorder_uri,
-                                                                 hasDiagnosticSpecifier_uri,
-                                                                 specifier_uri))
-                        if include1_uri:
-                            fid.write("\n{0} {1} {2} .\n".format(disorder_uri,
-                                                                 hasInclusionCriterion_uri,
-                                                                 include1_uri))
-                        if include2_uri:
-                            fid.write("\n{0} {1} {2} .\n".format(disorder_uri,
-                                                                 hasInclusionCriterion_uri,
-                                                                 include2_uri))
-                        if exclude1_uri:
-                            fid.write("\n{0} {1} {2} .\n".format(disorder_uri,
-                                                                 hasExclusionCriterion_uri,
-                                                                 exclude1_uri))
-                        if exclude2_uri:
-                            fid.write("\n{0} {1} {2} .\n".format(disorder_uri,
-                                                                 hasExclusionCriterion_uri,
-                                                                 exclude2_uri))
-                        if ICD10_uri:
-                            fid.write("\n{0} :hasICD10Code {1} .\n\n{2} .\n".format(disorder_uri,
-                                                                         ICD10_uri, ICD10_coding_string))
-                        if ICD9_uri:
-                            fid.write("\n{0} :hasICD9Code {1} .\n\n{2} .\n".format(disorder_uri,
-                                                                         ICD9_uri, ICD9_coding_string))
-
-        if parent and parent[1:] not in labels_ok:
-            fid.write("""\n{0} rdfs:label "{1}"^^rdfs:Literal ;\n    rdfs:subClassOf {2} .\n""".format(parent, parent_label, subclassof))
-
-for subsuper in superclassing:
-    if superclassing[subsuper] != subsuper:
-        fid.write("\n{0} rdfs:subClassOf {1} .\n".format(subsuper,
-                  superclassing[subsuper]))
-
-# ----------------------------------------------------------------------------
-# Symptom-related classes and triples
-# ----------------------------------------------------------------------------
-
-fid.write(print_subheader('Symptom classes and triples'))
-#           SymptomCat, Symptom,
-#           Questionnaire, Question, QuestionCat, AnswerType,
-#           Reference, ReferenceType]
-
-# Loop through Symptoms:
-sheets2 = [Symptom, SymptomCat]
-for iS, symptom in enumerate(Symptom.SignOrSymptomSubCategoryName):
-    if symptom not in X:
-
-        # Indices to rows in Symptom-related worksheets:
-        isymcat = get_index2(
-            Symptom,
-            'SignOrSymptomMainCategory_index',
-            iS,
-            SymptomCat
-        )
-        if isymcat not in X:
-            idisorder_symcat = get_index2(SymptomCat, 'Disorder_index',
-                                          isymcat, Disorder)
-        else:
-            idisorder_symcat = None
-
-        # Unique labels and URIs:
-        symptom, symptom_ok = create_label(symptom)
-        symptom_uri = "mhdb:{0}".format(symptom_ok)
-        try:
-            symptomcat, symptomcat_ok = create_label(
-                get_cell(
-                    SymptomCat,
-                    'SymptomMainCategoryName',
-                    isymcat,
-                    X,
-                    True
-                )
-            )
-            symptomcat_uri = "mhdb:{0}".format(symptomcat_ok)
-        except:
-            symptomcat, symptomcat_ok, symptomcat_uri = None, None, None
-        try:
-            disorder_for_symptom, disorder_for_symptom_ok = create_label(
-                get_cell(
-                    Disorder,
-                    "DisorderName",
-                    idisorder_symcat,
-                    X,
-                    True
-                )
-            )
-            disorder_for_symptom_uri = "mhdb:{0}".format(
-                disorder_for_symptom_ok
-            )
-        except:
-            disorder_for_symptom, disorder_for_symptom_ok, disorder_for_symptom_uri = None, None, None
-
-        # Loop through Symptom-related classes:
-        indices = [iS, isymcat]
-        labels = [symptom, symptomcat]
-        labels_ok = [symptom_ok, symptomcat_ok]
-        uris = [symptom_uri, symptomcat_uri]
-        equivalentclasses = [None, None]
-        subclassofs = [symptomcat_uri, SignOrSymptom_uri]
-        nlabels = len(labels)
-        for i in range(nlabels):
-            if indices[i] not in X:
-
-                # Build rdf string if new and unique label:
-                label_ok = labels_ok[i]
-                if label_ok not in X and label_ok not in label_list:
-                    label_list.append(label_ok)
-                    rdf_string = build_rdf(uri_stem=label_ok,
-                                           rdf_type='owl:Class',
-                                           label=labels[i],
-                                           comment=None,
-                                           index=indices[i],
-                                           worksheet=sheets2[i],
-                                           worksheet2=Reference,
-                                           equivalent_class_uri=
-                                                          equivalentclasses[i],
-                                           subclassof_uri=subclassofs[i],
-                                           property_domain=None,
-                                           property_range=None,
-                                           exclude=X)
-                    fid.write(rdf_string)
-
-                    # --------------------------------------------------------
-                    # Symptom-related triples
-                    # --------------------------------------------------------
-                    if i == 0:
-                        if disorder_for_symptom_uri:
-                            fid.write("\n{0} {1} {2} .\n".format(
-                                disorder_for_symptom_uri,
-                                hasSymptom_uri,
-                                symptom_uri
-                            ))
-                        fid.write("\n{0} {1} {2} .\n".format(symptom_uri,
-                                                             'rdfs:subClassOf',
-                                                             SignOrSymptom_uri))
-                    elif i == 1 and symptomcat_uri:
-                        fid.write("\n{0} {1} {2} .\n".format(symptom_uri,
-                                                             'rdfs:subClassOf',
-                                                             symptomcat_uri))
-                        fid.write("\n{0} {1} {2} .\n".format(symptomcat_uri,
-                                                             'rdfs:subClassOf',
-                                                             SignOrSymptom_uri))
-                                                             
-                        fid.write((
-                            "\n_:{0} rdf:type rdf:Statement ;\n"
-                            "\trdf:subject {1} ;\n"
-                            "\trdf:predicate rdfs:subClassOf ;\n"
-                            "\trdf:object {2} ;\n"
-                            "\tdcterms:source {3} .\n\n"
-                        ).format(
-                            "_".join([
-                                symptom_ok,
-                                symptomcat_ok
-                            ]),
-                            symptom_uri,
-                            symptomcat_uri,
-                            "<{0}>".format(
-                                 Reference.loc[
-                                    Reference["index"]==8
-                                ]["ReferenceLink"].values[0]
-                            ) if isinstance(
-                                Reference.loc[
-                                    Reference["index"]==8
-                                ]["ReferenceLink"].values[0],
-                                str
-                            ) else "mhdb:{0}".format(create_label(
-                                Reference.loc[
-                                    Reference["index"]==8
-                                ]["ReferenceName"].values[0]
-                            ))
-                        ))
-                                                             
-                                                             
-for iS, symptom in enumerate(SignOrSymptom.index):
-    symptom = "unnamed_SignOrSymptom_{0}".format(
-        str(iS)
-    ) if not isinstance(SignOrSymptom.SignOrSymptom[
-        iS
-    ], str) else SignOrSymptom.SignOrSymptom[iS]
-    if symptom not in X:
-
-        # Indices to rows in Symptom-related worksheets:
-        isymcat = get_index2(
-            SignOrSymptom,
-            'SignOrSymptom_index',
-            iS,
-            SignOrSymptom
-        )
-        if isinstance(isymcat, int):
-            isymcat = "unnamed_SignOrSymptom_{0}".format(
-                str(SignOrSymptom.SignOrSymptom_index[iS])
-            ) if not isinstance(SignOrSymptom.SignOrSymptom[
-                SignOrSymptom.SignOrSymptom_index[iS]
-            ], str) else SignOrSymptom.SignOrSymptom[
-                SignOrSymptom.SignOrSymptom_index[iS]
-            ]
-            if isymcat not in X:
-                idisorder_symcat = get_index2(
-                    SignOrSymptom,
-                    'Disorder_index',
-                    isymcat,
-                    Disorder
-                )
-        else:
-            idisorder_symcat = None
-
-        # Unique labels and URIs:
-        symptom, symptom_ok = create_label(symptom)
-        symptom_uri = "mhdb:{0}".format(symptom_ok)
-        try:
-            symptomcat, symptomcat_ok = create_label(
-                get_cell(
-                    SignOrSymptom,
-                    'SignOrSymptom',
-                    isymcat,
-                    X,
-                    True
-                )
-            )
-            symptomcat_uri = "mhdb:{0}".format(symptomcat_ok)
-        except:
-            symptomcat, symptomcat_ok, symptomcat_uri = None, None, None
-        try:
-            disorder_for_symptom, disorder_for_symptom_ok = create_label(
-                get_cell(
-                    Disorder,
-                    'DisorderName',
-                    idisorder_symcat,
-                    X,
-                    True
-                )
-            )
-            disorder_for_symptom_uri = "mhdb:{0}".format(
-                disorder_for_symptom_ok
-            )
-        except:
-            disorder_for_symptom, disorder_for_symptom_ok, disorder_for_symptom_uri = None, None, None
-
-        # Loop through Symptom-related classes:
-        indices = [iS, isymcat]
-        labels = [symptom, symptomcat]
-        labels_ok = [symptom_ok, symptomcat_ok]
-        uris = [symptom_uri, symptomcat_uri]
-        equivalentclasses = [None, None]
-        subclassofs = [symptomcat_uri, None]
-        nlabels = len(labels)
-        for i in range(nlabels):
-            if indices[i] not in X:
-
-                # Build rdf string if new and unique label:
-                label_ok = labels_ok[i]
-                if label_ok not in X and label_ok not in label_list:
-                    label_list.append(label_ok)
-                    rdf_string = build_rdf(uri_stem=label_ok,
-                                           rdf_type='owl:Class',
-                                           label=labels[i],
-                                           comment=None,
-                                           index=indices[i],
-                                           worksheet=SignOrSymptom,
-                                           worksheet2=Reference,
-                                           equivalent_class_uri=equivalentclasses[i],
-                                           subclassof_uri=subclassofs[i],
-                                           property_domain=None,
-                                           property_range=None,
-                                           exclude=X)
-                    fid.write(rdf_string)
-
-                    # --------------------------------------------------------
-                    # Symptom-related triples
-                    # --------------------------------------------------------
-                    if i == 0:
-                        if disorder_for_symptom_uri:
-                            fid.write("\n{0} {1} {2} .\n".format(
-                                disorder_for_symptom_uri,
-                                hasSymptom_uri,
-                                symptom_uri
-                            ))
-                        fid.write("\n{0} {1} {2} .\n".format(symptom_uri,
-                                                             'rdfs:subClassOf',
-                                                             SignOrSymptom_uri))
-                    elif i == 1 and symptomcat_uri:
-                        fid.write("\n{0} {1} {2} .\n".format(symptom_uri,
-                                                             'rdfs:subClassOf',
-                                                             symptomcat_uri))
-                        fid.write("\n{0} {1} {2} .\n".format(symptomcat_uri,
-                                                             'rdfs:subClassOf',
-                                                             SignOrSymptom_uri))
-
-                        fid.write((
-                            "\n_:{0} rdf:type rdf:Statement ;\n"
-                            "\trdf:subject {1} ;\n"
-                            "\trdf:predicate rdfs:subClassOf ;\n"
-                            "\trdf:object {2} ;\n"
-                            "\tdcterms:source {3} .\n\n"
-                        ).format(
-                            "_".join([
-                                symptom_ok,
-                                symptomcat_ok
-                            ]),
-                            symptom_uri,
-                            symptomcat_uri,
-                            "<{0}>".format(
-                                 Reference.loc[
-                                    Reference["index"]==8
-                                ]["ReferenceLink"].values[0]
-                            ) if isinstance(
-                                Reference.loc[
-                                    Reference["index"]==8
-                                ]["ReferenceLink"].values[0],
-                                str
-                            ) else "mhdb:{0}".format(create_label(
-                                Reference.loc[
-                                    Reference["index"]==8
-                                ]["ReferenceName"].values[0]
-                            ))
-                        ))
-
-# ----------------------------------------------------------------------------
-# Questions/questionnaire classes
-# ----------------------------------------------------------------------------
-fid.write(print_subheader('Question classes and triples'))
-
-# Loop through Questions:
-sheets2 = [Question, Question, AnswerType, AnswerType,
-           QuestionCat, Questionnaire]
-rdf_types = [Question_uri, Question_uri, 'owl:Class', 'owl:Class',
-             ':DisorderName', Questionnaire_uri]
-for iQ, question in enumerate(Question.QuestionText):
-    if question not in X:
-
-        # Indices to rows in Question-related worksheets:
-        ians1type = get_index2(Question, 'AnswerType_index', iQ, AnswerType)
-        ians2type = get_index2(Question, 'Answer2Type_index', iQ, AnswerType)
-        iqcat = get_index2(Question, 'QuestionCategory_index', iQ, QuestionCat)
-        iqstnr = get_index2(Question, 'Reference_index', iQ, Reference)
-
-        # Unique labels and URIs:
-        question, question_ok = create_label(question)
-        question_uri = "mhdb:{0}".format(question_ok)
-        try:
-            question2, question2_ok = create_label(get_cell(Question, 'Question2Text', iQ, X, True))
-            question2_uri = "mhdb:{0}".format(question2_ok)
-        except:
-            question2, question2_ok, question2_uri = None, None, None
-        try:
-            answertype, answertype_ok = create_label(
-                get_cell(AnswerType, 'AnswerTypeName', ians1type, X, True))
-            answertype_uri = "mhdb:{0}".format(answertype_ok)
-        except:
-            answertype, answertype_ok, answertype_uri = None, None, None
-        try:
-            answer2type, answer2type_ok = create_label(
-                get_cell(AnswerType, 'AnswerTypeName', ians2type, X, True))
-            answer2type_uri = "mhdb:{0}".format(answer2type_ok)
-        except:
-            answer2type, answer2type_ok, answer2type_uri = None, None, None
-        try:
-            questioncat, questioncat_ok = create_label(
-                get_cell(QuestionCat, 'QuestionCategoryName', iqcat, X, True))
-            questioncat_uri = "mhdb:{0}".format(questioncat_ok)
-        except:
-            questioncat, questioncat_ok, questioncat_uri = None, None, None
-        try:
-            questionnaire, questionnaire_ok = create_label(
-                get_cell(Reference, 'ReferenceName', iqstnr, X, True))
-            questionnaire_uri = "mhdb:{0}".format(questionnaire_ok)
-        except:
-            questionnaire, questionnaire_ok, questionnaire_uri = None, None, None
-
-        # Loop through Question-related classes:
-        indices = [iQ, iQ, ians1type, ians2type, iqcat, iqstnr]
-        labels = [question, question2, answertype, answer2type,
-                  questioncat, questionnaire]
-        labels_ok = [question_ok, question2_ok, answertype_ok, answer2type_ok,
-                     questioncat_ok, questionnaire_ok]
-        uris = [question_uri, question2_uri, answertype_uri, answer2type_uri,
-                questioncat_uri, questionnaire_uri]
-        equivalentclasses = [None, None, None, None, None, None]
-        subclassofs = [None, None, AnswerType_uri, AnswerType_uri, None, None]
-        nlabels = len(labels)
-        for i in range(nlabels):
-            if indices[i]:
-
-                # Build rdf string if new and unique label:
-                label_ok = labels_ok[i]
-                if label_ok not in X and label_ok not in label_list:
-                    label_list.append(label_ok)
-                    rdf_string = build_rdf(uri_stem=label_ok,
-                                           rdf_type=rdf_types[i],
-                                           label=labels[i],
-                                           comment=None,
-                                           index=indices[i],
-                                           worksheet=sheets2[i],
-                                           worksheet2=Reference,
-                                           equivalent_class_uri=equivalentclasses[i],
-                                           subclassof_uri=subclassofs[i],
-                                           property_domain=None,
-                                           property_range=None,
-                                           exclude=X)
-                    fid.write(rdf_string)
-
-                    # --------------------------------------------------------
-                    # Question-related triples
-                    # --------------------------------------------------------
-                    # Since writing only unique labels, push to i == 0:
-                    if i == 0:
-                        # fid.write("\n{0} {1} {2} .\n".format(question_uri,
-                        #                                      'rdf:type',
-                        #                                      Question_uri))
-                        if answertype_uri:
-                            fid.write("\n{0} {1} {2} .\n".format(question_uri,
-                                                                 hasAnswerType_uri,
-                                                                 answertype_uri))
-                        if question2_uri:
-                            fid.write("\n{0} {1} {2} .\n".format(question_uri,
-                                                                 hasFollowupQuestion_uri,
-                                                                 question2_uri))
-                        if questioncat_uri:
-                            fid.write("\n{0} {1} {2} .\n".format(question_uri,
-                                                                 'dcterms:isPartOf',
-                                                                 questioncat_uri))
-                        if questionnaire_uri:
-                            fid.write("\n{0} {1} {2} .\n".format(question_uri,
-                                                                 'dcterms:isPartOf',
-                                                                 questionnaire_uri))
-                    elif i == 1 and question2_uri:
-                        # fid.write("\n{0} {1} {2} .\n".format(question2_uri,
-                        #                                      'rdf:type',
-                        #                                      Question_uri))
-                        if answer2type_uri:
-                            fid.write("\n{0} {1} {2} .\n".format(question2_uri,
-                                                                 hasAnswerType_uri,
-                                                                 answer2type_uri))
-                    # elif i == 2 and answertype_uri:
-                    #     fid.write("\n{0} {1} {2} .\n".format(answertype_uri,
-                    #                                          'rdfs:subClassOf',
-                    #                                          AnswerType_uri))
-                    # elif i == 3 and answer2type_uri:
-                    #     fid.write("\n{0} {1} {2} .\n".format(answer2type_uri,
-                    #                                          'rdfs:subClassOf',
-                    #                                          AnswerType_uri))
-                    elif i == 4 and questioncat_uri:
-                        # fid.write("\n{0} {1} {2} .\n".format(questioncat_uri,
-                        #                                      'rdfs:subClassOf',
-                        #                                      QuestionCategory_uri))
-                        if questionnaire_uri:
-                            fid.write("\n{0} {1} {2} .\n".format(questioncat_uri,
-                                                                 'dcterms:isPartOf',
-                                                                 questionnaire_uri))
-                    # elif i == 5 and questionnaire_uri:
-                    #     fid.write("\n{0} {1} {2} .\n".format(questionnaire_uri,
-                    #                                          'rdf:type',
-                    #                                          Questionnaire_uri))
-
-# ----------------------------------------------------------------------------
-# Reference classes and triples
-# ----------------------------------------------------------------------------
-fid.write(print_subheader('Reference classes and triples'))
-
-# Loop through References:
-sheet1 = Reference
-sheets2 = [Reference, ReferenceType]
-sheets3 = [None, Reference]
-rdf_types = [Reference_uri, 'owl:Class']
-for iR, reference in enumerate(Reference.ReferenceName):
-
-    ireftype = Reference.ReferenceType_index.iloc[[iR][0]]
-    index = pd.Index(ReferenceType['index']).get_loc(ireftype)
-    label, label_safe = create_label(ReferenceType.ReferenceTypeName[index])
-
-
-    # Indices to rows in Symptom-related worksheets:
-    ireftype = get_index2(Reference, 'ReferenceType_index', iR, ReferenceType)
-
-    # Unique labels and URIs:
-    reference, reference_ok = create_label(reference)
-    reference_link = Reference.ReferenceLink[iR]
-    reference_uri = "<{0}>".format(
-        reference_link
-    ) if isinstance(
-        reference_link,
-        str
-    ) else "mhdb:{0}".format(reference_ok)
-    try:
-        referencetype, referencetype_ok = create_label(
-            get_cell(ReferenceType, 'ReferenceTypeName', ireftype, X, True))
-        referencetype_uri = "mhdb:{0}".format(referencetype_ok)
-    except:
-        referencetype, referencetype_ok, referencetype_uri = None, None, None
-
-    # Loop through Reference-related classes:
-    indices = [iR, ireftype]
-    labels = [reference, referencetype]
-    labels_ok = [reference_uri, referencetype_ok]
-    equivalentclasses = [None, None]
-    subclassofs = [None, ReferenceType_uri]
-    nlabels = len(labels)
-    for i in range(nlabels):
-        if indices[i]:
-
-            # Build rdf string if new and unique label:
-            label_ok = labels_ok[i]
-            if label_ok not in X and label_ok not in label_list:
-                label_list.append(label_ok)
-                rdf_string = build_rdf(uri_stem=label_ok,
-                                       rdf_type=rdf_types[i],
-                                       label=labels[i],
-                                       comment=None,
-                                       index=indices[i],
-                                       worksheet=sheets2[i],
-                                       worksheet2=sheets3[i],
-                                       equivalent_class_uri=equivalentclasses[
-                                           i
-                                       ],
-                                       subclassof_uri=subclassofs[i],
-                                       property_domain=None,
-                                       property_range=None,
-                                       exclude=X)
-                fid.write(rdf_string)
-
-    # ------------------------------------------------------------------------
-    # Reference-related triples
-    # ------------------------------------------------------------------------
-    # fid.write("\n{0} {1} {2} .\n".format(reference_uri, 'rdf:type',
-    #                                      Reference_uri))
-
-# ----------------------------------------------------------------------------
-# General axioms
-# ----------------------------------------------------------------------------
-#fid.write(print_subheader('General axioms'))
-#general_axioms_string = print_general_axioms(disjoint_classes_list=[])
-#fid.write(general_axioms_string)
-
-# ============================================================================
-# Doctests
-# ============================================================================
-#if __name__ == "__main__":
-#    import doctest
-#    doctest.testmod(verbose=True)
+    # ------------------------------------------------------------------------------
+    # Import spreadsheets
+    # ------------------------------------------------------------------------------
+    mentalhealth_xls = pd.ExcelFile(mentalhealthFILE)
+    mentalhealthtechnology3_xls = pd.ExcelFile(mentalhealthtechnology3FILE)
+    revised_structure_xls = pd.ExcelFile(revised_structureFILE)
+    X = ['', 'nan', np.nan, 'None', None]
+
+    # ------------------------------------------------------------------------------
+    # Create output RDF mentalhealthFILE
+    # ------------------------------------------------------------------------------
+    label = "mental health database"
+    comment="""
+    ======================
+    Mental Health Database
+    ======================
+
+    This mental health database inter-relates information about mental health
+    diagnoses, symptoms, assessement questionnaires, etc., and is licensed
+    under the terms of the Creative Commons BY license.
+    Current information can be found on the website, http://mentalhealth.tech.
+    """
+
+    # ------------------------------------------------------------------------------
+    # Extract worksheets as pandas dataframes
+    # ------------------------------------------------------------------------------
+    #sheet_names = mentalhealth_xls.sheet_names
+    #for sheet_name in sheet_names:
+    #    exec("{0} = mentalhealth_xls.parse('{0}')".format(sheet_name))
+    Classes = mentalhealth_xls.parse("Classes")
+    Properties = mentalhealth_xls.parse("Properties")
+    Level0 = mentalhealth_xls.parse("DisorderCategory")
+    Level1 = mentalhealth_xls.parse("DisorderSubcategory")
+    Level2 = mentalhealth_xls.parse("DisorderSubsubcategory")
+    Level3 = mentalhealth_xls.parse("DisorderSubsubsubcategory")
+    Disorder = mentalhealth_xls.parse("Disorder")
+    Severity = mentalhealth_xls.parse("DisorderSeverity")
+    Specifier = mentalhealth_xls.parse("DiagnosticSpecifier")
+    Criterion = mentalhealth_xls.parse("DiagnosticCriterion")
+    SignOrSymptom = mentalhealth_xls.parse("SignOrSymptom")
+    SymptomCat = mentalhealth_xls.parse("SignOrSymptom_Main_Category")
+    Symptom = mentalhealth_xls.parse("SignOrSymptom_Sub_Category")
+    Questionnaire = mentalhealth_xls.parse("Questionnaire")
+    Question = mentalhealth_xls.parse("Question")
+    QuestionCat = mentalhealth_xls.parse("QuestionCategory")
+    AnswerType = mentalhealth_xls.parse("AnswerType")
+    Reference = mentalhealth_xls.parse("Reference")
+    ReferenceType = mentalhealth_xls.parse("ReferenceType")
+    CMICat = mentalhealth_xls.parse("ChildMindInstituteCategory")
+    Ontologies = mentalhealth_xls.parse("Ontologies")
+    TechProject = mentalhealthtechnology3_xls.parse("Project")
+    RSOT = mentalhealthtechnology3_xls.parse("ResearchStudyOnTech")
+    RCTDT = mentalhealthtechnology3_xls.parse("ResearchCitedToDevelopTech")
+    NAAT = mentalhealthtechnology3_xls.parse("NewsArticleAboutTech")
+    OSC = mentalhealthtechnology3_xls.parse("OpenSourceCode")
+    TechSensor = mentalhealthtechnology3_xls.parse("Sensor")
+    TechMHealthPeople = mentalhealthtechnology3_xls.parse("MHealthPeople")
+    TechHomepageLink = mentalhealthtechnology3_xls.parse("HomePageLink")
+    Revised1 = revised_structure_xls.parse("Sheet1")
+    RevisedContext = revised_structure_xls.parse("context")
+    RevisedGender = revised_structure_xls.parse("gender")
+    RevisedAgeGroup = revised_structure_xls.parse("age_group")
+    Revised_NBP = revised_structure_xls.parse("neutral behaviour prefix")
+    Revised_DP = revised_structure_xls.parse("dimensional prefix")
+    Revised_NBS = revised_structure_xls.parse("neutral behaviour suffix")
+
+
+    # ------------------------------------------------------------------------------
+    # Write header
+    # with Ontologies listed in mentalhealth.Ontologies ------------------------------------------------------------------------------
+
+    fid = open(outfile, 'w')
+    header_string = write_header(
+        base_uri,
+        version,
+        label,
+        comment,
+        prefixes=[
+            (
+                row[1]["Prefix"],
+                row[1]["PrefixURI"]
+            ) for row in Ontologies.iterrows()
+        ]
+    )
+    fid.write(header_string)
+
+if __name__ == "__main__":
+    main()

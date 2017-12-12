@@ -33,6 +33,17 @@ def build_import(uri):
     uri : string
         import IRI
 
+    Returns
+    -------
+    rdf_string : string
+        RDF triples
+
+    """
+    if uri:
+        return "owl:imports <{0}> ".format(uri)
+    else:
+        return None
+
 def build_header_prefixes(prefixes):
     """
     Write turtle-formatted header prefix string for given list of (prefix,
