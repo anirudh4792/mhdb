@@ -93,6 +93,7 @@ def write_about_statement(subject, predicate, object, predicates):
                 object
             ]))),
             [
+                ("rdf:type", "rdf:Statement"),
                 ("rdf:subject", subject),
                 ("rdf:predicate", predicate),
                 ("rdf:object", object),

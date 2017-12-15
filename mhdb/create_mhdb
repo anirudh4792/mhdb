@@ -31,6 +31,36 @@ from mhdb.write_ttl import check_iri, mhdb_iri, write_header, write_ttl
 logging.basicConfig(filename='debug.log',level=logging.DEBUG)
 logging.captureWarnings(True)
 
+
+def check_source(predicates):
+    """
+    Check if we have specified a source, and
+    if not, put us as the source.
+    
+    Parameter
+    ---------
+    predicates: set of 2-tuples
+        (predicate: string,
+        object: string)
+        
+    Returns
+    -------
+    predicates: set of 2-tuples
+        (predicate: string,
+        object: string)
+    """
+    if "dcterms:source" not in list(
+        list(zip(*predicates))[0]
+    ):
+        predicates.add(
+            (
+                "dcterms:source",
+                mhdb_iri("Child Minds MATTER Lab")
+            )
+        )
+    return(predicates)
+        
+
 def follow_fk(
     sheet,
     foreign_key_header,
@@ -216,15 +246,7 @@ def follow_structure(row, files, stc, prefixes=None):
                                         )
                                     )
                                 )              
-            if "dcterms:source" not in list(
-                list(zip(*related_predicates))[0]
-            ):
-                related_predicates.add(
-                    (
-                        "dcterms:source",
-                        mhdb_iri("Child Minds MATTER Lab")
-                    )
-                )
+            check_source(related_predicates)
             ttl_string = "\n".join([
                 ttl_string,
                 write_ttl(
@@ -247,7 +269,13 @@ def follow_structure(row, files, stc, prefixes=None):
                         "mhdb:None" != pred[0]
                     ) and (
                         "mhdb:None" != pred[1]
-                    )}
+                    )},
+                    [(
+                        pred[0],
+                        pred[1]
+                    ) for pred in related_predicates if pred[
+                        0
+                    ]=="dcterms:source"]
                 )
             ])
     return(ttl_string)
