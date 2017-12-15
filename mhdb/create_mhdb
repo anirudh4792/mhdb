@@ -9,18 +9,249 @@ Authors:
 Copyright 2017, Child Mind Institute (http://childmind.org), Apache v2.0 License
 
 """
-import os
 import argparse
+import logging
 import numpy as np
+import os
 import pandas as pd
 import re
+import sys
+import traceback
 import urllib.request
+import warnings
+
 
 from mhdb.info import __version__ as version
-from mhdb.spreadsheet_io import convert_string_to_label, create_label, \
-    get_index2, get_cell, download_google_sheet
-from mhdb.write_ttl import write_header, write_ttl 
+from mhdb.spreadsheet_io import convert_string_to_label, create_label
+from mhdb.spreadsheet_io import download_google_sheet, get_index2, get_cell
+from mhdb.spreadsheet_io import split_on_slash
+from mhdb.write_ttl import check_iri, mhdb_iri, write_header, write_ttl    
 
+
+logging.basicConfig(filename='debug.log',level=logging.DEBUG)
+logging.captureWarnings(True)
+
+def follow_fk(
+    sheet,
+    foreign_key_header,
+    foreign_value_header,
+    fk
+):
+    """
+    Function to follow foreign keys to IRIs.
+    
+    Parameters
+    ----------
+    sheet: DataFrame
+    
+    foreign_key_header: string
+    
+    foreign_value_header: string
+    
+    fk: int or string
+    
+    Returns
+    -------
+    iri: string
+    """
+    try:
+        main_value = sheet.loc[
+            sheet[foreign_key_header]==fk
+        ][foreign_value_header].values[0]
+        if isinstance(main_value, str):
+            return(main_value)
+        else:
+            return(
+                str(sheet.loc[
+                    sheet[foreign_key_header]==fk
+                ][foreign_value_backup_header].values[0])
+            )
+    except:
+        logging.info("Unexpected error (follow_fk):\n\t\t{0}\n\t{1}\n".format(
+            sys.exc_info()[0],
+            "\t".join([
+                foreign_key_header,
+                foreign_value_header,
+                str(fk)
+            ])
+        ))
+
+
+def follow_structure(row, files, stc, prefixes=None):
+    """
+    Function to follow format of "structure_to_keep"
+    
+    Parameters
+    ----------
+    row: Series
+        pandas series from generator
+        ie, row[1] for row in iterrows()
+        
+    files : dictionary
+        {fn: string:
+        file: DataFrame}
+        one entry per unique value in structure_to_keep's "File" column
+        
+    stc : DataFrame
+    
+    prefixes : iterable of 2-tuples
+        (prefix_string: string
+        prefix_iri: string)
+        defined RDF prefixes
+    
+    Returns
+    -------
+    ttl_string : string
+    """
+    sheet = files[row.File].parse(row.Sheet)
+    ttl_string = ""
+    if row.Type != "foreign key":
+        for structure_row in sheet.iterrows():
+            subject = check_iri(
+                structure_row[1][row.Column_Header],
+                prefixes
+            )
+            related_predicates = set()
+            if (
+                isinstance(subject, str) and
+                subject.startswith("mhdb:")
+            ):
+                related_predicates.add(tuple((
+                    "rdfs:label",
+                    "\"\"\"{0}\"\"\"@en".format(
+                        str(structure_row[1][row.Column_Header]).replace(
+                            "\n",
+                            " "
+                        ).replace(
+                            "\"",
+                            "\\\""
+                        ).strip()                        
+                    )
+                )))
+            for related_rows in stc.iterrows():
+                if (
+                    related_rows[1]["File"] == row.File
+                ) and (
+                    related_rows[1]["Sheet"] == row.Sheet
+                ) and (
+                    related_rows[1]["Indexed_Entity"] == row.Column_Header
+                ) and (
+                    related_rows[1]["Type"] == "foreign key"
+                ):
+                    fks = structure_row[1][related_rows[1]["Column_Header"]]
+                    skb = related_rows[1]["split_key_by"]
+                    skb = skb if isinstance(skb, str) else None
+                    if isinstance(fks, float) and np.isnan(fks):
+                        continue
+                    fks = [
+                        int(float(fk)) for fk in str(fks).split(skb)
+                    ] if skb else [fks]
+                    svb = related_rows[1]["split_value_by"]
+                    svb = svb if isinstance(svb, str) else None
+                    if len(fks):
+                        for fk in fks:
+                            try:
+                                fvalues = follow_fk(
+                                    files[
+                                        related_rows[1]["Foreign File"]
+                                    ].parse(
+                                        related_rows[1][
+                                            "Foreign Sheet"
+                                        ]
+                                    ),
+                                    related_rows[1][
+                                        "Foreign Key Column_Header"
+                                    ],
+                                    related_rows[1][
+                                        "Foreign Value Column_Header"
+                                    ],
+                                    fk
+                                )
+                            except:
+                                fvalues = follow_fk(
+                                    files[
+                                        related_rows[1]["Foreign File"]
+                                    ].parse(
+                                        related_rows[1][
+                                            "Foreign Sheet"
+                                        ]
+                                    ),
+                                    related_rows[1][
+                                        "Foreign Key Column_Header"
+                                    ],
+                                    related_rows[1][
+                                        "Foreign Value Column_Backup_Header"
+                                    ],
+                                    fk
+                                )
+                            fvalues = fvalues.split(svb) if svb else [fvalues]
+                            for fvalue in fvalues:
+                                related_predicates.add(
+                                    (
+                                        check_iri(
+                                            related_rows[1][
+                                                "Definition or Relationship"
+                                            ],
+                                            prefixes
+                                        ),
+                                        check_iri(
+                                            fvalue,
+                                            prefixes
+                                        )
+                                    ) if related_rows[1][
+                                        "Type"
+                                    ] == "foreign key" else (
+                                        "rdf:type" if
+                                        related_rows[1][
+                                            "Class, Property or Instance"
+                                        ] == "Instance" else
+                                        "rdfs:subPropertyOf"
+                                        if related_rows[1][
+                                            "Class, Property or Instance"
+                                        ] == "Property" else
+                                        "rdfs:subClassOf",
+                                        check_iri(
+                                            related_rows[1]["Type"],
+                                            prefixes
+                                        )
+                                    )
+                                )              
+            if "dcterms:source" not in list(
+                list(zip(*related_predicates))[0]
+            ):
+                related_predicates.add(
+                    (
+                        "dcterms:source",
+                        mhdb_iri("Child Minds MATTER Lab")
+                    )
+                )
+            ttl_string = "\n".join([
+                ttl_string,
+                write_ttl(
+                    subject,
+                    {pred for pred in (
+                        related_predicates |
+                        {(
+                            "rdf:type" if
+                            row[
+                                "Class, Property or Instance"
+                            ] == "Instance" else
+                            "rdfs:subPropertyOf" if row[
+                                "Class, Property or Instance"
+                            ] == "Property" else
+                            "rdfs:subClassOf",
+                            check_iri(row.Type, prefixes)
+                        )}
+                    )
+                    if (pred) and (
+                        "mhdb:None" != pred[0]
+                    ) and (
+                        "mhdb:None" != pred[1]
+                    )}
+                )
+            ])
+    return(ttl_string)
+    
 
 def ICD_code(Disorder, ICD, id, X):
     # function to turtle ICD code and coding system
@@ -46,24 +277,124 @@ def ICD_code(Disorder, ICD, id, X):
     else:
         ICD_uri, ICD_coding_string = None, None
     return(ICD_uri, ICD_coding_string)
-
+    
+    
+def structure_to_keep(files, prefixes=None):
+    """
+    Parameter
+    ---------
+    files : dictionary of loaded Excel workbooks
+        one entry per unique value in structure_to_keep's "File" column
+        
+    prefixes : iterable of 2-tuples
+        (prefix_string: string
+        prefix_iri: string)
+        defined RDF prefixes
+    
+    Returns
+    -------
+    ttl_string : string
+        Turtle format string of relationships defined in structure_to_keep
+    """
+    stcFILE = download_google_sheet(
+        'data/keep.xlsx',
+        "1om00-MYhjL59ocI0EWhzvaWqEJWXYj6EVEE9mlXa5kM"
+    )
+    stc_xls = pd.ExcelFile(stcFILE)
+    stc = split_on_slash(
+        stc_xls.parse("Sheet1"),
+        "Indexed_Entity"
+    )
+    indexed_entities=stc[["File", "Sheet", "Indexed_Entity"]].drop_duplicates()
+    ttl_string = type_definitions(stc, prefixes)
+    for row in stc.iterrows():
+        if row[1][
+            ["File", "Sheet", "Column_Header"]
+        ].values.tolist() in indexed_entities.values.tolist():
+            row_string = follow_structure(row[1], files, stc, prefixes)
+            ttl_string = "\n".join([
+                ttl_string,
+                row_string
+            ])
+    return(ttl_string)
+    
+    
+def type_definitions(stc, prefixes=None):
+    """
+    Function to define types in structure_to_keep
+    
+    Parameter
+    ---------
+    stc: DataFrame
+    
+    prefixes : iterable of 2-tuples
+        (prefix_string: string
+        prefix_iri: string)
+        defined RDF prefixes
+    
+    Returns
+    -------
+    ttl_string: string
+    """
+    stc_types = stc.loc[
+        stc.Type != "foreign key"
+    ][
+        ["Type", "Definition or Relationship"]
+    ].drop_duplicates().dropna()
+    return("\n".join([
+        write_ttl(
+            check_iri(row[1].Type, prefixes),
+            [
+                (
+                    "rdfs:isDefinedBy",
+                    check_iri(
+                        row[1]["Definition or Relationship"],
+                        prefixes
+                    ) if (
+                        ":" in row[1]["Definition or Relationship"] and
+                        ": " not in row[1]["Definition or Relationship"]
+                    ) else row[1]["Definition or Relationship"]
+                )
+            ],
+            [
+                (
+                    "dcterms:source",
+                    check_iri("Child Minds MATTER Lab")
+                )
+            ]
+        ) for row in stc_types.iterrows()
+    ]))
+        
     
 def main():
-    mentalhealthFILE = download_google_sheet(
-        'data/mentalhealth.xlsx',
-        "13a0w3ouXq5sFCa0fBsg9xhWx67RGJJJqLjD_Oy1c3b0"
-    )
-    mentalhealthtechnology3FILE = download_google_sheet(
-        'data/mentalhealthtechnology3.xlsx',
-        "1SK-kT7EH34omb4FJnFW2uJbsXbklawlPXFx2X7hLnc8"
-    )
-    revised_structureFILE = download_google_sheet(
-        'data/revised_structure.xlsx',
-        "1REHmDXldCZ_L403Zq0N0LdhwNNEAXEIJHcNHzOIjnSQ"
-    )
-    
+    # ------------------------------------------------------------------------------
+    # Try to get latest spreadsheets
+    # Except use local copies
+    # ------------------------------------------------------------------------------
+    try:
+        mentalhealthFILE = download_google_sheet(
+            'data/mentalhealth.xlsx',
+            "13a0w3ouXq5sFCa0fBsg9xhWx67RGJJJqLjD_Oy1c3b0"
+        )
+    except:
+        mentalhealthFILE = 'data/mentalhealth.xlsx'
+    try:
+        mentalhealthtechnology3FILE = download_google_sheet(
+            'data/mentalhealthtechnology3.xlsx',
+            "1SK-kT7EH34omb4FJnFW2uJbsXbklawlPXFx2X7hLnc8"
+        )
+    except:
+        mentalhealthtechnology3FILE = 'data/mentalhealthtechnology3.xlsx'
+    try:
+        revised_structureFILE = download_google_sheet(
+            'data/revised_structure.xlsx',
+            "1REHmDXldCZ_L403Zq0N0LdhwNNEAXEIJHcNHzOIjnSQ"
+        )
+    except:
+        revised_structureFILE = 'data/revised_structure.xlsx'
     base_uri = "http://www.purl.org/mentalhealth"
     outfile = os.path.join(os.getcwd(), 'mhdb.ttl')
+    dsm_outfile = os.path.join(os.getcwd(), 'dsm.ttl')
 
     # ------------------------------------------------------------------------------
     # Import spreadsheets
@@ -91,65 +422,62 @@ def main():
     # ------------------------------------------------------------------------------
     # Extract worksheets as pandas dataframes
     # ------------------------------------------------------------------------------
-    #sheet_names = mentalhealth_xls.sheet_names
-    #for sheet_name in sheet_names:
-    #    exec("{0} = mentalhealth_xls.parse('{0}')".format(sheet_name))
-    Classes = mentalhealth_xls.parse("Classes")
-    Properties = mentalhealth_xls.parse("Properties")
-    Level0 = mentalhealth_xls.parse("DisorderCategory")
-    Level1 = mentalhealth_xls.parse("DisorderSubcategory")
-    Level2 = mentalhealth_xls.parse("DisorderSubsubcategory")
-    Level3 = mentalhealth_xls.parse("DisorderSubsubsubcategory")
-    Disorder = mentalhealth_xls.parse("Disorder")
-    Severity = mentalhealth_xls.parse("DisorderSeverity")
-    Specifier = mentalhealth_xls.parse("DiagnosticSpecifier")
-    Criterion = mentalhealth_xls.parse("DiagnosticCriterion")
-    SignOrSymptom = mentalhealth_xls.parse("SignOrSymptom")
-    SymptomCat = mentalhealth_xls.parse("SignOrSymptom_Main_Category")
-    Symptom = mentalhealth_xls.parse("SignOrSymptom_Sub_Category")
-    Questionnaire = mentalhealth_xls.parse("Questionnaire")
-    Question = mentalhealth_xls.parse("Question")
-    QuestionCat = mentalhealth_xls.parse("QuestionCategory")
-    AnswerType = mentalhealth_xls.parse("AnswerType")
-    Reference = mentalhealth_xls.parse("Reference")
-    ReferenceType = mentalhealth_xls.parse("ReferenceType")
-    CMICat = mentalhealth_xls.parse("ChildMindInstituteCategory")
-    Ontologies = mentalhealth_xls.parse("Ontologies")
-    TechProject = mentalhealthtechnology3_xls.parse("Project")
-    RSOT = mentalhealthtechnology3_xls.parse("ResearchStudyOnTech")
-    RCTDT = mentalhealthtechnology3_xls.parse("ResearchCitedToDevelopTech")
-    NAAT = mentalhealthtechnology3_xls.parse("NewsArticleAboutTech")
-    OSC = mentalhealthtechnology3_xls.parse("OpenSourceCode")
-    TechSensor = mentalhealthtechnology3_xls.parse("Sensor")
-    TechMHealthPeople = mentalhealthtechnology3_xls.parse("MHealthPeople")
-    TechHomepageLink = mentalhealthtechnology3_xls.parse("HomePageLink")
-    Revised1 = revised_structure_xls.parse("Sheet1")
-    RevisedContext = revised_structure_xls.parse("context")
-    RevisedGender = revised_structure_xls.parse("gender")
-    RevisedAgeGroup = revised_structure_xls.parse("age_group")
-    Revised_NBP = revised_structure_xls.parse("neutral behaviour prefix")
-    Revised_DP = revised_structure_xls.parse("dimensional prefix")
-    Revised_NBS = revised_structure_xls.parse("neutral behaviour suffix")
-
-
+    prefixes = [(
+        row[1]["Prefix"],
+        row[1]["PrefixURI"]
+    ) for row in mentalhealth_xls.parse('Ontologies').iterrows()]
+    
     # ------------------------------------------------------------------------------
     # Write header
     # with Ontologies listed in mentalhealth.Ontologies ------------------------------------------------------------------------------
 
     fid = open(outfile, 'w')
+    dsmfid = open(dsm_outfile, 'w')
     header_string = write_header(
         base_uri,
         version,
         label,
         comment,
-        prefixes=[
-            (
-                row[1]["Prefix"],
-                row[1]["PrefixURI"]
-            ) for row in Ontologies.iterrows()
-        ]
+        prefixes=prefixes
     )
     fid.write(header_string)
+    dsmfid.write(write_header(
+        "{0}/{1}".format(base_uri, "dsm"),
+        version,
+        "{0} — {1}".format(label, "DSM-V supplement"),
+        "\n".join([
+            comment,
+            "\t\t================\n\t\tDSM-V supplement\n\t\t================"
+        ]),
+        prefixes=prefixes
+    ))
+    ttl_string = structure_to_keep(
+        {
+            "mentalhealth":
+                mentalhealth_xls,
+            "revised structure for neutral states & lead questions":
+                revised_structure_xls,
+            "mentalhealthtechnology3":
+                mentalhealthtechnology3_xls
+        },
+        prefixes
+    )
+    ttl_strings = ttl_string.split(" .\n")
+    dsm_turtle = ""
+    mhdb_turtle = ""
+    for turtle in ttl_strings:
+        if "dsm.psychiatryonline.org" in turtle:
+            dsm_turtle = " .\n\n".join([
+                dsm_turtle,
+                turtle
+            ]) if len(dsm_turtle) else turtle
+        else:
+            mhdb_turtle = " .\n\n".join([
+                mhdb_turtle,
+                turtle
+            ]) if len(mhdb_turtle) else turtle
+    fid.write("{0} .\n".format(mhdb_turtle.rstrip(" .")))
+    dsmfid.write("{0} .\n".format(dsm_turtle.rstrip(" .")))
 
 if __name__ == "__main__":
     main()

@@ -12,6 +12,52 @@ Copyright 2017, Child Mind Institute (http://childmind.org), Apache v2.0 License
 from mhdb.spreadsheet_io import convert_string_to_label
 
 
+def check_iri(iri, prefixes=None):
+    """
+    Function to format IRIs by type
+    eg, <iri> or prefix:iri
+    Parameter
+    ---------
+    iri: string
+    
+    Returns
+    -------
+    iri: string
+    """
+    iri = str(iri)
+    prefix_strings = {"","_"} if not prefixes else {
+        "",
+        "_",
+        *[prefix[0] for prefix in prefixes]
+    }
+    if ":" in iri and ": " not in iri:
+        if iri.split(":")[0] in prefix_strings:
+            return(iri)
+        elif ":/" in iri:
+            return("<{0}>".format(iri))
+        print("unknown prefix: {0}".format(iri.split(":")[0]))
+    else:
+        return(mhdb_iri(iri))
+
+
+def mhdb_iri(label):
+    """
+    Function to prepend "mhdb:" to label or string
+    
+    Parameter
+    ---------
+    label: string
+    
+    Returns
+    -------
+    iri: string
+    """
+    return(":".join([
+        "mhdb",
+        convert_string_to_label(label)
+    ]))
+
+
 def write_about_statement(subject, predicate, object, predicates):
     """
     Function to write one or more rdf statements in terse triple format.
@@ -89,7 +135,7 @@ def write_header(base_uri, version, label, comment, prefixes):
     owl:versionIRI <{0}/{1}> ;
     owl:versionInfo "{1}"^^rdfs:Literal ;
     rdfs:label "{2}"^^rdfs:Literal ;
-    rdfs:comment \"\"\"{3}\"\"\"^^rdfs:Literal .
+    rdfs:comment \"\"\"{3}\"\"\"@en .
 
 """.format(base_uri, version, label, comment, header)
 

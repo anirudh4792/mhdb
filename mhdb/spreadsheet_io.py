@@ -11,6 +11,7 @@ Copyright 2017, Child Mind Institute (http://childmind.org), Apache v2.0 License
 
 """
 import os
+import pandas as pd
 import urllib
 
 def convert_string_to_label(input_string):
@@ -123,6 +124,7 @@ def download_google_sheet(filepath, docid):
         ), filepath)
     return(filepath)
 
+
 def return_none_for_nan(input_value):
     """
     Return None if input is a NaN value; otherwise, return the input.
@@ -219,7 +221,13 @@ def return_string(input_string, replace=[], replace_with=[]):
             ) else input_string
         if not isinstance(input_string, str):
             input_string = str(input_string)
-        output_string = input_string.strip()
+        output_string = input_string.replace(
+            "\n",
+            " "
+        ).replace(
+            "\"",
+            "\\\""
+        ).strip()
         if replace:
             if len(replace) == len(replace_with):
                 for i, s in enumerate(replace):
@@ -432,3 +440,59 @@ def get_cells(worksheet, index, worksheet2=None, exclude=[], no_nan=True):
     return equivalent_class_uri, subclassof_uri, \
            property_domain, property_range, \
            definition, definition_ref, definition_ref_uri
+
+
+def split_on_slash(df, column, delimiter=" / "):
+    """
+    Function to build appropriate rows when
+    splitting cells in a named column by
+    " / " or named delimiter
+    
+    Parameters
+    ----------
+    df: DataFrame
+
+    column: string
+    
+    delimiter: string, optional
+    
+    Returns
+    -------
+    df: DataFrame
+    """
+    df[column] = pd.Series(df[column].apply(lambda x: trysplit(
+        x,
+        delimiter
+    )))
+    s = df.apply(
+        lambda x:
+            pd.Series(
+                x[column]
+            ),
+            axis=1
+    ).stack().reset_index(
+        level=1,
+        drop=True
+    )
+    s.name = column
+    return(df.drop(column, axis=1).join(s))
+    
+
+def trysplit(x, delimiter):
+    """
+    Function to split only if string, otherwise return x
+    
+    Parameters
+    ----------
+    x: anything, hopefully string
+    
+    delimiter: string
+    
+    Returns
+    -------
+    x: same type as parameter x
+    """
+    if isinstance(x, str):
+        return(x.split(delimiter))
+    else:
+        return(x)
