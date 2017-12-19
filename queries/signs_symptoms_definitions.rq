@@ -1,0 +1,34 @@
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX health-lifesci: <http://health-lifesci.schema.org/>
+PREFIX mhdb: <http://www.purl.org/mentalhealth#>
+PREFIX mhdbnb: <http://www.purl.org/mentalhealth/neutralstates#>
+PREFIX dcterms: <http://dublincore.org/documents/2012/06/14/dcmi-terms/>
+PREFIX schema: <http://schema.org/>
+
+SELECT (COALESCE(?original, (REPLACE(STR(REPLACE(STR(?original_iri), "_", " ")), "http://www.purl.org/mentalhealth#", ""))) AS ?original) ?original_definition ?neutral_behavior ?neutral_behavior_definition ?original_iri ?neutral_behavior_iri
+WHERE {
+  SELECT ?original ?original_definition ?neutral_behavior ?neutral_behavior_definition ?original_iri ?neutral_behavior_iri
+  WHERE { 
+    ?original_iri rdfs:subClassOf+ health-lifesci:MedicalSignOrSymptom FILTER ( ?original_iri != health-lifesci:MedicalSignOrSymptom ) .
+    OPTIONAL {
+      ?original_iri rdfs:label ?original .
+    }
+    OPTIONAL {
+      ?original_iri rdfs:subClassOf ?neutral_behavior_iri .
+      ?neutral_behavior_iri rdfs:comment '"neutral behaviour"'^^rdfs:Literal .
+      ?neutral_behavior_iri rdfs:label ?neutral_behavior .
+    }
+    OPTIONAL {
+      ?neutral_behavior_iri dcterms:definition ?neutral_behavior_definition .
+    }
+    OPTIONAL {
+      ?original_iri dcterms:definition ?original_definition .
+    }
+  } 
+  GROUP BY ?original ?original_definition ?neutral_behavior ?neutral_behavior_definition ?original_iri ?neutral_behavior_iri
+  ORDER BY ?original ?original_definition ?neutral_behavior ?neutral_behavior_definition ?original_iri ?neutral_behavior_iri
+}
+GROUP BY ?original ?original_definition ?neutral_behavior ?neutral_behavior_definition ?original_iri ?neutral_behavior_iri
+ORDER BY ?original ?original_definition ?neutral_behavior ?neutral_behavior_definition ?original_iri ?neutral_behavior_iri
