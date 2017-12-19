@@ -7,7 +7,7 @@ PREFIX mhdbnb: <http://www.purl.org/mentalhealth/neutralstates#>
 PREFIX dcterms: <http://dublincore.org/documents/2012/06/14/dcmi-terms/>
 PREFIX schema: <http://schema.org/>
 
-SELECT (COALESCE(?original, (REPLACE(STR(REPLACE(STR(?original_iri), "_", " ")), "http://www.purl.org/mentalhealth#", ""))) AS ?original) ?original_definition ?neutral_behavior ?neutral_behavior_definition ?original_iri ?neutral_behavior_iri
+SELECT DISTINCT (COALESCE(?original, (REPLACE(STR(REPLACE(STR(?original_iri), "_", " ")), "http://www.purl.org/mentalhealth#", ""))) AS ?original) ?original_definition ?neutral_behavior ?neutral_behavior_definition ?original_iri ?neutral_behavior_iri
 WHERE {
   SELECT ?original ?original_definition ?neutral_behavior ?neutral_behavior_definition ?original_iri ?neutral_behavior_iri
   WHERE { 
