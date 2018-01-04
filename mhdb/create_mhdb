@@ -138,7 +138,7 @@ def follow_structure(row, files, stc, prefixes=None):
     if row.Type != "foreign key":
         for structure_row in sheet.iterrows():
             subject = check_iri(
-                structure_row[1][row.Column_Header],
+                structure_row[1][row.Indexed_Entity],
                 prefixes
             )
             related_predicates = set()
@@ -165,22 +165,22 @@ def follow_structure(row, files, stc, prefixes=None):
                     related_rows[1]["Sheet"] == row.Sheet
                 ) and (
                     related_rows[1]["Indexed_Entity"] == row.Column_Header
-                ) and (
-                    related_rows[1]["Type"] == "foreign key"
                 ):
-                    fks = structure_row[1][related_rows[1]["Column_Header"]]
-                    skb = related_rows[1]["split_key_by"]
-                    skb = skb if isinstance(skb, str) else None
-                    if isinstance(fks, float) and np.isnan(fks):
-                        continue
-                    fks = [
-                        int(float(fk)) for fk in str(fks).split(skb)
-                    ] if skb else [fks]
-                    svb = related_rows[1]["split_value_by"]
-                    svb = svb if isinstance(svb, str) else None
-                    if len(fks):
-                        for fk in fks:
-                            try:
+                    if related_rows[1]["Type"] == "foreign key":
+                        fks = structure_row[1][
+                            related_rows[1]["Column_Header"]
+                        ]
+                        skb = related_rows[1]["split_key_by"]
+                        skb = skb if isinstance(skb, str) else None
+                        if isinstance(fks, float) and np.isnan(fks):
+                            continue
+                        fks = [
+                            int(float(fk)) for fk in str(fks).split(skb)
+                        ] if skb else [fks]
+                        svb = related_rows[1]["split_value_by"]
+                        svb = svb if isinstance(svb, str) else None
+                        if len(fks):
+                            for fk in fks:
                                 fvalues = follow_fk(
                                     files[
                                         related_rows[1]["Foreign File"]
@@ -197,79 +197,104 @@ def follow_structure(row, files, stc, prefixes=None):
                                     ],
                                     fk
                                 )
-                            except:
-                                fvalues = follow_fk(
-                                    files[
-                                        related_rows[1]["Foreign File"]
-                                    ].parse(
-                                        related_rows[1][
-                                            "Foreign Sheet"
-                                        ]
-                                    ),
-                                    related_rows[1][
-                                        "Foreign Key Column_Header"
-                                    ],
-                                    related_rows[1][
+                                if (
+                                    (fvalues is None)
+                                    or
+                                    (fvalues=="None")
+                                ) and (
+                                    not related_rows[1][
                                         "Foreign Value Column_Backup_Header"
-                                    ],
-                                    fk
-                                )
-                            fvalues = fvalues.split(svb) if svb else [fvalues]
-                            for fvalue in fvalues:
-                                related_predicates.add(
-                                    (
-                                        check_iri(
+                                    ] in [
+                                        None,
+                                        np.nan,
+                                        "",
+                                        "None"
+                                    ]
+                                ):
+                                    fvalues = follow_fk(
+                                        files[
+                                            related_rows[1]["Foreign File"]
+                                        ].parse(
                                             related_rows[1][
-                                                "Definition or Relationship"
-                                            ],
-                                            prefixes
+                                                "Foreign Sheet"
+                                            ]
                                         ),
-                                        check_iri(
-                                            fvalue,
-                                            prefixes
-                                        )
-                                    ) if related_rows[1][
-                                        "Type"
-                                    ] == "foreign key" else (
-                                        "rdf:type" if
                                         related_rows[1][
-                                            "Class, Property or Instance"
-                                        ] == "Instance" else
-                                        "rdfs:subPropertyOf"
-                                        if related_rows[1][
-                                            "Class, Property or Instance"
-                                        ] == "Property" else
-                                        "rdfs:subClassOf",
-                                        check_iri(
-                                            related_rows[1]["Type"],
-                                            prefixes
-                                        )
+                                            "Foreign Key Column_Header"
+                                        ],
+                                        related_rows[1][
+                                            "Foreign Value "
+                                            "Column_Backup_Header"
+                                        ],
+                                        fk
                                     )
-                                )              
-            check_source(related_predicates)
+                                fvalues = fvalues.split(
+                                    svb
+                                ) if svb else [fvalues]
+                                if fvalues:
+                                    for fvalue in fvalues:
+                                        related_predicates.add(
+                                            (
+                                                check_iri(
+                                                    related_rows[1][
+                                                        "Definition or "
+                                                        "Relationship"
+                                                    ],
+                                                    prefixes
+                                                ),
+                                                check_iri(
+                                                    fvalue,
+                                                    prefixes
+                                                )
+                                            )
+                                        )
+                    elif related_rows[1][
+                        "Class, Property or Instance"
+                    ] == "Instance":
+                        related_predicates.add(
+                            (
+                                "rdf:type",
+                                check_iri(
+                                    related_rows[1]["Type"],
+                                    prefixes
+                                )
+                            )
+                        )
+                    elif related_rows[1][
+                        "Class, Property or "
+                        "Instance"
+                    ] == "Property":
+                        related_predicates.add(
+                            (
+                                "rdfs:subPropertyOf",
+                                check_iri(
+                                    related_rows[1]["Type"],
+                                    prefixes
+                                )
+                            )
+                        )
+                    else:
+                        related_predicates.add(
+                            (
+                                "rdfs:subClassOf",
+                                check_iri(
+                                    related_rows[1]["Type"],
+                                    prefixes
+                                )
+                            )
+                        )
+            related_predicates = check_source(related_predicates)
             ttl_string = "\n".join([
                 ttl_string,
                 write_ttl(
                     subject,
-                    {pred for pred in (
-                        related_predicates |
-                        {(
-                            "rdf:type" if
-                            row[
-                                "Class, Property or Instance"
-                            ] == "Instance" else
-                            "rdfs:subPropertyOf" if row[
-                                "Class, Property or Instance"
-                            ] == "Property" else
-                            "rdfs:subClassOf",
-                            check_iri(row.Type, prefixes)
-                        )}
-                    )
-                    if (pred) and (
-                        "mhdb:None" != pred[0]
-                    ) and (
-                        "mhdb:None" != pred[1]
-                    )},
+                    {pred for pred in related_predicates
+                        if (pred) and (
+                            "mhdb:None" != pred[0]
+                        ) and (
+                            "mhdb:None" != pred[1]
+                        )
+                    },
                     [(
                         pred[0],
                         pred[1]
