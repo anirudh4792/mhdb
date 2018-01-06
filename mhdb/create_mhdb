@@ -25,7 +25,7 @@ from mhdb.info import __version__ as version
 from mhdb.spreadsheet_io import convert_string_to_label, create_label
 from mhdb.spreadsheet_io import download_google_sheet, get_index2, get_cell
 from mhdb.spreadsheet_io import split_on_slash
-from mhdb.write_ttl import check_iri, mhdb_iri, write_header, write_ttl    
+from mhdb.write_ttl import check_iri, mhdb_iri, write_header, write_ttl
 
 
 logging.basicConfig(filename='debug.log',level=logging.DEBUG)
@@ -36,13 +36,13 @@ def check_source(predicates):
     """
     Check if we have specified a source, and
     if not, put us as the source.
-    
+
     Parameter
     ---------
     predicates: set of 2-tuples
         (predicate: string,
         object: string)
-        
+
     Returns
     -------
     predicates: set of 2-tuples
@@ -59,7 +59,7 @@ def check_source(predicates):
             )
         )
     return(predicates)
-        
+
 
 def follow_fk(
     sheet,
@@ -69,17 +69,17 @@ def follow_fk(
 ):
     """
     Function to follow foreign keys to IRIs.
-    
+
     Parameters
     ----------
     sheet: DataFrame
-    
+
     foreign_key_header: string
-    
+
     foreign_value_header: string
-    
+
     fk: int or string
-    
+
     Returns
     -------
     iri: string
@@ -110,25 +110,25 @@ def follow_fk(
 def follow_structure(row, files, stc, prefixes=None):
     """
     Function to follow format of "structure_to_keep"
-    
+
     Parameters
     ----------
     row: Series
         pandas series from generator
         ie, row[1] for row in iterrows()
-        
+
     files : dictionary
         {fn: string:
         file: DataFrame}
         one entry per unique value in structure_to_keep's "File" column
-        
+
     stc : DataFrame
-    
+
     prefixes : iterable of 2-tuples
         (prefix_string: string
         prefix_iri: string)
         defined RDF prefixes
-    
+
     Returns
     -------
     ttl_string : string
@@ -144,10 +144,14 @@ def follow_structure(row, files, stc, prefixes=None):
             related_predicates = set()
             if (
                 isinstance(subject, str) and
-                subject.startswith("mhdb:")
+                subject.startswith("mhdb:") and
+                row["Definition or Relationship"] in [
+                    "rdfs:label",
+                    "schema:text"
+                ]
             ):
                 related_predicates.add(tuple((
-                    "rdfs:label",
+                    row["Definition or Relationship"],
                     "\"\"\"{0}\"\"\"@en".format(
                         str(structure_row[1][row.Column_Header]).replace(
                             "\n",
@@ -155,7 +159,7 @@ def follow_structure(row, files, stc, prefixes=None):
                         ).replace(
                             "\"",
                             "\\\""
-                        ).strip()                        
+                        ).strip()
                     )
                 )))
             for related_rows in stc.iterrows():
@@ -230,7 +234,7 @@ def follow_structure(row, files, stc, prefixes=None):
                                     )
                                 fvalues = fvalues.split(
                                     svb
-                                ) if svb else [fvalues]
+                                ) if svb and fvalues else [fvalues]
                                 if fvalues:
                                     for fvalue in fvalues:
                                         related_predicates.add(
@@ -283,28 +287,30 @@ def follow_structure(row, files, stc, prefixes=None):
                                 )
                             )
                         )
-            related_predicates = check_source(related_predicates)
-            ttl_string = "\n".join([
-                ttl_string,
-                write_ttl(
-                    subject,
-                    {pred for pred in related_predicates
-                        if (pred) and (
-                            "mhdb:None" != pred[0]
-                        ) and (
-                            "mhdb:None" != pred[1]
-                        )
-                    },
-                    [(
-                        pred[0],
-                        pred[1]
-                    ) for pred in related_predicates if pred[
-                        0
-                    ]=="dcterms:source"]
-                )
-            ])
+                related_predicates = check_source(
+                    related_predicates
+                ) if len(related_predicates) else related_predicates
+                ttl_string = "\n".join([
+                    ttl_string,
+                    write_ttl(
+                        subject,
+                        {pred for pred in related_predicates
+                            if (pred) and (
+                                "mhdb:None" != pred[0]
+                            ) and (
+                                "mhdb:None" != pred[1]
+                            )
+                        },
+                        [(
+                            pred[0],
+                            pred[1]
+                        ) for pred in related_predicates if pred[
+                            0
+                        ]=="dcterms:source"]
+                    )
+                ])
     return(ttl_string)
-    
+
 
 def ICD_code(Disorder, ICD, id, X):
     # function to turtle ICD code and coding system
@@ -330,20 +336,20 @@ def ICD_code(Disorder, ICD, id, X):
     else:
         ICD_uri, ICD_coding_string = None, None
     return(ICD_uri, ICD_coding_string)
-    
-    
+
+
 def structure_to_keep(files, prefixes=None):
     """
     Parameter
     ---------
     files : dictionary of loaded Excel workbooks
         one entry per unique value in structure_to_keep's "File" column
-        
+
     prefixes : iterable of 2-tuples
         (prefix_string: string
         prefix_iri: string)
         defined RDF prefixes
-    
+
     Returns
     -------
     ttl_string : string
@@ -351,7 +357,7 @@ def structure_to_keep(files, prefixes=None):
     """
     stcFILE = download_google_sheet(
         'data/keep.xlsx',
-        "1om00-MYhjL59ocI0EWhzvaWqEJWXYj6EVEE9mlXa5kM"
+        "1bQmu1emZ_9J1qfrzTi2CgTELME4mRqn74hMwbY9wV-A"
     )
     stc_xls = pd.ExcelFile(stcFILE)
     stc = split_on_slash(
@@ -370,21 +376,21 @@ def structure_to_keep(files, prefixes=None):
                 row_string
             ])
     return(ttl_string)
-    
-    
+
+
 def type_definitions(stc, prefixes=None):
     """
     Function to define types in structure_to_keep
-    
+
     Parameter
     ---------
     stc: DataFrame
-    
+
     prefixes : iterable of 2-tuples
         (prefix_string: string
         prefix_iri: string)
         defined RDF prefixes
-    
+
     Returns
     -------
     ttl_string: string
@@ -417,8 +423,8 @@ def type_definitions(stc, prefixes=None):
             ]
         ) for row in stc_types.iterrows()
     ]))
-        
-    
+
+
 def main():
     # ------------------------------------------------------------------------------
     # Try to get latest spreadsheets
@@ -479,7 +485,7 @@ def main():
         row[1]["Prefix"],
         row[1]["PrefixURI"]
     ) for row in mentalhealth_xls.parse('Ontologies').iterrows()]
-    
+
     # ------------------------------------------------------------------------------
     # Write header
     # with Ontologies listed in mentalhealth.Ontologies ------------------------------------------------------------------------------
