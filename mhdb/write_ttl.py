@@ -31,7 +31,9 @@ def check_iri(iri, prefixes=None):
         *[prefix[0] for prefix in prefixes]
     }
     if ":" in iri and ": " not in iri:
-        if iri.split(":")[0] in prefix_strings:
+        if iri.endswith(":"):
+            return(check_iri(iri[:-1], prefixes))
+        elif iri.split(":")[0] in prefix_strings:
             return(iri)
         elif ":/" in iri:
             return("<{0}>".format(iri))
