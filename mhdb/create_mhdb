@@ -32,49 +32,20 @@ logging.basicConfig(filename='debug.log',level=logging.DEBUG)
 logging.captureWarnings(True)
 
 
-def check_source(predicates):
-    """
-    Check if we have specified a source, and
-    if not, put us as the source.
-
-    Parameter
-    ---------
-    predicates: set of 2-tuples
-        (predicate: string,
-        object: string)
-
-    Returns
-    -------
-    predicates: set of 2-tuples
-        (predicate: string,
-        object: string)
-    """
-    if "dcterms:source" not in list(
-        list(zip(*predicates))[0]
-    ):
-        predicates.add(
-            (
-                "dcterms:source",
-                mhdb_iri("Child Minds MATTER Lab")
-            )
-        )
-    return(predicates)
-
-
 def collect_predicates(subject, row, structure_row, files, stc, prefixes):
     """
     Function to collect predicates for a given subject
-    
+
     Parameters
     ----------
     subject : string
         Turtle object
-    
+
     row : Series
         row from structure_to_keep
         pandas series from generator
         ie, row[1] for row in iterrows()
-        
+
     structure_row : Series
         row indicated in row from structure_to_keep
         pandas series from generator
@@ -91,15 +62,15 @@ def collect_predicates(subject, row, structure_row, files, stc, prefixes):
         (prefix_string: string
         prefix_iri: string)
         defined RDF prefixes
-    
+
     Returns
     -------
     related_predicates : set
         set of 2-tuples
-        
+
         predicates[0]: string
             Turtle property
-            
+
         predicates[1]: string
             Turtle object
     """
@@ -137,15 +108,6 @@ def collect_predicates(subject, row, structure_row, files, stc, prefixes):
             tp = type_pred(row, prefixes)
             if tp:
                 related_predicates.add(tp)
-    related_predicates = check_source(
-        related_predicates
-    ) if (
-        len(related_predicates) and row.Sheet not in [
-            "Disorder",
-            "SignOrSymptom_Sub_Category",
-            "SignOrSymptom_Main_Category"
-        ]
-    ) else related_predicates
     return(related_predicates)
 
 
@@ -214,10 +176,15 @@ def follow_structure(row, files, stc, prefixes=None):
 
     Returns
     -------
-    ttl_string : string
+    ttl_dict : dictionary
+        keys: str
+            subjects
+        values: sets of 2-tuple (str, str)
+            [0]: predicate
+            [1]: object
     """
     sheet = files[row.File].parse(row.Sheet)
-    ttl_string = ""
+    ttl_dict = dict()
     if row.Type != "foreign key":
         for structure_row in sheet.iterrows():
             subject = check_iri(
@@ -233,55 +200,35 @@ def follow_structure(row, files, stc, prefixes=None):
                     stc,
                     prefixes
                 )
-                ttl_string = "\n".join([
-                    ttl_string,
-                    write_ttl(
-                        subject,
-                        {pred for pred in related_predicates
-                            if (pred) and (
-                                pred[0] not in [
-                                    "mhdb:None",
-                                    np.nan,
-                                    None
-                                ]
-                            ) and (
-                                pred[1] not in [
-                                    "mhdb:None",
-                                    np.nan,
-                                    None
-                                ]
-                            )
-                        },
-                        [(
-                            pred[0],
-                            pred[1]
-                        ) for pred in related_predicates if pred[
-                            0
-                        ]=="dcterms:source"]
-                    )
-                ])
+                ttl_dict[
+                    subject
+                ] = related_predicates if (
+                    subject not in ttl_dict
+                ) else (
+                    ttl_dict[subject] | related_predicates
+                )
             else:
                 print(row.Indexed_Entity)
                 print(subject)
-    return(ttl_string)
-    
-    
+    return(ttl_dict)
+
+
 def foreign(structure_row, related_row, files, stc, prefixes):
     """
     Function to follow (a) foreign key(s) and return a set of predicate tuples
-    
+
     Parameters
     ----------
     structure_row : Series
         row indicated in row from structure_to_keep
         pandas series from generator
         ie, structure_row[1] for structure_row in iterrows()
-        
+
     related_row : Series
         row indicated in row from structure_to_keep
         pandas series from generator
         ie, related_row[1] for related_row in iterrows()
-        
+
     files : dictionary
         {fn: string:
         file: DataFrame}
@@ -293,14 +240,14 @@ def foreign(structure_row, related_row, files, stc, prefixes):
         (prefix_string: string
         prefix_iri: string)
         defined RDF prefixes
-    
+
     Returns
     -------
     foreign_predicates: set of 2-tuples
-    
+
         foreign_predicates[0]: string
             Turtle property
-            
+
         foreign_predicates[1]: string
             Turtle object
     """
@@ -385,39 +332,39 @@ def foreign(structure_row, related_row, files, stc, prefixes):
                         )
                     )
     return(foreign_predicates)
-    
-    
+
+
 def label(row, structure_row, prefixes):
     """
     Function to create and return a tuple of
     Turtle property and Turtle object for a
     given label
-    
+
     Parameters
     ----------
-        
+
     row : Series
         row from structure_to_keep
         pandas series from generator
         ie, row[1] for row in iterrows()
-        
+
     structure_row : Series
         row indicated in row from structure_to_keep
         pandas series from generator
         ie, structure_row[1] for structure_row in iterrows()
-        
+
     prefixes : iterable of 2-tuples
         (prefix_string: string
         prefix_iri: string)
         defined RDF prefixes
-        
-        
+
+
     Returns
     -------
     predicate : 2-tuple
         predicate[0]: string
             Turtle property
-        
+
         predicate[1]: string
             Turtle object
     """
@@ -486,9 +433,17 @@ def structure_to_keep(files, prefixes=None):
 
     Returns
     -------
-    ttl_string : string
-        Turtle format string of relationships defined in structure_to_keep
+    dicts: list of dictionaries
+        default = [sourced, unsourced]
+        sourced : dictionary
+            dictionary of sourced triples
+        unsourced : dictionary
+            dictionary of unsourced triples
     """
+    dicts = [
+        dict(),
+        dict()
+    ]
     stcFILE = download_google_sheet(
         'data/keep.xlsx',
         "1bQmu1emZ_9J1qfrzTi2CgTELME4mRqn74hMwbY9wV-A"
@@ -514,43 +469,97 @@ def structure_to_keep(files, prefixes=None):
                 "Column_Header"
             ]
         ].values.tolist() in indexed_entities.values.tolist():
-            row_string = follow_structure(
+            row_dict = follow_structure(
                 row[1],
                 files,
                 stc,
                 prefixes
             )
-            ttl_string = "\n".join([
-                ttl_string,
-                row_string
-            ]) if ttl_string else row_string
-    return(ttl_string)
-    
-    
+            for subject in row_dict:
+                if subject in dicts[0]:
+                    dicts[0][subject] = dicts[0][subject] | row_dict[subject]
+                else:
+                    sourced = False
+                    for predicate in row_dict[subject]:
+                        if predicate[0] == "dcterms:source":
+                            sourced = True
+                    if sourced:
+                        dicts[0][subject] = row_dict[subject]
+                    else:
+                        dicts[1][subject] = row_dict[subject] if (
+                            subject not in dicts[1]
+                        ) else dicts[1][subject] | row_dict[subject]
+    return(dicts)
+
+
+def turtle_from_dict(subject, predicates):
+    """
+    Function to convert a string and set of 2-tuples of strings to
+    Terse Triple Language
+
+    Parameters
+    ----------
+    subject: str
+        subject of triples
+
+    predicates: set of 2-tuples
+        {
+            [0]: str
+                predicate
+            [1]: str
+                object
+        }
+
+    Returns
+    -------
+    ttl_string: str
+        ttl
+    """
+    x = [
+        "mhdb:None",
+        "nan",
+        np.nan,
+        None
+    ]
+    return("{0} {1} .".format(
+        subject,
+        " ;\n\t".join([
+            "{0} {1}".format(
+                predicate[0],
+                predicate[1]
+            )
+        for predicate in predicates if (
+            pred[0] not in x
+        ) and (
+            pred[1] not in x
+        )])
+    ))
+
+
 def type_pred(row, prefixes):
     """
     Function to create and return a tuple of
     Turtle property and Turtle object for a
     given label
-    
+
     Parameters
     ----------
     row : Series
         row from structure_to_keep
         pandas series from generator
         ie, row[1] for row in iterrows()
-        
+
     prefixes : iterable of 2-tuples
         (prefix_string: string
         prefix_iri: string)
         defined RDF prefixes
-        
+
     Returns
     -------
     predicate : 2-tuple
         predicate[0]: string
             Turtle property
-        
+
         predicate[1]: string
             Turtle object
     """
@@ -656,7 +665,7 @@ def main():
         ]),
         prefixes=prefixes
     ))
-    ttl_string = structure_to_keep(
+    sourced, unsourced = structure_to_keep(
         {
             "mentalhealth":
                 mentalhealth_xls,
@@ -667,20 +676,53 @@ def main():
         },
         prefixes
     )
-    ttl_strings = ttl_string.split(" .\n")
     dsm_turtle = ""
     mhdb_turtle = ""
-    for turtle in ttl_strings:
-        if "dsm.psychiatryonline.org" in turtle:
-            dsm_turtle = " .\n\n".join([
+    for subject in sourced:
+        dsm = False
+        for predicate in sourced[subject]:
+            if (
+                "dsm.psychiatryonline.org" in predicate[1]
+            ) or (
+                "DSM" in predicate[1]
+            ):
+                dsm = True
+        if dsm:
+            dsm_turtle = " \n\n".join([
                 dsm_turtle,
-                turtle
-            ]) if len(dsm_turtle) else turtle
+                turtle_from_dict(
+                    subject,
+                    sourced[subject]
+                )
+            ]) if len(dsm_turtle) else turtle_from_dict(
+                subject,
+                sourced[subject]
+            )
         else:
-            mhdb_turtle = " .\n\n".join([
+            mhdb_turtle = " \n\n".join([
                 mhdb_turtle,
-                turtle
-            ]) if len(mhdb_turtle) else turtle
+                turtle_from_dict(
+                    subject,
+                    sourced[subject]
+                )
+            ]) if len(mhdb_turtle) else turtle_from_dict(
+                subject,
+                sourced[subject]
+            )
+    mhdb_turtle = " \n\n".join([
+        mhdb_turtle,
+        *[
+            turtle_from_dict(
+                subject,
+                unsourced[subject]
+            ) for subject in unsourced
+        ]
+    ]) if len(mhdb_turtle) else " \n\n".join([
+        turtle_from_dict(
+            subject,
+            unsourced[subject]
+        )
+    ])
     fid.write("{0} .\n".format(mhdb_turtle.rstrip(" .")))
     dsmfid.write("{0} .\n".format(dsm_turtle.rstrip(" .")))
 
