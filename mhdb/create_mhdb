@@ -98,12 +98,10 @@ def collect_predicates(subject, row, structure_row, files, stc, prefixes):
                     "schema:text"
                 ]
             ):
-                related_predicates.add(
-                    label(
-                        row,
-                        structure_row,
-                        prefixes
-                    )
+                related_predicates = related_predicates | label(
+                    row,
+                    structure_row,
+                    prefixes
                 )
             tp = type_pred(row, prefixes)
             if tp:
@@ -187,11 +185,22 @@ def follow_structure(row, files, stc, prefixes=None):
     ttl_dict = dict()
     if row.Type != "foreign key":
         for structure_row in sheet.iterrows():
-            subject = check_iri(
-                structure_row[1][row.Indexed_Entity],
-                prefixes
-            )
-            if isinstance(subject, str):
+            subjects = structure_row[1][row.Indexed_Entity]
+            if isinstance(subjects, str):
+                subjects = subjects.split(
+                    row.split_indexed_by
+                ) if (
+                    isinstance(
+                        row.split_indexed_by,
+                        str
+                    ) and (
+                        row.split_indexed_by in subjects
+                    )
+                ) else [subjects]
+                subject = check_iri(
+                    subjects[0],
+                    prefixes
+                )
                 related_predicates = collect_predicates(
                     subject,
                     row,
@@ -200,16 +209,12 @@ def follow_structure(row, files, stc, prefixes=None):
                     stc,
                     prefixes
                 )
-                ttl_dict[
-                    subject
-                ] = related_predicates if (
+                ttl_dict[subject] = related_predicates if (
                     subject not in ttl_dict
                 ) else (
-                    ttl_dict[subject] | related_predicates
+                    ttl_dict[subject] |
+                    related_predicates
                 )
-            else:
-                print(row.Indexed_Entity)
-                print(subject)
     return(ttl_dict)
 
 
@@ -361,35 +366,49 @@ def label(row, structure_row, prefixes):
 
     Returns
     -------
-    predicate : 2-tuple
+    predicates : set of 2-tuples
         predicate[0]: string
             Turtle property
 
         predicate[1]: string
             Turtle object
     """
-    return(
-        tuple(
-            (
-                check_iri(
-                    row["Definition or Relationship"],
-                    prefixes
-                ),
-                "\"\"\"{0}\"\"\"@en".format(
-                    str(
-                        structure_row[
-                            row.Column_Header
-                        ]
-                    ).replace(
-                        "\n",
-                        " "
-                    ).replace(
-                        "\"",
-                        "\\\""
-                    ).strip()
-                )
-            )
+    texts = str(
+        structure_row[
+            row.Column_Header
+        ]
+    )
+    texts = texts.split(
+        row.split_indexed_by
+    ) if (
+        isinstance(
+            row.split_indexed_by,
+            str
+        ) and (
+            row.split_indexed_by in texts
         )
+    ) else [texts]
+
+    return(
+        {
+            tuple(
+                (
+                    check_iri(
+                        row["Definition or Relationship"],
+                        prefixes
+                    ),
+                    "\"\"\"{0}\"\"\"@en".format(
+                        text.replace(
+                            "\n",
+                            " "
+                        ).replace(
+                            "\"",
+                            "\\\""
+                        ).strip()
+                    )
+                )
+            ) for text in texts
+        }
     )
 
 
@@ -517,6 +536,7 @@ def turtle_from_dict(subject, predicates):
     """
     x = [
         "mhdb:None",
+        "mhdb:nan",
         "nan",
         np.nan,
         None
@@ -529,9 +549,9 @@ def turtle_from_dict(subject, predicates):
                 predicate[1]
             )
         for predicate in predicates if (
-            pred[0] not in x
+            predicate[0] not in x
         ) and (
-            pred[1] not in x
+            predicate[1] not in x
         )])
     ))
 
@@ -722,7 +742,7 @@ def main():
             subject,
             unsourced[subject]
         )
-    ])
+    ] for subject in unsourced)
     fid.write("{0} .\n".format(mhdb_turtle.rstrip(" .")))
     dsmfid.write("{0} .\n".format(dsm_turtle.rstrip(" .")))
 
