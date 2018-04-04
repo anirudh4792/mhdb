@@ -6,9 +6,9 @@ In setup.py we execute this file, so it cannot import the package.
 """
 
 # Format expected by setup.py and doc/source/conf.py: string of form "X.Y.Z"
-__version__ = '0.1.0'
+__version__ = '0.3.0'
 
-CLASSIFIERS = ["Development Status :: Beta",
+CLASSIFIERS = ["Development Status :: Pre-α",
                "Environment :: Console",
                "Intended Audience :: Science/Research",
                "License :: OSI Approved :: Apache v2.0",
@@ -36,7 +36,7 @@ http://github.com/ChildMindInstitute/mhdb.
 
 # Main setup parameters
 NAME                = 'MHDB'
-MAINTAINER          = "Arno Klein"
+MAINTAINER          = "Arno Klein, Jon Clucas, Anirudh Krishnakumar"
 MAINTAINER_EMAIL    = "arno@childmind.org"
 DESCRIPTION         = description
 LONG_DESCRIPTION    = long_description
@@ -44,9 +44,8 @@ URL                 = "http://mentalhealth.tech/"
 DOWNLOAD_URL        = "http://mentalhealth.tech/"
 LICENSE             = "Apache v2.0"
 CLASSIFIERS         = CLASSIFIERS
-AUTHOR              = "Arno Klein"
+AUTHOR              = "Arno Klein, Jon Clucas, Anirudh Krishnakumar"
 AUTHOR_EMAIL        = "arno@childmind.org"
 PLATFORMS           = "Linux"
 VERSION             = __version__
 PROVIDES            = ["mhdb"]
-
