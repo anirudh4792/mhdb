@@ -23,6 +23,13 @@ def check_iri(iri, prefixes=None):
     Returns
     -------
     iri: string
+    
+    Examples
+    --------
+    >>> check_iri("http://matter.childmind.org")
+    '<http://matter.childmind.org>'
+    >>> check_iri("MATTER Lab")
+    'mhdb:MATTER_Lab'
     """
     iri = str(iri)
     prefix_strings = {"","_"} if not prefixes else {

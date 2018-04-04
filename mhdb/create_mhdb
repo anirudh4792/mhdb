@@ -700,6 +700,7 @@ def main():
     mhdb_turtle = ""
     for subject in sourced:
         dsm = False
+        MATTER = False
         for predicate in sourced[subject]:
             if (
                 "dsm.psychiatryonline.org" in predicate[1]
@@ -707,6 +708,8 @@ def main():
                 "DSM" in predicate[1]
             ):
                 dsm = True
+            if "MATTER" in predicate[1]:
+                MATTER = True
         if dsm:
             dsm_turtle = " \n\n".join([
                 dsm_turtle,
@@ -718,6 +721,17 @@ def main():
                 subject,
                 sourced[subject]
             )
+            if MATTER:
+                mhdb_turtle = " \n\n".join([
+                    mhdb_turtle,
+                    turtle_from_dict(
+                        subject,
+                        sourced[subject]
+                    )
+                ]) if len(mhdb_turtle) else turtle_from_dict(
+                    subject,
+                    sourced[subject]
+                )
         else:
             mhdb_turtle = " \n\n".join([
                 mhdb_turtle,
