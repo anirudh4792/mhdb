@@ -31,6 +31,7 @@ def convert_string_to_label(input_string):
     """
 
     if input_string and isinstance(input_string, str):
+        input_string = input_string.lower()
         input_string = input_string.strip()
         input_string = input_string.replace(" ", "_")
         input_string = input_string.replace("_-_", "-")
@@ -447,15 +448,15 @@ def split_on_slash(df, column, delimiter=" / "):
     Function to build appropriate rows when
     splitting cells in a named column by
     " / " or named delimiter
-    
+
     Parameters
     ----------
     df: DataFrame
 
     column: string
-    
+
     delimiter: string, optional
-    
+
     Returns
     -------
     df: DataFrame
@@ -476,18 +477,18 @@ def split_on_slash(df, column, delimiter=" / "):
     )
     s.name = column
     return(df.drop(column, axis=1).join(s))
-    
+
 
 def trysplit(x, delimiter):
     """
     Function to split only if string, otherwise return x
-    
+
     Parameters
     ----------
     x: anything, hopefully string
-    
+
     delimiter: string
-    
+
     Returns
     -------
     x: same type as parameter x

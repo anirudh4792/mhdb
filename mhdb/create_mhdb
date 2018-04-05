@@ -11,8 +11,32 @@ Copyright 2018, Child Mind Institute MATTER Lab (https://matter.childmind.org),
 Apache v2.0 License
 
 """
-from mhdb.spreadsheet_io import download_google_sheet
 import os
+import sys
+mhdb_path = os.path.abspath(
+    os.path.join(
+        __file__,
+        os.pardir,
+        os.pardir,
+        os.pardir
+    )
+)
+if mhdb_path not in sys.path:
+    sys.path= [
+        mhdb_path,
+        *sys.path
+    ]
+try:
+    from mhdb.info import __version__ as version
+    from mhdb.ingest import *
+    from mhdb.spreadsheet_io import download_google_sheet
+    from mhdb.write_ttl import check_iri, turtle_from_dict, write_header
+except:
+    from mhdb.mhdb.info import __version__ as version
+    from mhdb.mhdb.ingest import *
+    from mhdb.mhdb.spreadsheet_io import download_google_sheet
+    from mhdb.mhdb.write_ttl import check_iri, turtle_from_dict, write_header
+import numpy as np
 import pandas as pd
 
 
@@ -23,11 +47,18 @@ def main():
     # ------------------------------------------------------------------------------
     try:
         behaviorFILE = download_google_sheet(
-            'data/mentalhealth.xlsx',
+            'data/separating.xlsx',
             "1sQp63K5nGrYSgK2ZvsTfTDmlM4W5_eFHfy6Ckoi7yP4"
         )
     except:
         behaviorFILE = 'data/separating.xlsx'
+    try:
+        mentalhealthFILE = download_google_sheet(
+            'data/mentalhealth.xlsx',
+            "1MfW9yDw7e8MLlWWSBBXQAC2Q4SDiFiMMb7mRtr7y97Q"
+        )
+    except:
+        mentalhealthFILE = 'data/mentalhealth.xlsx'
     base_uri = "http://www.purl.org/mentalhealth"
     outfile = os.path.join(os.getcwd(), 'behavior.ttl')
     dsm_outfile = os.path.join(os.getcwd(), 'dsm.ttl')
@@ -35,7 +66,8 @@ def main():
     # ------------------------------------------------------------------------------
     # Import spreadsheets
     # ------------------------------------------------------------------------------
-    behavior_xls = pd.ExcelFile(mentalhealthFILE)
+    behavior_xls = pd.ExcelFile(behaviorFILE)
+    mentalhealth_xls = pd.ExcelFile(mentalhealthFILE)
     X = ['', 'nan', np.nan, 'None', None]
 
     # ------------------------------------------------------------------------------
@@ -59,7 +91,7 @@ def main():
     prefixes = [(
         row[1]["Prefix"],
         row[1]["PrefixURI"]
-    ) for row in behavior_xls.parse('Ontologies').iterrows()]
+    ) for row in mentalhealth_xls.parse('Ontologies').iterrows()]
 
     # ------------------------------------------------------------------------------
     # Write header
@@ -86,10 +118,14 @@ def main():
         prefixes=prefixes
     ))
 
+    statements = BehaviorSheet1(
+        sheet = behavior_xls.parse("Sheet1")
+    )
 
+    mhdb_turtle = turtle_from_dict(statements)
 
     fid.write("{0} .\n".format(mhdb_turtle.rstrip(" .")))
-    dsmfid.write("{0} .\n".format(dsm_turtle.rstrip(" .")))
+    #dsmfid.write("{0} .\n".format(dsm_turtle.rstrip(" .")))
 
 if __name__ == "__main__":
     main()

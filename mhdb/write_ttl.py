@@ -3,10 +3,10 @@
 This program contains generic functions to build a Turtle (Terse RDF Triple Language) document.
 
 Authors:
-    - Arno Klein, 2017  (arno@childmind.org)  http://binarybottle.com
-    - Jon Clucas, 2017 (jon.clucas@childmind.org)
+    - Arno Klein, 2017        (arno@childmind.org)  http://binarybottle.com
+    - Jon Clucas, 2017 – 2018 (jon.clucas@childmind.org)
 
-Copyright 2017, Child Mind Institute (http://childmind.org), Apache v2.0 License
+Copyright 2018, Child Mind Institute (http://childmind.org), Apache v2.0 License
 
 """
 import os
@@ -81,12 +81,12 @@ def turtle_from_dict(ttl_dict):
     ----------
     ttl_dict: dictionary
         key: string
-            subject
+            RDF subject
         value: dictionary
             key: string
-                predicate
-            value: [string]
-                list of objects
+                RDF predicate
+            value: {string}
+                set of RDF objects
 
     Returns
     -------
@@ -97,17 +97,17 @@ def turtle_from_dict(ttl_dict):
     -------
     >>> turtle_from_dict({
     ...     "duck": {
-    ...         "continues": [
+    ...         "continues": {
     ...             "sitting"
-    ...         ]
+    ...         }
     ...     },
     ...    "goose": {
-    ...         "begins": [
+    ...         "begins": {
     ...             "chasing"
-    ...         ]
+    ...         }
     ...     }
     ... })
-    'duck continues sitting .\\ngoose begins chasing .'
+    'duck continues sitting .\\n\\ngoose begins chasing .'
     """
     x = [
         "mhdb:None",
@@ -117,10 +117,10 @@ def turtle_from_dict(ttl_dict):
         None
     ]
     return(
-        "\n".join([
+        "\n\n".join([
             "{0} {1} .".format(
                 subject,
-                ";\n\t".join([
+                " ;\n\t".join([
                     "{0} {1}".format(
                         predicate,
                         object
