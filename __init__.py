@@ -9,8 +9,6 @@ import os
 try:
     from .pkg_info import get_pkg_info as _get_pkg_info
 except:
-    get_info = lambda: ""
-else:
     get_info = lambda : _get_pkg_info(os.path.dirname(__file__))
 
 # module imports

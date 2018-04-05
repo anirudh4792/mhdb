@@ -9,7 +9,20 @@ Authors:
 Copyright 2017, Child Mind Institute (http://childmind.org), Apache v2.0 License
 
 """
-from mhdb.spreadsheet_io import convert_string_to_label
+import os
+import sys
+top_dir = os.path.abspath(os.path.join(
+    (__file__),
+    os.pardir,
+    os.pardir
+))
+if top_dir not in sys.path:
+    sys.path.append(top_dir)
+try:
+    from mhdb.spreadsheet_io import convert_string_to_label
+except:
+    from mhdb.mhdb.spreadsheet_io import convert_string_to_label
+import numpy as np
 
 
 def check_iri(iri, prefixes=None):
@@ -19,7 +32,7 @@ def check_iri(iri, prefixes=None):
     Parameter
     ---------
     iri: string
-    
+
     Returns
     -------
     iri: string
@@ -45,11 +58,11 @@ def check_iri(iri, prefixes=None):
 def mhdb_iri(label):
     """
     Function to prepend "mhdb:" to label or string
-    
+
     Parameter
     ---------
     label: string
-    
+
     Returns
     -------
     iri: string
@@ -60,6 +73,70 @@ def mhdb_iri(label):
     ]))
 
 
+def turtle_from_dict(ttl_dict):
+    """
+    Function to convert a dictionary to a Terse Triple Language string
+
+    Parameters
+    ----------
+    ttl_dict: dictionary
+        key: string
+            subject
+        value: dictionary
+            key: string
+                predicate
+            value: [string]
+                list of objects
+
+    Returns
+    -------
+    ttl_string: str
+        ttl
+
+    Example
+    -------
+    >>> turtle_from_dict({
+    ...     "duck": {
+    ...         "continues": [
+    ...             "sitting"
+    ...         ]
+    ...     },
+    ...    "goose": {
+    ...         "begins": [
+    ...             "chasing"
+    ...         ]
+    ...     }
+    ... })
+    'duck continues sitting .\\ngoose begins chasing .'
+    """
+    x = [
+        "mhdb:None",
+        "mhdb:nan",
+        "nan",
+        np.nan,
+        None
+    ]
+    return(
+        "\n".join([
+            "{0} {1} .".format(
+                subject,
+                ";\n\t".join([
+                    "{0} {1}".format(
+                        predicate,
+                        object
+                    ) for predicate in ttl_dict[
+                        subject
+                    ] for object in ttl_dict[
+                        subject
+                    ][
+                        predicate
+                    ]
+                ])
+            ) for subject in ttl_dict
+        ])
+    )
+
+
 def write_about_statement(subject, predicate, object, predicates):
     """
     Function to write one or more rdf statements in terse triple format.
@@ -68,10 +145,10 @@ def write_about_statement(subject, predicate, object, predicates):
     ----------
     subject: string
         subject of this statement
-        
+
     predicate: string
         predicate of this statement
-        
+
     object: string
         object of this statement
 
@@ -81,7 +158,7 @@ def write_about_statement(subject, predicate, object, predicates):
 
         object: string
             nth object
-            
+
     Returns
     -------
     ttl_string: string
@@ -103,7 +180,7 @@ def write_about_statement(subject, predicate, object, predicates):
             ]
         )
     )
-    
+
 
 def write_header(base_uri, version, label, comment, prefixes):
     """
@@ -122,7 +199,7 @@ def write_header(base_uri, version, label, comment, prefixes):
     prefixes : list
         list of 2-tuples of TTL prefix strings and prefix IRIs
         eg, ("owl", "http://www.w3.org/2002/07/owl#")
-    
+
     Returns
     -------
     header : string
@@ -143,8 +220,8 @@ def write_header(base_uri, version, label, comment, prefixes):
 """.format(base_uri, version, label, comment, header)
 
     return header
-    
-    
+
+
 def write_header_prefixes(prefixes):
     """
     Write turtle-formatted header prefix string for given list of (prefix,
@@ -189,7 +266,7 @@ def write_ttl(subject, predicates, common_statements=None):
 
         object: string
             nth object
-            
+
     common_statements: iterable of 2-tuples, optional
         statements about all previous statements
         predicate: string
@@ -197,7 +274,7 @@ def write_ttl(subject, predicates, common_statements=None):
 
         object: string
             nth object
-    
+
     Returns
     -------
     ttl_string: string

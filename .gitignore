@@ -52,3 +52,6 @@ mhdb/debug.log
 *catalog*xml
 mhdb/dsm.ttl
 mhdb/mhdb.ttl
+coverage
+.pytest_cache
+.coverage
