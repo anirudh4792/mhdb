@@ -23,7 +23,7 @@ conceptClass = {"OWL":
                     "subtype": "skos:broadMatch"
                     }
                 }
-                
+
 def build_import(uri):
     """
     Build a generic RDF import substring.
@@ -221,7 +221,7 @@ def owl_or_skos(label_safe, prefixes):
     ----------
     label_safe : string
         URI
-        
+
     prefixes : dictionary
         dictionary {string : string} of prefix keys and
         conceptualization values
@@ -230,7 +230,7 @@ def owl_or_skos(label_safe, prefixes):
     -------
     conceptualisation : string
         "OWL" or "SKOS", default "OWL"
-        
+
     """
     return (prefixes[label_safe.split(":")[0]] if (
         ":" in label_safe and
@@ -238,26 +238,26 @@ def owl_or_skos(label_safe, prefixes):
         not label_safe.startswith(":") and
         label_safe.split(":")[0] in prefixes
         ) else "OWL")
-        
+
 
 def owl_or_skos_prop(l_con, r, conceptualizations, gen_rel):
     """
     Return a property appropriate for the given conceptualizations.
-    
+
     Parameters
     ----------
     l_con : string
         "SKOS" or "OWL"
-        
+
     r : string
         class or concept IRI
-        
+
     conceptualizations : dictionary
         dictionary of prefixes and conceptualizations
-        
+
     gen_rel : string
         "equivalence" or "subtype"
-        
+
     Returns
     -------
     rel : string
@@ -267,7 +267,7 @@ def owl_or_skos_prop(l_con, r, conceptualizations, gen_rel):
         l_con == owl_or_skos(r, conceptualizations)
         ) else "rdfs:label"
     return rel
-        
+
 
 def print_header(base_uri, version, label, comment, prefixes=None):
     """
@@ -287,7 +287,7 @@ def print_header(base_uri, version, label, comment, prefixes=None):
         list of TTL prefix strings
     imports : list
         list of TTL import substrings
-    
+
     Returns
     -------
     header : string

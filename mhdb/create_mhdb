@@ -90,9 +90,9 @@ def main():
     # ------------------------------------------------------------------------------
     prefixes = [(
         row[1]["Prefix"],
-        row[1]["PrefixURI"]
+        row[1]["PrefixURI"],
+        row[1]["ImportURI"]
     ) for row in mentalhealth_xls.parse('Ontologies').iterrows()]
-
     # ------------------------------------------------------------------------------
     # Write header
     # with Ontologies listed in mentalhealth.Ontologies ------------------------------------------------------------------------------
@@ -119,13 +119,39 @@ def main():
     ))
 
     statements = BehaviorSheet1(
-        sheet = behavior_xls.parse("Sheet1")
+        sheet = behavior_xls.parse("Sheet1"),
+        mentalhealth_xls = mentalhealth_xls
     )
 
-    mhdb_turtle = turtle_from_dict(statements)
+    dsm_statements = {
+        statement: statements[
+            statement
+        ] for statement in statements if (
+            (
+                "dcterms:source" in statements[statement]
+            ) and any(
+                "dsm" in s for s in [
+                    source.lower() for source in statements[
+                        statement
+                    ][
+                        "dcterms:source"
+                    ]
+                ]
+            )
+        )
+    }
+
+    non_dsm_statements = {
+        statement: statements[
+            statement
+        ] for statement in statements if statement not in dsm_statements
+    }
+
+    mhdb_turtle = turtle_from_dict(non_dsm_statements)
+    dsm_turtle = turtle_from_dict(dsm_statements)
 
     fid.write("{0} .\n".format(mhdb_turtle.rstrip(" .")))
-    #dsmfid.write("{0} .\n".format(dsm_turtle.rstrip(" .")))
+    dsmfid.write("{0} .\n".format(dsm_turtle.rstrip(" .")))
 
 if __name__ == "__main__":
     main()

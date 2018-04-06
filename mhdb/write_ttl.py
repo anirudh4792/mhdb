@@ -163,6 +163,21 @@ def write_about_statement(subject, predicate, object, predicates):
     -------
     ttl_string: string
         Turtle string
+
+    Example
+    -------
+    >>> statement = {"duck": {"continues": {"sitting"}}}
+    >>> predicates = {
+    ...     ("source", '"Duck Duck Goose"'),
+    ...     ("statementType", "role")
+    ... }
+    >>> for subject in statement:
+    ...     for predicate in statement[subject]:
+    ...         for object in statement[subject][predicate]:
+    ...             print(len(write_about_statement(
+    ...                 subject, predicate, object, predicates
+    ...             )))
+    168
     """
     return(
         write_ttl(
@@ -182,7 +197,7 @@ def write_about_statement(subject, predicate, object, predicates):
     )
 
 
-def write_header(base_uri, version, label, comment, prefixes):
+def write_header(base_uri, version, label, comment, prefixes, imports=False):
     """
     Print out the beginning of an RDF text file.
 
@@ -197,18 +212,30 @@ def write_header(base_uri, version, label, comment, prefixes):
     comment : string
         comment
     prefixes : list
-        list of 2-tuples of TTL prefix strings and prefix IRIs
+        list of 2-or-3-tuples of TTL prefix strings and prefix IRIs
+        each tuple is
+            [0] a prefix string
+            [1] an iri string
+            [2] an optional import URL
         eg, ("owl", "http://www.w3.org/2002/07/owl#")
+    imports : Boolean, optional, default=False
+        import external ontologies?
 
     Returns
     -------
     header : string
         owl header
-
     """
 
     header = write_header_prefixes(
-        [("", "{0}#".format(base_uri)), *prefixes]
+        [
+            (
+                "",
+                "{0}#".format(base_uri)
+            ),
+            *prefixes
+        ],
+        imports
     )
 
     header = """{4}<{0}> rdf:type owl:Ontology ;
@@ -222,15 +249,21 @@ def write_header(base_uri, version, label, comment, prefixes):
     return header
 
 
-def write_header_prefixes(prefixes):
+def write_header_prefixes(prefixes, imports=False):
     """
     Write turtle-formatted header prefix string for given list of (prefix,
     iri) tuples.
 
     Parameter
     ---------
-    prefixes: list of 2-tuples
-        each tuple is a prefix string and an iri string
+    prefixes: list of 2 or 3-tuples
+        each tuple is
+            [0] a prefix string
+            [1] an iri string
+            [2] an optional import URL
+
+    imports : Boolean, optional, default=False
+        import external ontologies?
 
     Returns
     -------
@@ -247,6 +280,36 @@ def write_header_prefixes(prefixes):
         header_prefix,
         prefixes[0][1][:-1]
     )
+    if imports:
+        header_prefix = """{0}\n<> owl:imports {1} .\n\n""".format(
+            header_prefix,
+            " ,\n\t".join([
+                "{0}:".format(
+                    prefix[0]
+                ) if (
+                    (
+                        len(prefix) < 3
+                    ) or (
+                        isinstance(
+                            prefix[2],
+                            float
+                        )
+                    )
+                ) else check_iri(
+                    prefix[2]
+                ) for prefix in prefixes if (
+                    (
+                        prefix[0] not in [
+                            "mhdb"
+                        ]
+                    ) and (
+                        prefix[1] not in [
+                            "http://www.purl.org/mentalhealth#"
+                        ]
+                    )
+                )
+            ])
+        )
     return(header_prefix)
 
 
