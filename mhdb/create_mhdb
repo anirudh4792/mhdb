@@ -119,7 +119,7 @@ def main():
     ))
 
     statements = BehaviorSheet1(
-        sheet = behavior_xls.parse("Sheet1"),
+        behavior_xls = behavior_xls,
         mentalhealth_xls = mentalhealth_xls
     )
 

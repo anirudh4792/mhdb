@@ -19,19 +19,21 @@ top_dir = os.path.abspath(os.path.join(
 if top_dir not in sys.path:
     sys.path.append(top_dir)
 try:
-    from mhdb.spreadsheet_io import convert_string_to_label
+    from mhdb.spreadsheet_io import convert_string_to_label, return_string
 except:
-    from mhdb.mhdb.spreadsheet_io import convert_string_to_label
+    from mhdb.mhdb.spreadsheet_io import convert_string_to_label, return_string
 import numpy as np
 
 
-def check_iri(iri, prefixes=None):
+def check_iri(iri, prefixes={("mhdb", "http://www.purl.org/mentalhealth#")}):
     """
     Function to format IRIs by type
     eg, <iri> or prefix:iri
-    Parameter
+    Parameters
     ---------
     iri: string
+
+    prefixes: set of 2-or-3-tuples
 
     Returns
     -------
@@ -53,6 +55,43 @@ def check_iri(iri, prefixes=None):
         print("unknown prefix: {0}".format(iri.split(":")[0]))
     else:
         return(mhdb_iri(iri))
+
+
+def language_string(s, lang="en"):
+    """
+    Function to encode a literal as being in a specific language.
+
+    Parameters
+    ----------
+    s : string
+
+    lang : string
+        ISO character code, default="en"
+
+    Returns
+    -------
+    s : string
+        triple quoted Turtle literal with language encoding
+
+    Example
+    -------
+    >>> print(language_string("Canada goose"))
+    \"""Canada goose\"""@en
+    """
+    return(
+        "\"\"\"{0}\"\"\"@{1}".format(
+            return_string(
+                s,
+                [
+                    '"'
+                ],
+                [
+                    "'"
+                ]
+            ),
+            lang
+        )
+    )
 
 
 def mhdb_iri(label):

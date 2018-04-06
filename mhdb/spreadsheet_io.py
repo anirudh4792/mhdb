@@ -31,7 +31,7 @@ def convert_string_to_label(input_string):
     """
 
     if input_string and isinstance(input_string, str):
-        input_string = input_string.lower()
+        #input_string = input_string.lower()
         input_string = input_string.strip()
         input_string = input_string.replace(" ", "_")
         input_string = input_string.replace("_-_", "-")
