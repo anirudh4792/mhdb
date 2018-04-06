@@ -11,10 +11,10 @@ Copyright 2018, Child Mind Institute (http://childmind.org), Apache v2.0 License
 
 """
 try:
-    from mhdb.spreadsheet_io import return_string
+    from mhdb.spreadsheet_io import download_google_sheet, return_string
     from mhdb.write_ttl import check_iri
 except:
-    from mhdb.mhdb.spreadsheet_io import return_string
+    from mhdb.mhdb.spreadsheet_io import download_google_sheet, return_string
     from mhdb.mhdb.write_ttl import check_iri
 import pandas as pd
 
@@ -64,6 +64,7 @@ def BehaviorSheet1(
     ... except:
     ...     from mhdb.mhdb.spreadsheet_io import download_google_sheet
     ...     from mhdb.mhdb.write_ttl import turtle_from_dict
+    >>> import os
     >>> import pandas as pd
     >>> try:
     ...     behaviorFILE = download_google_sheet(
