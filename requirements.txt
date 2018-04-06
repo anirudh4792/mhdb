@@ -4,3 +4,4 @@ pandas
 pytest
 pytest-cov
 pytest-pythonpath
+xlrd >= 0.9.0
