@@ -59,6 +59,13 @@ def main():
         )
     except:
         mentalhealthFILE = 'data/mentalhealth.xlsx'
+    try:
+        technologyFILE = download_google_sheet(
+            'data/technology.xlsx',
+            "1cuJXT1Un7HPLYcDyHAXprH-wGS1azuUNmVQnb3dV1cY"
+        )
+    except:
+        technologyFILE = 'data/technology.xlsx'
     base_uri = "http://www.purl.org/mentalhealth"
     outfile = os.path.join(os.getcwd(), 'behavior.ttl')
     dsm_outfile = os.path.join(os.getcwd(), 'dsm.ttl')
@@ -68,6 +75,7 @@ def main():
     # ------------------------------------------------------------------------------
     behavior_xls = pd.ExcelFile(behaviorFILE)
     mentalhealth_xls = pd.ExcelFile(mentalhealthFILE)
+    technology_xls = pd.ExcelFile(technologyFILE)
     X = ['', 'nan', np.nan, 'None', None]
 
     # ------------------------------------------------------------------------------
@@ -118,9 +126,13 @@ def main():
         prefixes=prefixes
     ))
 
-    statements = BehaviorSheet1(
-        behavior_xls = behavior_xls,
-        mentalhealth_xls = mentalhealth_xls
+    statements = Project(
+        technology_xls,
+        mentalhealth_xls,
+        BehaviorSheet1(
+            behavior_xls = behavior_xls,
+            mentalhealth_xls = mentalhealth_xls
+        )
     )
 
     dsm_statements = {

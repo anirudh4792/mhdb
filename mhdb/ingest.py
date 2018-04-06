@@ -19,6 +19,78 @@ except:
 import pandas as pd
 
 
+def audience_statements(statements={}):
+    """
+    Function to generate PeopleAudience subClasses.
+
+    Parameter
+    ---------
+    statements: dictionary
+        key: string
+            RDF subject
+        value: dictionary
+            key: string
+                RDF predicate
+            value: {string}
+                set of RDF objects
+
+    Returns
+    -------
+    statements: dictionary
+        key: string
+            RDF subject
+        value: dictionary
+            key: string
+                RDF predicate
+            value: {string}
+                set of RDF objects
+
+    Example
+    -------
+    >>> print(
+    ...     audience_statements()["mhdb:MaleAudience"]["rdfs:subClassOf"]
+    ... )
+    {'schema:PeopleAudience'}
+    """
+    for gendered_audience in {
+        "Male",
+        "Female"
+    }:
+        gendered_iri = check_iri(
+            "".join([
+                    gendered_audience,
+                    "Audience"
+            ])
+        )
+        schema_gender = "schema:{0}".format(
+            gendered_audience
+        )
+        g_statements = {
+            "rdfs:subClassOf": {
+                "schema:PeopleAudience"
+            },
+            "rdfs:label": {
+                 language_string(
+                    " ".join([
+                            gendered_audience,
+                            "Audience"
+                    ])
+                )
+            },
+            "schema:requiredGender": {
+                schema_gender
+            }
+        }
+        if gendered_iri not in statements:
+            statements[gendered_iri] = g_statements
+        else:
+            statements[gendered_iri] = {
+                **statements[gendered_iri],
+                **g_statements
+            }
+    return(statements)
+
+
 def BehaviorSheet1(
     behavior_xls,
     mentalhealth_xls=None,
@@ -30,8 +102,8 @@ def BehaviorSheet1(
 
     Parameters
     ----------
-    sheet: DataFrame
-        parsed spreadsheet
+    sheet: spreadsheet workbook
+        1sQp63K5nGrYSgK2ZvsTfTDmlM4W5_eFHfy6Ckoi7yP4
 
     mentalhealth_xls: spreadsheet workbook, optional
         1MfW9yDw7e8MLlWWSBBXQAC2Q4SDiFiMMb7mRtr7y97Q
@@ -162,25 +234,39 @@ def BehaviorSheet1(
             )
 
         if audience_gender:
-            if "schema:audience" not in statements[symptom_iri]:
-                statements[symptom_iri]["schema:audience"] = {
-                    audience_gender
-                }
-            else:
-                statements[symptom_iri]["schema:audience"].add(
-                    audience_gender
-                )
+            for prop in [
+                "schema:audience",
+                "schema:epidemiology"
+            ]:
+                if prop not in statements[symptom_iri]:
+                    statements[symptom_iri][prop] = {
+                        audience_gender
+                    }
+                else:
+                    statements[symptom_iri][prop].add(
+                        audience_gender
+                    )
 
     return(statements)
 
 
-def audience_statements(statements={}):
-    """
-    Function to generate PeopleAudience subClasses.
+def Project(
+    technology_xls,
+    mentalhealth_xls=None,
+    statements={}
+):
+    '''
+    Function to ingest 1cuJXT1Un7HPLYcDyHAXprH-wGS1azuUNmVQnb3dV1cY Project
 
-    Parameter
-    ---------
-    statements: dictionary
+    Parameters
+    ----------
+    sheet: spreadsheet workbook
+        1cuJXT1Un7HPLYcDyHAXprH-wGS1azuUNmVQnb3dV1cY
+
+    mentalhealth_xls: spreadsheet workbook, optional
+        1MfW9yDw7e8MLlWWSBBXQAC2Q4SDiFiMMb7mRtr7y97Q
+
+    statements:  dictionary
         key: string
             RDF subject
         value: dictionary
@@ -202,45 +288,67 @@ def audience_statements(statements={}):
 
     Example
     -------
-    >>> print(
-    ...     audience_statements()["mhdb:MaleAudience"]["rdfs:subClassOf"]
-    ... )
-    {'schema:PeopleAudience'}
-    """
-    for gendered_audience in {
-        "Male",
-        "Female"
-    }:
-        gendered_iri = check_iri(
-            "".join([
-                    gendered_audience,
-                    "Audience"
-            ])
-        )
-        schema_gender = "schema:{0}".format(
-            gendered_audience
-        )
-        g_statements = {
-            "rdfs:subClassOf": {
-                "schema:PeopleAudience"
-            },
-            "rdfs:label": {
-                 language_string(
-                    " ".join([
-                            gendered_audience,
-                            "Audience"
-                    ])
+    # TODO
+    '''
+    project = technology_xls.parse("Project")
+    homepage = technology_xls.parse("HomePageLink")
+
+    for row in project.iterrows():
+        project_iri = check_iri(row[1]["project"])
+        project_label = language_string(row[1]["project"])
+
+        if not isinstance(
+            row[1]["HomePageLink_index"],
+            float
+        ) and len(row[1]["HomePageLink_index"]):
+            if "," not in row[1]["HomePageLink_index"]:
+                homepage_iris = [check_iri(
+                    homepage[
+                        homepage["index"] == int(row[1]["HomePageLink_index"])
+                    ]["HomePageLink"].values[0]
+                )] if homepage[
+                    homepage["index"] == int(row[1]["HomePageLink_index"])
+                ]["HomePageLink"].values.size else None
+            else:
+                homepage_iris = [
+                    int(s.strip()) for s in row[1]["HomePageLink_index"].split(",")
+                ]
+                homepage_iris = [check_iri(
+                    homepage[
+                        homepage["index"] == homepage_i
+                    ]["HomePageLink"].values[0]
+                ) for homepage_i in homepage_iris]
+            if homepage_iris and len(homepage_iris):
+                for homepage_iri in homepage_iris:
+                    if homepage_iri not in statements:
+                        statements[homepage_iri] = {}
+                    for prop in [
+                        ("schema:about", project_iri),
+                        ("rdf:type", "schema:WebPage")
+                    ]:
+                        if prop[0] not in statements[homepage_iri]:
+                            statements[homepage_iri][prop[0]] = {
+                                prop[1]
+                            }
+                        else:
+                            statements[homepage_iri][prop[0]].add(
+                                prop[1]
+                            )
+
+        if project_iri not in statements:
+            statements[project_iri] = {}
+
+        for prop in [
+            ("rdfs:label", project_label),
+            ("rdfs:subClassOf", "schema:Product")
+        ]:
+            if prop[0] not in statements[project_iri]:
+                statements[project_iri][prop[0]] = {
+                    prop[1]
+                }
+            else:
+                statements[project_iri][prop[0]].add(
+                    prop[1]
                 )
-            },
-            "schema:requiredGender": {
-                schema_gender
-            }
-        }
-        if gendered_iri not in statements:
-            statements[gendered_iri] = g_statements
-        else:
-            statements[gendered_iri] = {
-                **statements[gendered_iri],
-                **g_statements
-            }
+
     return(statements)
