@@ -322,7 +322,8 @@ def object_split_lookup(
     if not isinstance(
         object_indices,
         float
-    ) and len(object_indices):
+    ) and len(str(object_indices)):
+        object_indices = str(object_indices)
         if "," not in object_indices:
             object_iris = [check_iri(
                 lookup_sheet[
@@ -412,6 +413,14 @@ def Project(
             ","
         )
 
+        study_iris = object_split_lookup(
+            row[1]["ResearchStudyOnProjectLink_index"],
+            research_study,
+            "index",
+            "ResearchStudyOnProjectLink",
+            ","
+        )
+
         if homepage_iris and len(homepage_iris):
             for homepage_iri in homepage_iris:
                 for prop in [
@@ -420,6 +429,19 @@ def Project(
                 ]:
                     statements = add_if(
                         homepage_iri,
+                        prop[0],
+                        prop[1],
+                        statements
+                    )
+
+        if study_iris and len(study_iris):
+            for study_iri in study_iris:
+                for prop in [
+                    ("schema:about", project_iri),
+                    ("rdf:type", "schema:ScholarlyArticle")
+                ]:
+                    statements = add_if(
+                        study_iri,
                         prop[0],
                         prop[1],
                         statements
