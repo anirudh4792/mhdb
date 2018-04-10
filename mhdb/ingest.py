@@ -318,13 +318,26 @@ def object_split_lookup(
 
     Example
     -------
+    >>> import pandas as pd
+    >>> sheet = pd.DataFrame({
+    ...     "index": list(range(3)),
+    ...     "bird": [":duck", ":goose", ":swan"]
+    ... })
+    >>> print(object_split_lookup(
+    ...     object_indices="0/2",
+    ...     lookup_sheet=sheet,
+    ...     lookup_key_column="index",
+    ...     lookup_value_column="bird",
+    ...     separator="/"
+    ... ))
+    [':duck', ':swan']
     """
     if not isinstance(
         object_indices,
         float
     ) and len(str(object_indices)):
         object_indices = str(object_indices)
-        if "," not in object_indices:
+        if separator not in object_indices:
             object_iris = [check_iri(
                 lookup_sheet[
                     lookup_sheet[
