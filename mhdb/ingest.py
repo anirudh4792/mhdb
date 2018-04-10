@@ -19,6 +19,60 @@ except:
 import pandas as pd
 
 
+def add_if(subject, predicate, object, statements={}):
+    """
+    Function to add an object and predicate to a dictionary, checking for that
+    predicate first.
+
+    Parameters
+    ----------
+    subject: string
+        Turtle-formatted IRI
+
+    predicate: string
+        Turtle-formatted IRI
+
+    object: string
+        Turtle-formatted IRI
+
+    statements: dictionary
+        key: string
+            RDF subject
+        value: dictionary
+            key: string
+                RDF predicate
+            value: {string}
+                set of RDF objects
+
+    Return
+    ------
+    statements: dictionary
+        key: string
+            RDF subject
+        value: dictionary
+            key: string
+                RDF predicate
+            value: {string}
+                set of RDF objects
+
+    Example
+    -------
+    >>> print(add_if(":goose", ":chases", ":it"))
+    {':goose': {':chases': {':it'}}}
+    """
+    if subject not in statements:
+        statements[subject] = {}
+    if predicate not in statements[subject]:
+        statements[subject][predicate] = {
+            object
+        }
+    else:
+        statements[subject][predicate].add(
+            object
+        )
+    return(statements)
+
+
 def audience_statements(statements={}):
     """
     Function to generate PeopleAudience subClasses.
@@ -203,34 +257,16 @@ def BehaviorSheet1(
             0
         ]
 
-        if symptom_iri not in statements:
-            statements[symptom_iri] = {}
-
-        if "rdfs:label" not in statements[symptom_iri]:
-            statements[symptom_iri]["rdfs:label"] = {
-                symptom_label
-            }
-        else:
-            statements[symptom_iri]["rdfs:label"].add(
-                symptom_label
-            )
-
-        if "rdfs:subClassOf" not in statements[symptom_iri]:
-            statements[symptom_iri]["rdfs:subClassOf"] = {
-                sign_or_symptom
-            }
-        else:
-            statements[symptom_iri]["rdfs:subClassOf"].add(
-                sign_or_symptom
-            )
-
-        if "dcterms:source" not in statements[symptom_iri]:
-            statements[symptom_iri]["dcterms:source"] = {
-                source
-            }
-        else:
-            statements[symptom_iri]["dcterms:source"].add(
-                source
+        for predicates in [
+            ("rdfs:label", symptom_label),
+            ("rdfs:subClassOf", sign_or_symptom),
+            ("dcterms:source", source)
+        ]:
+            statements = add_if(
+                symptom_iri,
+                predicates[0],
+                predicates[1],
+                statements
             )
 
         if audience_gender:
@@ -238,14 +274,12 @@ def BehaviorSheet1(
                 "schema:audience",
                 "schema:epidemiology"
             ]:
-                if prop not in statements[symptom_iri]:
-                    statements[symptom_iri][prop] = {
-                        audience_gender
-                    }
-                else:
-                    statements[symptom_iri][prop].add(
-                        audience_gender
-                    )
+                statements = add_if(
+                    symptom_iri,
+                    prop,
+                    audience_gender,
+                    statements
+                )
 
     return(statements)
 
@@ -335,20 +369,15 @@ def Project(
                                 prop[1]
                             )
 
-        if project_iri not in statements:
-            statements[project_iri] = {}
-
         for prop in [
             ("rdfs:label", project_label),
             ("rdfs:subClassOf", "schema:Product")
         ]:
-            if prop[0] not in statements[project_iri]:
-                statements[project_iri][prop[0]] = {
-                    prop[1]
-                }
-            else:
-                statements[project_iri][prop[0]].add(
-                    prop[1]
-                )
+            statemets = add_if(
+                project_iri,
+                prop[0],
+                prop[1],
+                statements
+            )
 
     return(statements)
