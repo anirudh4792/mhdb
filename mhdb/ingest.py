@@ -284,6 +284,78 @@ def BehaviorSheet1(
     return(statements)
 
 
+def object_split_lookup(
+    object_indices,
+    lookup_sheet,
+    lookup_key_column,
+    lookup_value_column,
+    separator = ","
+):
+    """
+    Function to lookup values from comma-separated key columns.
+
+    Parameters
+    ----------
+    object_indices: string
+        maybe-separated string of foreign keys
+
+    lookup_sheet: DataFrame
+        foreign table
+
+    lookup_key_column: string
+        foreign table key column header
+
+    lookup_value_column: string
+        foreign table value column header
+
+    separator: string
+        default=","
+
+    Returns
+    -------
+    object_iris: list of strings
+        list of Turtle-formatted IRIs or empty list if none
+
+    Example
+    -------
+    """
+    if not isinstance(
+        object_indices,
+        float
+    ) and len(object_indices):
+        if "," not in object_indices:
+            object_iris = [check_iri(
+                lookup_sheet[
+                    lookup_sheet[
+                        lookup_key_column
+                    ] == int(
+                        object_indices
+                    )
+                ][lookup_value_column].values[0]
+            )] if lookup_sheet[
+                lookup_sheet[
+                    lookup_key_column
+                ] == int(
+                    object_indices
+                )
+            ][lookup_value_column].values.size else None
+        else:
+            object_iris = [
+                int(
+                    s.strip()
+                ) for s in object_indices.split(
+                    separator
+                )
+            ]
+            object_iris = [check_iri(
+                lookup_sheet[
+                    lookup_sheet[lookup_key_column] == object_i
+                ][lookup_value_column].values[0]
+            ) for object_i in object_iris]
+        return(object_iris)
+    else:
+        return([])
+
 def Project(
     technology_xls,
     mentalhealth_xls=None,
@@ -326,48 +398,32 @@ def Project(
     '''
     project = technology_xls.parse("Project")
     homepage = technology_xls.parse("HomePageLink")
+    research_study = technology_xls.parse("ResearchStudyOnProject")
 
     for row in project.iterrows():
         project_iri = check_iri(row[1]["project"])
         project_label = language_string(row[1]["project"])
 
-        if not isinstance(
+        homepage_iris = object_split_lookup(
             row[1]["HomePageLink_index"],
-            float
-        ) and len(row[1]["HomePageLink_index"]):
-            if "," not in row[1]["HomePageLink_index"]:
-                homepage_iris = [check_iri(
-                    homepage[
-                        homepage["index"] == int(row[1]["HomePageLink_index"])
-                    ]["HomePageLink"].values[0]
-                )] if homepage[
-                    homepage["index"] == int(row[1]["HomePageLink_index"])
-                ]["HomePageLink"].values.size else None
-            else:
-                homepage_iris = [
-                    int(s.strip()) for s in row[1]["HomePageLink_index"].split(",")
-                ]
-                homepage_iris = [check_iri(
-                    homepage[
-                        homepage["index"] == homepage_i
-                    ]["HomePageLink"].values[0]
-                ) for homepage_i in homepage_iris]
-            if homepage_iris and len(homepage_iris):
-                for homepage_iri in homepage_iris:
-                    if homepage_iri not in statements:
-                        statements[homepage_iri] = {}
-                    for prop in [
-                        ("schema:about", project_iri),
-                        ("rdf:type", "schema:WebPage")
-                    ]:
-                        if prop[0] not in statements[homepage_iri]:
-                            statements[homepage_iri][prop[0]] = {
-                                prop[1]
-                            }
-                        else:
-                            statements[homepage_iri][prop[0]].add(
-                                prop[1]
-                            )
+            homepage,
+            "index",
+            "HomePageLink",
+            ","
+        )
+
+        if homepage_iris and len(homepage_iris):
+            for homepage_iri in homepage_iris:
+                for prop in [
+                    ("schema:about", project_iri),
+                    ("rdf:type", "schema:WebPage")
+                ]:
+                    statements = add_if(
+                        homepage_iri,
+                        prop[0],
+                        prop[1],
+                        statements
+                    )
 
         for prop in [
             ("rdfs:label", project_label),
