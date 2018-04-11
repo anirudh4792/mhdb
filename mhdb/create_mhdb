@@ -93,40 +93,7 @@ def main():
     Current information can be found on the website, http://mentalhealth.tech.
     """
 
-    # ------------------------------------------------------------------------------
-    # Extract worksheets as pandas dataframes
-    # ------------------------------------------------------------------------------
-    prefixes = [(
-        row[1]["Prefix"],
-        row[1]["PrefixURI"],
-        row[1]["ImportURI"]
-    ) for row in mentalhealth_xls.parse('Ontologies').iterrows()]
-    # ------------------------------------------------------------------------------
-    # Write header
-    # with Ontologies listed in mentalhealth.Ontologies ------------------------------------------------------------------------------
-
-    fid = open(outfile, 'w')
-    dsmfid = open(dsm_outfile, 'w')
-    header_string = write_header(
-        base_uri,
-        version,
-        label,
-        comment,
-        prefixes=prefixes
-    )
-    fid.write(header_string)
-    dsmfid.write(write_header(
-        "{0}/{1}".format(base_uri, "dsm"),
-        version,
-        "{0} — {1}".format(label, "DSM-V supplement"),
-        "\n".join([
-            comment,
-            "\t\t================\n\t\tDSM-V supplement\n\t\t================"
-        ]),
-        prefixes=prefixes
-    ))
-
-    statements = Project(
+    statements = technology(
         technology_xls,
         mentalhealth_xls,
         BehaviorSheet1(
@@ -161,6 +128,59 @@ def main():
 
     mhdb_turtle = turtle_from_dict(non_dsm_statements)
     dsm_turtle = turtle_from_dict(dsm_statements)
+
+    import_prefixes = set()
+    for subject in statements:
+        if ":" in subject and \
+        "://" not in subject and \
+        not subject.startswith('"'):
+            import_prefixes.add(subject.split(":")[0])
+        for predicate in statements[subject]:
+            if ":" in predicate and \
+            "://" not in predicate and \
+            not predicate.startswith('"'):
+                import_prefixes.add(predicate.split(":")[0])
+            for object in statements[subject][predicate]:
+                if ":" in object and \
+                "://" not in object and \
+                not object.startswith('"'):
+                    import_prefixes.add(object.split(":")[0])
+
+    # ------------------------------------------------------------------------------
+    # Extract worksheets as pandas dataframes
+    # ------------------------------------------------------------------------------
+    prefixes = [(
+        row[1]["Prefix"],
+        row[1]["PrefixURI"],
+        row[1]["ImportURI"]
+    ) for row in mentalhealth_xls.parse(
+        'Ontologies'
+    ).iterrows() if row[1]["Prefix"] in import_prefixes]
+    # ------------------------------------------------------------------------------
+    # Write header
+    # with Ontologies listed in mentalhealth.Ontologies ------------------------------------------------------------------------------
+
+    fid = open(outfile, 'w')
+    dsmfid = open(dsm_outfile, 'w')
+    header_string = write_header(
+        base_uri,
+        version,
+        label,
+        comment,
+        prefixes=prefixes,
+        imports=True
+    )
+    fid.write(header_string)
+    dsmfid.write(write_header(
+        "{0}/{1}".format(base_uri, "dsm"),
+        version,
+        "{0} — {1}".format(label, "DSM-V supplement"),
+        "\n".join([
+            comment,
+            "\t\t================\n\t\tDSM-V supplement\n\t\t================"
+        ]),
+        prefixes=prefixes
+    ))
 
     fid.write("{0} .\n".format(mhdb_turtle.rstrip(" .")))
     dsmfid.write("{0} .\n".format(dsm_turtle.rstrip(" .")))

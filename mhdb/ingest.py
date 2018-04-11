@@ -284,6 +284,222 @@ def BehaviorSheet1(
     return(statements)
 
 
+def MHealthPeople(
+    technology_xls,
+    statements={}
+):
+    '''
+    Function to ingest 1cuJXT1Un7HPLYcDyHAXprH-wGS1azuUNmVQnb3dV1cY
+    MHealthPeople
+
+    Parameters
+    ----------
+    sheet: spreadsheet workbook
+        1cuJXT1Un7HPLYcDyHAXprH-wGS1azuUNmVQnb3dV1cY
+
+    statements:  dictionary
+        key: string
+            RDF subject
+        value: dictionary
+            key: string
+                RDF predicate
+            value: {string}
+                set of RDF objects
+
+    Returns
+    -------
+    statements: dictionary
+        key: string
+            RDF subject
+        value: dictionary
+            key: string
+                RDF predicate
+            value: {string}
+                set of RDF objects
+
+    Example
+    -------
+    # TODO
+    '''
+    for pred in [
+        ("rdfs:label", language_string("site")),
+        ("rdfs:comment", language_string(
+            "Site, place or location of anything."
+        )),
+        ("rdfs:range", "schema:Place"),
+        ("rdfs:range", "dcterms:Location"),
+        ("rdf:type", "rdf:Property")
+    ]:
+        statements = add_if(
+            "mhdb:site",
+            pred[0],
+            pred[1],
+            statements
+        )
+
+    mhealthpeople = technology_xls.parse("MHealthPeople")
+
+    for row in mhealthpeople.iterrows():
+        predicates = set()
+        person_iri = check_iri(row[1]["URL"])
+        person_label = language_string(
+            row[1]["MHealthPeople/Labs"]
+        ) if (
+            (
+                len(str(row[1]["MHealthPeople/Labs"]))
+            ) and not (
+                isinstance(
+                    row[1]["MHealthPeople/Labs"],
+                    float
+                )
+            ) and not (
+                str(row[1]["MHealthPeople/Labs"]).startswith("Also")
+            )
+        ) else None
+        person_place = check_iri(row[1]["Site"]) if (
+            len(
+                str(row[1]["Site"]).strip()
+            ) and not (
+                isinstance(
+                    row[1]["Site"],
+                    float
+                )
+            )
+        ) else None
+
+        if person_label:
+            predicates.add(
+                ("rdfs:label", person_label)
+            )
+
+        if person_place:
+            predicates.add(
+                ("mhdb:site", person_place)
+            )
+            statements = add_if(
+                person_place,
+                "rdfs:label",
+                language_string(row[1]["Site"]),
+                statements
+            )
+
+        if "<" in person_iri:
+            predicates.add(
+                ("schema:WebPage", person_iri)
+            )
+
+        if len(predicates):
+            for prop in predicates:
+                statements = add_if(
+                    person_iri,
+                    prop[0],
+                    prop[1],
+                    statements
+                )
+
+        for affiliate_i in range(1, 10):
+            affiliate = "{0}{1}".format(
+                "Affiliate",
+                str(affiliate_i)
+            )
+            if row[1][affiliate] and len(
+                str(row[1][affiliate])
+            ) and not isinstance(
+                row[1][affiliate],
+                float
+            ):
+                affiliate_iri = check_iri(
+                    row[1][affiliate].split("(")[1].rstrip(")")
+                ) if (
+                    (
+                        "@" in row[1][affiliate]
+                    ) or (
+                        "://" in row[1][affiliate]
+                    )
+                ) else check_iri(", ".join([
+                    " ".join(list(
+                        row[1][affiliate].strip().split(
+                            "("
+                        )[0].split(" ")[1:])).strip(),
+                    row[1][affiliate].strip().split(
+                        "("
+                    )[0].split(" ")[0].strip()
+                ])) if "(" in row[1][affiliate] else check_iri(", ".join([
+                    " ".join(list(
+                        row[1][affiliate].strip().split(" ")[1:])).strip(),
+                    row[1][affiliate].strip().split(" ")[0].strip()
+                ]))
+                affiliate_preds = {
+                    (
+                        property,
+                        language_string(
+                            row[1][affiliate].strip().split(
+                                "("
+                            )[0].strip() if "(" in row[1][
+                                affiliate
+                            ] else row[1][affiliate]
+                        )
+                    ) for property in ["rdfs:label", "foaf:name"]
+                }
+                if "(" in row[1][affiliate]:
+                    if "@" in row[1][affiliate]:
+                        affiliate_preds.add(
+                            (
+                                "schema:email",
+                                check_iri(row[1][affiliate].split(
+                                    "("
+                                )[1].rstrip(")").strip())
+                            )
+                        )
+                    elif "://" in row[1][affiliate]:
+                        affiliate_webpage = row[1][affiliate].split(
+                            "("
+                        )[1].rstrip(")").strip()
+                        affiliate_preds.add(
+                            (
+                                "schema:WebPage",
+                                check_iri(row[1][affiliate].split(
+                                    "("
+                                )[1].rstrip(")").strip())
+                            )
+                        )
+                    elif "lab pup" in row[1][affiliate]:
+                        affiliate_preds.add(
+                            (
+                                "rdfs:comment",
+                                language_string("lab pup")
+                            )
+                        )
+                    else:
+                        affiliate_preds.add(
+                            (
+                                "mhdb:site",
+                                check_iri(
+                                    row[1][affiliate].split(
+                                        "("
+                                    )[1].rstrip(")").strip()
+                                )
+                            )
+                        )
+
+                for pred in affiliate_preds:
+                    statements = add_if(
+                        affiliate_iri,
+                        pred[0],
+                        pred[1],
+                        statements
+                    )
+
+                statements = add_if(
+                    person_iri,
+                    "dcterms:contributor",
+                    affiliate_iri,
+                    statements
+                )
+
+    return(statements)
+
+
 def object_split_lookup(
     object_indices,
     lookup_sheet,
@@ -332,43 +548,48 @@ def object_split_lookup(
     ... ))
     [':duck', ':swan']
     """
-    if not isinstance(
-        object_indices,
-        float
-    ) and len(str(object_indices)):
-        object_indices = str(object_indices)
-        if separator not in object_indices:
-            object_iris = [check_iri(
-                lookup_sheet[
+    try:
+        if not isinstance(
+            object_indices,
+            float
+        ) and len(str(object_indices).strip()):
+            object_indices = str(object_indices)
+            if separator not in object_indices:
+                object_iris = [check_iri(
+                    lookup_sheet[
+                        lookup_sheet[
+                            lookup_key_column
+                        ] == int(
+                            object_indices
+                        )
+                    ][lookup_value_column].values[0]
+                )] if lookup_sheet[
                     lookup_sheet[
                         lookup_key_column
                     ] == int(
                         object_indices
                     )
-                ][lookup_value_column].values[0]
-            )] if lookup_sheet[
-                lookup_sheet[
-                    lookup_key_column
-                ] == int(
-                    object_indices
-                )
-            ][lookup_value_column].values.size else None
+                ][lookup_value_column].values.size else None
+            else:
+                object_iris = [
+                    int(
+                        s.strip()
+                    ) for s in object_indices.split(
+                        separator
+                    )
+                ]
+                object_iris = [check_iri(
+                    lookup_sheet[
+                        lookup_sheet[lookup_key_column] == object_i
+                    ][lookup_value_column].values[0]
+                ) for object_i in object_iris]
+            return(object_iris)
         else:
-            object_iris = [
-                int(
-                    s.strip()
-                ) for s in object_indices.split(
-                    separator
-                )
-            ]
-            object_iris = [check_iri(
-                lookup_sheet[
-                    lookup_sheet[lookup_key_column] == object_i
-                ][lookup_value_column].values[0]
-            ) for object_i in object_iris]
-        return(object_iris)
-    else:
+            return([])
+    except:
+        print(str(object_indices))
         return([])
+
 
 def Project(
     technology_xls,
@@ -410,8 +631,75 @@ def Project(
     -------
     # TODO
     '''
+    for subject in [
+        "schema:Book",
+        "schema:Article"
+    ]:
+        statemets = add_if(
+            subject,
+            "rdfs:subClassOf",
+            "mhdb:BookOrArticle",
+            statements
+        )
+
+    for pred in [
+        ("rdfs:subClassOf", "schema:CreativeWork"),
+        ("rdfs:subClassOf", "dcterms:BibliographicResource"),
+        ("rdfs:label", language_string("Book / Article"))
+    ]:
+        statements = add_if(
+            "mhdb:BookOrArticle",
+            pred[0],
+            pred[1],
+            statements
+        )
+
+    for pred in [
+        ("rdfs:subClassOf", "schema:CreativeWork"),
+        ("rdfs:subClassOf", "schema:MedicalTest"),
+        ("rdfs:label", language_string("Assessment"))
+    ]:
+        statements = add_if(
+            "mhdb:Assessment",
+            pred[0],
+            pred[1],
+            statements
+        )
+
+    for pred in [
+        ("rdfs:subClassOf", "schema:Product"),
+        ("rdfs:comment", language_string(
+            "A smart electronic device (electronic device with "
+            "micro-controller(s)) that can be worn on the body as implants or "
+            "accessories."
+        )),
+        ("rdfs:isDefinedBy", check_iri(
+            "https://en.wikipedia.org/wiki/Wearable_technology"
+        )),
+        ("rdfs:label", language_string("Wearable"))
+    ]:
+        statements = add_if(
+            "mhdb:Wearable",
+            pred[0],
+            pred[1],
+            statements
+        )
+
+    for pred in [
+        ("rdfs:subClassOf", "schema:Game"),
+        ("owl:disjointWith", "schema:VideoGame"),
+        ("rdfs:label", language_string("Non-Digital Game"))
+    ]:
+        statements = add_if(
+            "mhdb:NonDigitalGame",
+            pred[0],
+            pred[1],
+            statements
+        )
+
     project = technology_xls.parse("Project")
     homepage = technology_xls.parse("HomePageLink")
+    mhealthpeople = technology_xls.parse("MHealthPeople")
     research_study = technology_xls.parse("ResearchStudyOnProject")
 
     for row in project.iterrows():
@@ -423,6 +711,14 @@ def Project(
             homepage,
             "index",
             "HomePageLink",
+            ","
+        )
+
+        mhealthpeople_iris = object_split_lookup(
+            row[1]["MHealthPeople_index"],
+            mhealthpeople,
+            "index",
+            "URL",
             ","
         )
 
@@ -442,6 +738,18 @@ def Project(
                 ]:
                     statements = add_if(
                         homepage_iri,
+                        prop[0],
+                        prop[1],
+                        statements
+                    )
+
+        if mhealthpeople_iris and len(mhealthpeople_iris):
+            for mhealthpeople_iri in mhealthpeople_iris:
+                for prop in [
+                    ("dcterms:contributor", mhealthpeople_iri)
+                ]:
+                    statements = add_if(
+                        project_iri,
                         prop[0],
                         prop[1],
                         statements
@@ -472,3 +780,55 @@ def Project(
             )
 
     return(statements)
+
+
+def technology(
+    technology_xls,
+    mentalhealth_xls=None,
+    statements={}
+):
+    '''
+    Function to ingest 1cuJXT1Un7HPLYcDyHAXprH-wGS1azuUNmVQnb3dV1cY workbook
+
+    Parameters
+    ----------
+    sheet: spreadsheet workbook
+        1cuJXT1Un7HPLYcDyHAXprH-wGS1azuUNmVQnb3dV1cY
+
+    mentalhealth_xls: spreadsheet workbook, optional
+        1MfW9yDw7e8MLlWWSBBXQAC2Q4SDiFiMMb7mRtr7y97Q
+
+    statements:  dictionary
+        key: string
+            RDF subject
+        value: dictionary
+            key: string
+                RDF predicate
+            value: {string}
+                set of RDF objects
+
+    Returns
+    -------
+    statements: dictionary
+        key: string
+            RDF subject
+        value: dictionary
+            key: string
+                RDF predicate
+            value: {string}
+                set of RDF objects
+
+    Example
+    -------
+    # TODO
+    '''
+    return(
+        Project(
+            technology_xls,
+            mentalhealth_xls,
+            MHealthPeople(
+                technology_xls,
+                statements
+            )
+        )
+    )

@@ -323,8 +323,10 @@ def write_header_prefixes(prefixes, imports=False):
         header_prefix = """{0}\n<> owl:imports {1} .\n\n""".format(
             header_prefix,
             " ,\n\t".join([
-                "{0}:".format(
-                    prefix[0]
+                "{0}".format(
+                    check_iri(
+                        prefix[1]
+                    )
                 ) if (
                     (
                         len(prefix) < 3
