@@ -284,6 +284,99 @@ def BehaviorSheet1(
     return(statements)
 
 
+def disorder_iri(
+        index,
+        mentalhealth_xls=None,
+        pre_specifiers_indices=[
+            6,
+            7,
+            24,
+            25,
+            26
+        ],
+        post_specifiers_indices=[
+            27,
+            28,
+            56,
+            78
+        ]
+    ):
+    """
+    Function to figure out IRIs for disorders based on
+    mentalhealth.xls::Disorder
+
+    Parameters
+    ----------
+    index: int
+        key to lookup in Disorder table
+
+    mentalhealth_xls: spreadsheet workbook, optional
+        1MfW9yDw7e8MLlWWSBBXQAC2Q4SDiFiMMb7mRtr7y97Q
+
+    pre_specifiers_indices: [int], optional
+        list of indices of diagnostic specifiers to precede disorder names
+
+    post_specifiers_indices: [int], optional
+        list of indices of diagnostic specifiers to be preceded by disorder
+        names
+
+    Returns
+    -------
+    statements: dictionary
+        key: string
+            RDF subject
+        value: dictionary
+            key: string
+                RDF predicate
+            value: {string}
+                set of RDF objects
+    """
+    disorder = mentalhealth_xls.parse("Disorder")
+    severity = mentalhealth_xls.parse("DisorderSeverity")
+    specifier = mentalhealth_xls.parse("DiagnosticSpecifier")
+    criterion = mentalhealth_xls.parse("DiagnosticCriterion")
+    disorderSeries = disorder[disorder["index"]==index]
+    disorder_name = disorderSeries["DisorderName"]
+    if disorderSeries["DiagnosticSpecifier"]:
+        disorder_name = " ".join([
+            specifier[
+                specifier[
+                    "index"
+                ]==disorderSeries[
+                    "DiagnosticSpecifier"
+                ]
+            ],
+            disorder_name
+        ]) if disorderSeries[
+            "DiagnosticSpecifier"
+        ] in pre_specifiers_indices else " ".join([
+            disorder_name,
+            specifier[
+                specifier[
+                    "index"
+                ]==disorderSeries[
+                    "DiagnosticSpecifier"
+                ]
+            ]
+        ]) if disorderSeries[
+            "DiagnosticSpecifier"
+        ] in post_specifiers_indices else ", ".join([
+            disorder_name,
+            specifier[
+                specifier[
+                    "index"
+                ]==disorderSeries[
+                    "DiagnosticSpecifier"
+                ]
+            ]
+        ])
+    #TODO: criteria (inclusion, exclusion), severity
+    iri = check_iri(disorder_name)
+    label = language_string(disorder_name)
+    statements = {iri: {"rdfs:label": [label]}}
+    return(statements)
+
+
 def MHealthPeople(
     technology_xls,
     statements={}
@@ -297,7 +390,7 @@ def MHealthPeople(
     sheet: spreadsheet workbook
         1cuJXT1Un7HPLYcDyHAXprH-wGS1azuUNmVQnb3dV1cY
 
-    statements:  dictionary
+    statements: dictionary
         key: string
             RDF subject
         value: dictionary
