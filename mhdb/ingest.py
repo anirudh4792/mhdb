@@ -16,6 +16,7 @@ try:
 except:
     from mhdb.mhdb.spreadsheet_io import download_google_sheet, return_string
     from mhdb.mhdb.write_ttl import check_iri, language_string
+import numpy as np
 import pandas as pd
 
 
@@ -336,41 +337,139 @@ def disorder_iri(
     specifier = mentalhealth_xls.parse("DiagnosticSpecifier")
     criterion = mentalhealth_xls.parse("DiagnosticCriterion")
     disorderSeries = disorder[disorder["index"]==index]
-    disorder_name = disorderSeries["DisorderName"]
-    if disorderSeries["DiagnosticSpecifier"]:
+    disorder_name = disorderSeries["DisorderName"].values[0]
+    if (
+        not isinstance(
+            disorderSeries["DiagnosticSpecifier_index"].values[0],
+            float
+        )
+    ) or (
+        not np.isnan(
+            disorderSeries["DiagnosticSpecifier_index"].values[0]
+        )
+    ):
         disorder_name = " ".join([
             specifier[
                 specifier[
                     "index"
                 ]==disorderSeries[
-                    "DiagnosticSpecifier"
-                ]
-            ],
+                    "DiagnosticSpecifier_index"
+                ].values[0]
+            ]["DiagnosticSpecifierName"].values[0],
             disorder_name
         ]) if disorderSeries[
-            "DiagnosticSpecifier"
-        ] in pre_specifiers_indices else " ".join([
+            "DiagnosticSpecifier_index"
+        ].values[0] in pre_specifiers_indices else " ".join([
             disorder_name,
             specifier[
                 specifier[
                     "index"
                 ]==disorderSeries[
-                    "DiagnosticSpecifier"
-                ]
-            ]
+                    "DiagnosticSpecifier_index"
+                ].values[0]
+            ]["DiagnosticSpecifierName"].values[0]
         ]) if disorderSeries[
-            "DiagnosticSpecifier"
-        ] in post_specifiers_indices else ", ".join([
+            "DiagnosticSpecifier_index"
+        ].values[0] in post_specifiers_indices else ", ".join([
             disorder_name,
             specifier[
                 specifier[
                     "index"
                 ]==disorderSeries[
-                    "DiagnosticSpecifier"
-                ]
-            ]
+                    "DiagnosticSpecifier_index"
+                ].values[0]
+            ]["DiagnosticSpecifierName"].values[0]
         ])
-    #TODO: criteria (inclusion, exclusion), severity
+    disorder_name = " with ".join([
+        disorder_name,
+        criterion[
+            criterion["index"]==disorderSeries[
+                "DiagnosticInclusionCriterion_index"
+            ]
+        ]["DiagnosticCriterionName"].values[0]
+    ]) if (
+        not isinstance(
+            disorderSeries["DiagnosticInclusionCriterion_index"].values[0],
+            float
+        )
+    ) or (
+        not np.isnan(
+            disorderSeries["DiagnosticInclusionCriterion_index"].values[0]
+        )
+    ) else disorder_name
+    disorder_name = " and ".join([
+        disorder_name,
+        criterion[
+            criterion["index"]==disorderSeries[
+                "DiagnosticInclusionCriterion2_index"
+            ]
+        ]["DiagnosticCriterionName"].values[0]
+    ]) if (
+        not isinstance(
+            disorderSeries["DiagnosticInclusionCriterion2_index"].values[0],
+            float
+        )
+    ) or (
+        not np.isnan(
+            disorderSeries["DiagnosticInclusionCriterion2_index"].values[0]
+        )
+    ) else disorder_name
+    disorder_name = " without ".join([
+        disorder_name,
+        criterion[
+            criterion["index"]==disorderSeries[
+                "DiagnosticExclusionCriterion_index"
+            ]
+        ]["DiagnosticCriterionName"].values[0]
+    ]) if (
+        not isinstance(
+            disorderSeries["DiagnosticExclusionCriterion_index"].values[0],
+            float
+        )
+    ) or (
+        not np.isnan(
+            disorderSeries["DiagnosticExclusionCriterion_index"].values[0]
+        )
+    ) else disorder_name
+    disorder_name = " and ".join([
+        disorder_name,
+        criterion[
+            criterion["index"]==disorderSeries[
+                "DiagnosticExclusionCriterion2_index"
+            ]
+        ]["DiagnosticCriterionName"].values[0]
+    ]) if (
+        not isinstance(
+            disorderSeries["DiagnosticExclusionCriterion2_index"].values[0],
+            float
+        )
+    ) or (
+        not np.isnan(
+            disorderSeries["DiagnosticExclusionCriterion2_index"].values[0]
+        )
+    ) else disorder_name
+    disorder_name = " ".join([
+        severity[
+            severity[
+                "index"
+            ]==int(disorderSeries[
+                "DisorderSeverity_index"
+            ])
+        ]["DisorderSeverityName"].values[0]
+    ]) if (
+        not isinstance(
+            disorderSeries[
+                "DisorderSeverity_index"
+            ].values[0],
+            float
+        )
+    ) or (
+        not np.isnan(
+            disorderSeries[
+                "DisorderSeverity_index"
+            ].values[0]
+        )
+    ) else disorder_name
     iri = check_iri(disorder_name)
     label = language_string(disorder_name)
     statements = {iri: {"rdfs:label": [label]}}
@@ -799,6 +898,42 @@ def Project(
         project_iri = check_iri(row[1]["project"])
         project_label = language_string(row[1]["project"])
 
+        disorder_iris = [
+            int(
+                disorder_index.strip()
+            ) for disorder_index in row[1][
+                "disorder_index"
+            ].split(",")
+        ] if (
+            (
+                isinstance(
+                    row[1][
+                        "disorder_index"
+                    ],
+                    str
+                )
+            ) and (
+                "," in row[1][
+                    "disorder_index"
+                ]
+            )
+        ) else [
+            int(row[1][
+                "disorder_index"
+            ])
+        ] if (
+            not isinstance(
+                row[1]["disorder_index"],
+                float
+            ) or (
+                not np.isnan(
+                    row[1][
+                        "disorder_index"
+                    ]
+                )
+            )
+        ) else None
+
         homepage_iris = object_split_lookup(
             row[1]["HomePageLink_index"],
             homepage,
@@ -822,6 +957,37 @@ def Project(
             "ResearchStudyOnProjectLink",
             ","
         )
+        disorder_statements = {}
+        if disorder_iris and len(disorder_iris):
+            for disorder in disorder_iris:
+                disorder_statements = disorder_iri(
+                    disorder,
+                    mentalhealth_xls=mentalhealth_xls,
+                    pre_specifiers_indices=[
+                        6,
+                        7,
+                        24,
+                        25,
+                        26
+                    ],
+                    post_specifiers_indices=[
+                        27,
+                        28,
+                        56,
+                        78
+                    ]
+                )
+                statements = add_if(
+                    project_iri,
+                    "dcterms:subject",
+                    [
+                        k for k in disorder_statements
+                    ][0],
+                    {
+                        **statements,
+                        **disorder_statements
+                    }
+                )
 
         if homepage_iris and len(homepage_iris):
             for homepage_iri in homepage_iris:
