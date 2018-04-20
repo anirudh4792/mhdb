@@ -517,26 +517,26 @@ def doi_iri(
             doi
         )
     )
-    doi = '"""{0}"""'.format(doi)
+    doi = '"""{0}"""^^rdfs:Literal'.format(doi)
+    for pred in [
+        ("datacite:usesIdentifierScheme", "datacite:doi"),
+        ("datacite:hasIdentifier", doi)
+    ]:
+        statements = add_if(
+            local_iri,
+            pred[0],
+            pred[1],
+            statements
+        )
     return(
         add_if(
-            doi,
-            "datacite:usesIdentifierScheme",
-            "datacite:doi",
-            add_if(
-                local_iri,
-                "datacite:hasIdentifier",
-                doi,
-                add_if(
-                    local_iri,
-                    "rdfs:label",
-                    language_string(
-                        title
-                    ),
-                    statements
-                ) if title else statements
-            )
-        )
+            local_iri,
+            "rdfs:label",
+            language_string(
+                title
+            ),
+            statements
+        ) if title else statements
     )
 
 
@@ -1077,7 +1077,7 @@ def Project(
                 "appropriate behavior expectations."
             )
         ),
-        ("rdfs:label", "Social Narrative")
+        ("rdfs:label", language_string("Social Narrative"))
     ]:
         statements = add_if(
             "mhdb:SocialNarrative",
@@ -1188,7 +1188,7 @@ def Project(
             statements
         )
 
-    #TODO: define ParentAudience, Toy, StudentProject, Hackathon, OutreachProgram, SupportGroup
+    #TODO: define Toy, StudentProject, Hackathon, OutreachProgram, SupportGroup
 
     project = technology_xls.parse("Project", convert_float=False)
     homepage = technology_xls.parse("HomePageLink")
