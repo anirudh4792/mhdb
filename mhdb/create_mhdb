@@ -62,7 +62,7 @@ def main():
     try:
         technologyFILE = download_google_sheet(
             'data/technology.xlsx',
-            "1cuJXT1Un7HPLYcDyHAXprH-wGS1azuUNmVQnb3dV1cY"
+            "1OHtVRqRXvCUuhyavcLSBU9YkiEJfThFKrXHmcg4627M"
         )
     except:
         technologyFILE = 'data/technology.xlsx'

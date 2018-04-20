@@ -25,7 +25,10 @@ except:
 import numpy as np
 
 
-def check_iri(iri, prefixes={("mhdb", "http://www.purl.org/mentalhealth#")}):
+def check_iri(
+    iri,
+    prefixes={("mhdb", "http://www.purl.org/mentalhealth#")},
+    alert_unknown=False):
     """
     Function to format IRIs by type
     eg, <iri> or prefix:iri
@@ -52,7 +55,9 @@ def check_iri(iri, prefixes={("mhdb", "http://www.purl.org/mentalhealth#")}):
             return(iri)
         elif ":/" in iri:
             return("<{0}>".format(iri))
-        print("unknown prefix: {0}".format(iri.split(":")[0]))
+        if alert_unknown:
+            print("unknown prefix: {0}".format(iri.split(":")[0]))
+        return(iri.strip())
     else:
         return(mhdb_iri(iri))
 

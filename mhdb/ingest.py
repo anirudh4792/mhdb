@@ -477,6 +477,70 @@ def disorder_iri(
     return(statements)
 
 
+def doi_iri(
+    doi,
+    title=None,
+    statements={}
+):
+    """
+    Function to create relevant statements about a DOI.
+
+    Parameters
+    ----------
+    doi: string
+        Digital Object Identifier
+
+    title: string, optional
+        title of digital object
+
+    Returns
+    -------
+    statements: dictionary
+        key: string
+            RDF subject
+        value: dictionary
+            key: string
+                RDF predicate
+            value: {string}
+                set of RDF objects
+
+    Example
+    -------
+    >>> print([k for k in doi_iri(
+    ...     "10.1109/IEEESTD.2015.7084073",
+    ...     "1872-2015 - IEEE Standard Ontologies for Robotics and Automation"
+    ... )][0])
+    <https://dx.doi.org/10.1109/IEEESTD.2015.7084073>
+    """
+    local_iri = check_iri(
+        'https://dx.doi.org/{0}'.format(
+            doi
+        )
+    )
+    doi = '"""{0}"""'.format(doi)
+    return(
+        add_if(
+            doi,
+            "datacite:usesIdentifierScheme",
+            "datacite:doi",
+            add_if(
+                local_iri,
+                "datacite:hasIdentifier",
+                doi,
+                add_if(
+                    local_iri,
+                    "rdfs:label",
+                    language_string(
+                        title
+                    ),
+                    statements
+                ) if title else statements
+            )
+        )
+    )
+
+
+
 def MHealthPeople(
     technology_xls,
     statements={}
@@ -780,6 +844,7 @@ def object_split_lookup(
         else:
             return([])
     except:
+        print(str(lookup_value_column))
         print(str(object_indices))
         return([])
 
@@ -828,7 +893,7 @@ def Project(
         "schema:Book",
         "schema:Article"
     ]:
-        statemets = add_if(
+        statements = add_if(
             subject,
             "rdfs:subClassOf",
             "mhdb:BookOrArticle",
@@ -860,7 +925,54 @@ def Project(
         )
 
     for pred in [
-        ("rdfs:subClassOf", "schema:Product"),
+        ("rdfs:subClassOf", "schema:CreativeWork"),
+        ("rdfs:subClassOf", "dcterms:InteractiveResource"),
+        ("rdfs:label", language_string("Virtual Reality"))
+    ]:
+        statements = add_if(
+            "mhdb:VirtualReality",
+            pred[0],
+            pred[1],
+            statements
+        )
+
+    for pred in [
+        ("rdfs:subClassOf", "schema:CreativeWork"),
+        ("rdfs:subClassOf", "dcterms:InteractiveResource"),
+        ("rdfs:label", language_string("Augmented Reality"))
+    ]:
+        statements = add_if(
+            "mhdb:AugmentedReality",
+            pred[0],
+            pred[1],
+            statements
+        )
+
+    for pred in [
+        ("rdfs:subClassOf", "schema:Book"),
+        ("rdfs:label", language_string("Resource Guide"))
+    ]:
+        statements = add_if(
+            "mhdb:ResourceGuide",
+            pred[0],
+            pred[1],
+            statements
+        )
+
+    for pred in [
+        ("rdfs:subClassOf", "schema:Service"),
+        ("rdfs:subClassOf", "schema:OrganizeAction"),
+        ("rdfs:label", language_string("Community Initiative"))
+    ]:
+        statements = add_if(
+            "mhdb:CommunityInitiative",
+            pred[0],
+            pred[1],
+            statements
+        )
+
+    for pred in [
+        ("rdfs:subClassOf", "ssn:Device"),
         ("rdfs:comment", language_string(
             "A smart electronic device (electronic device with "
             "micro-controller(s)) that can be worn on the body as implants or "
@@ -878,6 +990,17 @@ def Project(
             statements
         )
 
+        for pred in [
+            ("rdfs:subClassOf", "ssn:Device"),
+            ("rdfs:label", language_string("Tablet"))
+        ]:
+            statements = add_if(
+                "mhdb:Tablet",
+                pred[0],
+                pred[1],
+                statements
+            )
+
     for pred in [
         ("rdfs:subClassOf", "schema:Game"),
         ("owl:disjointWith", "schema:VideoGame"),
@@ -890,12 +1013,195 @@ def Project(
             statements
         )
 
-    project = technology_xls.parse("Project")
+    statements = {
+        **doi_iri(
+            "10.1109/IEEESTD.2015.7084073",
+            "1872-2015 - IEEE Standard Ontologies for Robotics and Automation"
+        ),
+        **statements
+    }
+
+    for pred in [
+        ("rdfs:subClassOf", "dcterms:Agent"),
+        ("rdfs:subClassOf", "ssn:Device"),
+        (
+            "dcterms:source",
+            check_iri(
+                'https://dx.doi.org/10.1109/IEEESTD.2015.7084073'
+            )
+        ),
+        ("rdfs:label", language_string("Robot")),
+        (
+            "rdfs:comment",
+            language_string(
+                "An agentive device (Agent and Device in SUMO) in a broad "
+                "sense, purposed to act in the physical world in order to "
+                "accomplish one or more tasks. In some cases, the actions of a "
+                "robot might be subordinated to actions of other agents (Agent "
+                "in SUMO), such as software agents (bots) or humans. A robot "
+                "is composed of suitable mechanical and electronic parts. "
+                "Robots might form social groups, where they interact to "
+                "achieve a common goal. A robot (or a group of robots) can "
+                "form robotic systems together with special environments "
+                "geared to facilitate their work."
+            )
+        )
+    ]:
+        statements = add_if(
+            "mhdb:Robot",
+            pred[0],
+            pred[1],
+            statements
+        )
+
+    for pred in [
+        ("rdfs:subClassOf", "schema:CreativeWork"),
+        (
+            "dcterms:source",
+            check_iri(
+                "http://afirm.fpg.unc.edu/social-narratives"
+            )
+        ),
+        (
+            "rdfs:isDefinedBy",
+            check_iri(
+                "http://afirm.fpg.unc.edu/social-narratives"
+            )
+        ),
+        (
+            "rdfs:comment",
+            language_string(
+                "Social narratives (SN) describe social situations for "
+                "learners by providing relevant cues, explanation of the "
+                "feelings and thoughts of others, and descriptions of "
+                "appropriate behavior expectations."
+            )
+        ),
+        ("rdfs:label", "Social Narrative")
+    ]:
+        statements = add_if(
+            "mhdb:SocialNarrative",
+            pred[0],
+            pred[1],
+            statements
+        )
+
+    for pred in [
+        ("rdfs:label", language_string("Ann M. Sam")),
+        ("foaf:name", language_string("Ann M. Sam")),
+        ("foaf:familyName", language_string("Sam")),
+        ("foaf:givenName", language_string("Ann")),
+        ("rdfs:type", "foaf:Person"),
+        ("rdfs:site", "mhdb:University_of_North_Carolina_at_Chapel_Hill")
+    ]:
+        statements = add_if(
+            check_iri("http://fpg.unc.edu/profiles/ann-m-sam"),
+            pred[0],
+            pred[1],
+            statements
+        )
+
+    for pred in [
+        ("rdfs:label", language_string("AFIRM Team")),
+        ("foaf:name", language_string("AFIRM Team")),
+        ("rdfs:type", "foaf:Organization"),
+        ("rdfs:site", "mhdb:University_of_North_Carolina_at_Chapel_Hill")
+    ]:
+        statements = add_if(
+            check_iri("AFIRM Team"),
+            pred[0],
+            pred[1],
+            statements
+        )
+
+    for contributor in [
+        check_iri("http://fpg.unc.edu/profiles/ann-m-sam"),
+        check_iri("AFIRM Team")
+    ]:
+        statements = add_if(
+            check_iri(
+                "http://afirm.fpg.unc.edu/social-narratives"
+            ),
+            "dcterms:contributor",
+            contributor,
+            statements
+        )
+
+    for pred in [
+        ("rdfs:subClassOf", "mhdb:SocialNarrative"),
+        ("rdfs:subClassOf", "schema:Game"),
+        (
+            "rdfs:label",
+            language_string(
+                "Combination of a Social Narrative and Gaming System"
+            )
+        )
+    ]:
+        statements = add_if(
+            "mhdb:SocialNarrativeGamingSystem",
+            pred[0],
+            pred[1],
+            statements
+        )
+
+    for pred in [
+        ("rdfs:subClassOf", "sio:SIO_001066"),
+        ("schema:participant", "schema:ParentAudience")
+    ]:
+        statements = add_if(
+            "mhdb:StudyWithParents",
+            pred[0],
+            pred[1],
+            statements
+        )
+
+    for pred in [
+        ("rdfs:label", language_string("Competition")),
+        ("rdfs:subClassOf", "schema:Event")
+    ]:
+        statements = add_if(
+            "mhdb:Competition",
+            pred[0],
+            pred[1],
+            statements
+        )
+
+    for pred in [
+        ("rdfs:label", language_string("Science Contest")),
+        ("rdfs:subClassOf", "mhdb:Competition")
+    ]:
+        statements = add_if(
+            "mhdb:ScienceContest",
+            pred[0],
+            pred[1],
+            statements
+        )
+
+    for pred in [
+        ("rdfs:label", language_string("Massive Open Online Course")),
+        ("rdfs:subClassOf", "schema:Course")
+    ]:
+        statements = add_if(
+            "mhdb:MOOC",
+            pred[0],
+            pred[1],
+            statements
+        )
+
+    #TODO: define ParentAudience, Toy, StudentProject, Hackathon, OutreachProgram, SupportGroup
+
+    project = technology_xls.parse("Project", convert_float=False)
     homepage = technology_xls.parse("HomePageLink")
+    type_of_project = technology_xls.parse("TypeOfProject")
     mhealthpeople = technology_xls.parse("MHealthPeople")
     research_study = technology_xls.parse("ResearchStudyOnProject")
 
     for row in project.iterrows():
+        if isinstance(
+            row[1]["project"],
+            float
+        ) and np.isnan(row[1]["project"]):
+            continue
         project_iri = check_iri(row[1]["project"])
         project_label = language_string(row[1]["project"])
 
@@ -940,6 +1246,14 @@ def Project(
             homepage,
             "index",
             "HomePageLink",
+            ","
+        )
+
+        type_of_project_iris = object_split_lookup(
+            row[1]["TypeOfProject_index"],
+            type_of_project,
+            "index",
+            "IRI",
             ","
         )
 
@@ -1003,6 +1317,15 @@ def Project(
                         statements
                     )
 
+        if type_of_project_iris and len(type_of_project_iris):
+            for type_of_project_iri in type_of_project_iris:
+                statements = add_if(
+                    project_iri,
+                    "rdf:type",
+                    type_of_project_iri,
+                    statements
+                )
+
         if mhealthpeople_iris and len(mhealthpeople_iris):
             for mhealthpeople_iri in mhealthpeople_iris:
                 for prop in [
@@ -1032,7 +1355,7 @@ def Project(
             ("rdfs:label", project_label),
             ("rdfs:subClassOf", "schema:Product")
         ]:
-            statemets = add_if(
+            statements = add_if(
                 project_iri,
                 prop[0],
                 prop[1],
