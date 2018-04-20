@@ -455,7 +455,8 @@ def disorder_iri(
             ]==int(disorderSeries[
                 "DisorderSeverity_index"
             ])
-        ]["DisorderSeverityName"].values[0]
+        ]["DisorderSeverityName"].values[0],
+        disorder_name
     ]) if (
         not isinstance(
             disorderSeries[
